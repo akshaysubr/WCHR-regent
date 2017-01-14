@@ -7,9 +7,9 @@ local PI    = cmath.M_PI
 local max = regentlib.fmax
 
 -- Some problem parameters
-local NX = 32
-local NY = 32
-local NZ = 32
+local NX = 64
+local NY = 64
+local NZ = 64
 local LL = 2.0*math.pi
 local DX = LL / NX
 local DY = LL / NY

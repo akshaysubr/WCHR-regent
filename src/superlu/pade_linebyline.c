@@ -165,7 +165,8 @@ int main(int argc, char *argv[])
            &L, &U, work, lwork, &B, &X, &rpg, &rcond, ferr, berr,
            &Glu, &mem_usage, &stat, &info);
 
-    options.Fact = SamePattern_SameRowPerm;
+    // options.Fact = SamePattern_SameRowPerm;
+    options.Fact = FACTORED;
     StatInit(&stat);
 
     for (int k = 0; k < nz; ++k){
