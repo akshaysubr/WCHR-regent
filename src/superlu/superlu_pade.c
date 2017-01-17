@@ -14,6 +14,10 @@
 #define b10   ((101./150.)/4.)
 #define c10   ((1./100.)  /6.)
 
+#ifndef M_PI
+    #define M_PI 3.14159265358979323846
+#endif
+
 void create_pade_matrix(double *nzval, int *rowind, int *colptr, long int nnz, int nx, int ny, int nz)
 {
     // double *nzval;
@@ -22,7 +26,7 @@ void create_pade_matrix(double *nzval, int *rowind, int *colptr, long int nnz, i
 
     double Avals[5] = {beta, alpha, 1., alpha, beta};
 
-    long int Nsize = (long int)nx * (long int)ny * (long int)nz;
+    // long int Nsize = (long int)nx * (long int)ny * (long int)nz;
 
     // nnz = 5*Nsize;
     // colptr = (int *) malloc ( (Nsize+1) * sizeof(int));
@@ -88,7 +92,7 @@ int main(int argc, char *argv[])
    
     superlu_vars_t vars;
     
-    int info;
+    // int info;
 
     double *nzval;
     int *rowind, *colptr;
