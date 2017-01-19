@@ -24,7 +24,8 @@ void MatrixSolve(double * restrict dX, double * restrict df, double * restrict n
 
 void destroy_superlu_vars(superlu_vars_t *vars)
 {
-    Destroy_CompCol_Matrix(&(vars->A));
+    // Destroy_CompCol_Matrix(&(vars->A));
+    Destroy_CompRow_Matrix(&(vars->A));
     Destroy_SuperMatrix_Store(&(vars->B));
     Destroy_SuperMatrix_Store(&(vars->X));
     Destroy_SuperNode_Matrix(&(vars->L));
@@ -51,7 +52,9 @@ superlu_vars_t initialize_superlu_vars(double *nzval, int* rowind, int *colptr, 
 
     superlu_vars_t vars;
 
-    dCreate_CompCol_Matrix (&(vars.A), Nsize, Nsize, nnz, nzval, rowind, colptr, SLU_NC, SLU_D, SLU_GE);
+    // dCreate_CompCol_Matrix (&(vars.A), Nsize, Nsize, nnz, nzval, rowind, colptr, SLU_NC, SLU_D, SLU_GE);
+    dCreate_CompRow_Matrix (&(vars.A), Nsize, Nsize, nnz, nzval, rowind, colptr, SLU_NC, SLU_D, SLU_GE);
+    // dPrint_CompCol_Matrix("A: ", &(vars.A));
 
     vars.perm_r = (int *) malloc( Nsize * sizeof(int));
     vars.perm_c = (int *) malloc( Nsize * sizeof(int));

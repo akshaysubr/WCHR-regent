@@ -4,7 +4,7 @@
 #include <time.h>
 
 #include "slu_ddefs.h"
-#include "superlu_util.h"
+#include "../superlu_util.h"
 
 #define LOC(i,j,k) ( ((i+nx)%nx) + nx*((j+ny)%ny) + nx*ny*((k+nz)%nz) )
 
