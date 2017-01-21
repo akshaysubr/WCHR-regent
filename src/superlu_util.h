@@ -36,6 +36,6 @@ void MatrixSolve(double * restrict dX, double * restrict df, double * restrict n
 
 void destroy_superlu_vars(superlu_vars_t *vars);
 
-superlu_vars_t initialize_superlu_vars(double *nzval, int* rowind, int *colptr, long int Nsize, long int nnz, double *b, double *x);
+void initialize_superlu_vars(double *nzval, int* rowind, int *colptr, long int Nsize, long int nnz, double *b, double *x, superlu_vars_t *vars);
 
 #endif

@@ -7,9 +7,9 @@ local PI    = cmath.M_PI
 local superlu = require("superlu_util")
 
 -- Grid dimensions
-local NX = 16
-local NY = 16
-local NZ = 1
+local NX = 64
+local NY = 64
+local NZ = 64
 
 -- Domain size
 local LX = 2.0*math.pi
@@ -171,8 +171,9 @@ task main()
 
   -- Initialize SuperLU stuff
   matrix[0] = superlu.initialize_matrix(alpha10d1, beta10d1, Nx, Ny, Nz)
-  slu[0]    = superlu.initialize_superlu_vars( matrix[0], Nx*Ny*Nz, __physical(points.dX), __fields(points.dX),
-                                               __physical(points.df), __fields(points.df), points.bounds)
+  superlu.initialize_superlu_vars( matrix[0], Nx*Ny*Nz, __physical(points.dX), __fields(points.dX),
+                                   __physical(points.df), __fields(points.df), points.bounds,
+                                   __physical(slu)[0], __fields(slu)[0], slu.bounds)
 
   wait_for(token)
   var ts_start = c.legion_get_current_time_in_micros()
@@ -182,8 +183,8 @@ task main()
 
   wait_for(token)
   var ts_d1 = c.legion_get_current_time_in_micros() - ts_start
-  c.printf("Time to get the 1st derivatives: %12.5e\n", (ts_d1)*1e-6)
-  c.printf("Maximum error in 1st derivative: %12.5e\n", check_error(points))
+  c.printf("Time to get the 1st derivatives: %g\n", (ts_d1)*1e-6)
+  c.printf("Maximum error in 1st derivative: %g\n", check_error(points))
     
 end
 

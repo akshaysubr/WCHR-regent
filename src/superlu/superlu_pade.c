@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
 
     create_pade_matrix(nzval, rowind, colptr, nnz, nx, ny, nz);
 
-    vars = initialize_superlu_vars(nzval, rowind, colptr, Nsize, nnz, df, dX);
+    initialize_superlu_vars(nzval, rowind, colptr, Nsize, nnz, df, dX, &vars);
 
     for (int k = 0; k < nz; ++k){
         for (int j = 0; j < ny; ++j){

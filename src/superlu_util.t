@@ -8,7 +8,7 @@ do
   local superlu_util_cc = root_dir .. "superlu_util.c"
   superlu_util_so = os.tmpname() .. ".so"
   local cc = os.getenv('CC') or 'cc'
-  local cc_flags = "-O3 -Wall -Werror -std=c99"
+  local cc_flags = "-g -O0 -Wall -Werror -std=c99"
   cc_flags = cc_flags .. " -I" .. superlu_include_dir
   local is_darwin = os.execute('test "$(uname)" = Darwin') == 0
   if is_darwin then
@@ -68,17 +68,17 @@ terra superlu.initialize_matrix( alpha  : double,
   var counter : int64 = 0
   matrix.rowptr[0] = counter
 
-  for row = 0, nx do
+  for iz = 0, nz do
     for iy = 0, ny do
-      for iz = 0, nz do
+      for row = 0, nx do
         for j = 0, 5 do
           var col : int = row + j - 2
-          var gcol : int64 = iz + nz*iy + ny*nz*((col + nx)%nx)
+          var gcol : int64 = (col + nx)%nx + iy*nx + iz*nx*ny
           matrix.colind[counter] = gcol
           matrix.nzval [counter] = Avals[j]
           counter = counter + 1
         end
-        var grow : int64 = iz + nz*iy + ny*nz*row
+        var grow : int64 = row + iy*nx + iz*nx*ny
         matrix.rowptr[grow+1] = matrix.rowptr[grow] + 5
       end
     end
@@ -119,11 +119,14 @@ terra superlu.initialize_superlu_vars( matrix : superlu.CSR_matrix,
                                        fid1   : c.legion_field_id_t[1],
                                        pr2    : c.legion_physical_region_t[1],
                                        fid2   : c.legion_field_id_t[1],
-                                       rect   : c.legion_rect_3d_t )
+                                       rect   : c.legion_rect_3d_t,
+                                       prv    : c.legion_physical_region_t,
+                                       fidv   : c.legion_field_id_t,
+                                       rectv  : c.legion_rect_1d_t )
   var b = get_base_pointer(pr1, fid1, rect)
   var x = get_base_pointer(pr2, fid2, rect)
-  var vars : superlu.c.superlu_vars_t = superlu.c.initialize_superlu_vars(matrix.nzval, matrix.colind, matrix.rowptr, Nsize, matrix.nnz, b, x)
-  return vars
+  var vars = get_base_pointer_1d(prv, fidv, rectv)
+  superlu.c.initialize_superlu_vars(matrix.nzval, matrix.colind, matrix.rowptr, Nsize, matrix.nnz, b, x, vars)
 end
 
 terra superlu.MatrixSolve( pr1    : c.legion_physical_region_t[1],
