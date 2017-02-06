@@ -198,6 +198,18 @@ local function make_stencil_x(r1, privileges_r1, f1, r2, privileges_r2, f2, Nx, 
   return rhs_x
 end
 
+local function make_stencil_MND_x(r1, privileges_r1, f1, r2, privileges_r2, r3, privileges_r3, f3, Nx, Ny, Nz, onebydx, a, b, c, der)
+  local rhs_x __demand(__inline) task rhs_x( [r1], [r2], [r3] )
+  where
+    [privileges_r1], [privileges_r2], [privileges_r3]
+  do
+    for i in r3 do
+      r3[i].[f3] = [make_stencil_pattern_MND(r1, r2, f1, i, a, b, c, Nx, Ny, Nz, onebydx, 0, der)]
+    end
+  end
+  return rhs_x
+end
+
 -- Grid dimensions
 local NX = 64
 local NY = 64
@@ -217,17 +229,28 @@ local ONEBYDX = 1.0 / DX
 local ONEBYDY = 1.0 / DY
 local ONEBYDZ = 1.0 / DZ
 
-local a10d1 = ( 17.0/ 12.0)/2.0
-local b10d1 = (101.0/150.0)/4.0
-local c10d1 = (  1.0/100.0)/6.0
+-- local a10d1 = ( 17.0/ 12.0)/2.0
+-- local b10d1 = (101.0/150.0)/4.0
+-- local c10d1 = (  1.0/100.0)/6.0
 
-local r_flux = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux")
-local r_cnsr = regentlib.newsymbol(region(ispace(int3d), conserved), "r_cnsr")
+local a10d1 = ( 14.0/ 9.0)/2.0
+local b10d1 = (  1.0/ 9.0)/4.0
+local c10d1 = (  0.0/100.0)/6.0
 
-local privileges_r_flux = regentlib.privilege(regentlib.reads,  r_flux, "rho")
-local privileges_r_cnsr = regentlib.privilege(regentlib.writes, r_cnsr, "rho")
+local r_flux   = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux")
+local r_flux_e = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux_e")
+local r_cnsr   = regentlib.newsymbol(region(ispace(int3d), conserved), "r_cnsr")
+
+local privileges_r_flux   = regentlib.privilege(regentlib.reads,  r_flux,   "rho")
+local privileges_r_flux_e = regentlib.privilege(regentlib.reads,  r_flux_e, "rho")
+local privileges_r_cnsr   = regentlib.privilege(regentlib.writes, r_cnsr,   "rho")
 
 local ComputeXRHS  = make_stencil_x(r_flux, privileges_r_flux, "rho", r_cnsr, privileges_r_cnsr, "rho", NX, NY, NZ, ONEBYDX, a10d1, b10d1, c10d1, 1)
+
+local a06MND = 16.0/9.0
+local b06MND = (-17.0/18.0)/2.0
+local c06MND = (0.0)/3.0
+local ComputeXRHS_MND  = make_stencil_MND_x(r_flux, privileges_r_flux, "rho", r_flux_e, privileges_r_flux_e, r_cnsr, privileges_r_cnsr, "rho", NX, NY, NZ, ONEBYDX, a06MND, b06MND, c06MND, 1)
 
 __demand(__inline)
 task SolveXLU( points : region(ispace(int3d), conserved),
@@ -279,6 +302,19 @@ where
   reads(LU, r_flux.rho), reads writes(r_cnsr.rho)
 do
   ComputeXRHS(r_flux, r_cnsr)
+  var token = SolveXLU(r_cnsr,LU)
+  token = r_cnsr[r_cnsr.ispace.bounds.lo].rho
+  return token
+end
+
+task ddx_MND( r_flux   : region(ispace(int3d), conserved),
+              r_flux_e : region(ispace(int3d), conserved),
+              r_cnsr   : region(ispace(int3d), conserved),
+              LU       : region(ispace(int3d), LU_struct) )
+where
+  reads(LU, r_flux.rho, r_flux_e.rho), reads writes(r_cnsr.rho)
+do
+  ComputeXRHS_MND(r_flux, r_flux_e, r_cnsr)
   var token = SolveXLU(r_cnsr,LU)
   token = r_cnsr[r_cnsr.ispace.bounds.lo].rho
   return token

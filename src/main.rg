@@ -120,8 +120,6 @@ task main()
   var dz : double = DZ
 
   c.printf("================ Problem parameters ================\n")
-  c.printf("           grid size  = %d x %d x %d\n", Nx, Ny, Nz )
-  c.printf("         domain size  = %f x %f x %f\n", Lx, Ly, Lz )
   c.printf("           dx, dy, dz = %f, %f, %f\n", dx, dy, dz)
   c.printf("====================================================\n")
 
@@ -187,17 +185,24 @@ task main()
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
-  var alpha10d1 : double = 1.0/2.0
-  var beta10d1  : double = 1.0/20.0
-  get_LU_decomposition(LU_x, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
-
   var token = initialize(coords, r_flux_c, r_flux_e_x, r_flux_e_y, r_flux_e_z, dx, dy, dz)
   wait_for(token)
 
+  -- var alpha10d1 : double = 1.0/2.0
+  -- var beta10d1  : double = 1.0/20.0
+  var alpha10d1 : double = 1.0/3.0
+  var beta10d1  : double = 0.0
+  get_LU_decomposition(LU_x, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
   token += ddx(r_flux_c, r_cnsr, LU_x)
   wait_for(token)
-  
   c.printf("Error in ddx = %g\n", check_ddx(coords, r_cnsr))
+
+  var alpha06MND : double = -1.0/12.0
+  var beta06MND  : double = 0.0
+  get_LU_decomposition(LU_x, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  token += ddx_MND(r_flux_c, r_flux_e_x, r_cnsr, LU_x)
+  wait_for(token)
+  c.printf("Error in ddx_MND = %g\n", check_ddx(coords, r_cnsr))
 end
 
 regentlib.start(main)
