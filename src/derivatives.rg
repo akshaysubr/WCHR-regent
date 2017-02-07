@@ -210,112 +210,103 @@ local function make_stencil_MND_x(r1, privileges_r1, f1, r2, privileges_r2, r3, 
   return rhs_x
 end
 
--- Grid dimensions
-local NX = 64
-local NY = 64
-local NZ = 64
-
--- Domain size
-local LX = 2.0*math.pi
-local LY = 2.0*math.pi
-local LZ = 2.0*math.pi
-
--- Grid spacing
-local DX = LX / NX
-local DY = LY / NY
-local DZ = LZ / NZ
-
-local ONEBYDX = 1.0 / DX
-local ONEBYDY = 1.0 / DY
-local ONEBYDZ = 1.0 / DZ
-
--- local a10d1 = ( 17.0/ 12.0)/2.0
--- local b10d1 = (101.0/150.0)/4.0
--- local c10d1 = (  1.0/100.0)/6.0
-
-local a10d1 = ( 14.0/ 9.0)/2.0
-local b10d1 = (  1.0/ 9.0)/4.0
-local c10d1 = (  0.0/100.0)/6.0
-
-local r_flux   = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux")
-local r_flux_e = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux_e")
-local r_cnsr   = regentlib.newsymbol(region(ispace(int3d), conserved), "r_cnsr")
-
-local privileges_r_flux   = regentlib.privilege(regentlib.reads,  r_flux,   "rho")
-local privileges_r_flux_e = regentlib.privilege(regentlib.reads,  r_flux_e, "rho")
-local privileges_r_cnsr   = regentlib.privilege(regentlib.writes, r_cnsr,   "rho")
-
-local ComputeXRHS  = make_stencil_x(r_flux, privileges_r_flux, "rho", r_cnsr, privileges_r_cnsr, "rho", NX, NY, NZ, ONEBYDX, a10d1, b10d1, c10d1, 1)
-
-local a06MND = 16.0/9.0
-local b06MND = (-17.0/18.0)/2.0
-local c06MND = (0.0)/3.0
-local ComputeXRHS_MND  = make_stencil_MND_x(r_flux, privileges_r_flux, "rho", r_flux_e, privileges_r_flux_e, r_cnsr, privileges_r_cnsr, "rho", NX, NY, NZ, ONEBYDX, a06MND, b06MND, c06MND, 1)
-
-__demand(__inline)
-task SolveXLU( points : region(ispace(int3d), conserved),
-               LU     : region(ispace(int3d), LU_struct) )
-where
-  reads writes(points.rho), reads(LU)
-do
-  var bounds = points.ispace.bounds
-  var N = bounds.hi.x + 1
-  var pr = LU.ispace.bounds.hi.y
-  var pc = LU.ispace.bounds.hi.z
-
-  for j = bounds.lo.y, bounds.hi.y+1 do
-    for k = bounds.lo.z, bounds.hi.z+1 do
-
-      -- Step 8
-      points[{1,j,k}].rho = points[{1,j,k}].rho - LU[{1,pr,pc}].b*points[{0,j,k}].rho
-      var sum1 : double = LU[{0,pr,pc}].k*points[{0,j,k}].rho + LU[{1,pr,pc}].k*points[{1,j,k}].rho
-      var sum2 : double = LU[{0,pr,pc}].l*points[{0,j,k}].rho + LU[{1,pr,pc}].l*points[{1,j,k}].rho
-
-      -- Step 9
-      for i = 2,N-2 do
-        points[{i,j,k}].rho = points[{i,j,k}].rho - LU[{i,pr,pc}].b*points[{i-1,j,k}].rho - LU[{i,pr,pc}].eg*points[{i-2,j,k}].rho
-        sum1 += LU[{i,pr,pc}].k*points[{i,j,k}].rho
-        sum2 += LU[{i,pr,pc}].l*points[{i,j,k}].rho
+local function make_SolveXLU(r, privileges_r, f)
+  local SolveXLU __demand(__inline) task SolveXLU( [r], LU : region(ispace(int3d), LU_struct) )
+  where
+    [privileges_r], reads(LU)
+  do
+    var bounds = [r].ispace.bounds
+    var N = bounds.hi.x + 1
+    var pr = LU.ispace.bounds.hi.y
+    var pc = LU.ispace.bounds.hi.z
+  
+    for j = bounds.lo.y, bounds.hi.y+1 do
+      for k = bounds.lo.z, bounds.hi.z+1 do
+  
+        -- Step 8
+        [r][{1,j,k}].[f] = [r][{1,j,k}].[f] - LU[{1,pr,pc}].b*[r][{0,j,k}].[f]
+        var sum1 : double = LU[{0,pr,pc}].k*[r][{0,j,k}].[f] + LU[{1,pr,pc}].k*[r][{1,j,k}].[f]
+        var sum2 : double = LU[{0,pr,pc}].l*[r][{0,j,k}].[f] + LU[{1,pr,pc}].l*[r][{1,j,k}].[f]
+  
+        -- Step 9
+        for i = 2,N-2 do
+          [r][{i,j,k}].[f] = [r][{i,j,k}].[f] - LU[{i,pr,pc}].b*[r][{i-1,j,k}].[f] - LU[{i,pr,pc}].eg*[r][{i-2,j,k}].[f]
+          sum1 += LU[{i,pr,pc}].k*[r][{i,j,k}].[f]
+          sum2 += LU[{i,pr,pc}].l*[r][{i,j,k}].[f]
+        end
+  
+        -- Step 10
+        [r][{N-2,j,k}].[f] = [r][{N-2,j,k}].[f] - sum1
+        [r][{N-1,j,k}].[f] = ( [r][{N-1,j,k}].[f] - sum2 - LU[{N-2,pr,pc}].l*[r][{N-2,j,k}].[f] )*LU[{N-1,pr,pc}].g
+  
+        -- Step 11
+        [r][{N-2,j,k}].[f] = ( [r][{N-2,j,k}].[f] - LU[{N-2,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{N-2,pr,pc}].g
+        [r][{N-3,j,k}].[f] = ( [r][{N-3,j,k}].[f] - LU[{N-3,pr,pc}].v*[r][{N-2,j,k}].[f] - LU[{N-3,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{N-3,pr,pc}].g
+        [r][{N-4,j,k}].[f] = ( [r][{N-4,j,k}].[f] - LU[{N-4,pr,pc}].h*[r][{N-3,j,k}].[f] - LU[{N-4,pr,pc}].v*[r][{N-2,j,k}].[f] - LU[{N-4,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{N-4,pr,pc}].g
+        for i = N-5,-1,-1 do
+          [r][{i,j,k}].[f] = ( [r][{i,j,k}].[f] - LU[{i,pr,pc}].h*[r][{i+1,j,k}].[f] - LU[{i,pr,pc}].ff*[r][{i+2,j,k}].[f] - LU[{i,pr,pc}].v*[r][{N-2,j,k}].[f] - LU[{i,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{i,pr,pc}].g
+        end
+  
       end
-
-      -- Step 10
-      points[{N-2,j,k}].rho = points[{N-2,j,k}].rho - sum1
-      points[{N-1,j,k}].rho = ( points[{N-1,j,k}].rho - sum2 - LU[{N-2,pr,pc}].l*points[{N-2,j,k}].rho )*LU[{N-1,pr,pc}].g
-
-      -- Step 11
-      points[{N-2,j,k}].rho = ( points[{N-2,j,k}].rho - LU[{N-2,pr,pc}].w*points[{N-1,j,k}].rho )*LU[{N-2,pr,pc}].g
-      points[{N-3,j,k}].rho = ( points[{N-3,j,k}].rho - LU[{N-3,pr,pc}].v*points[{N-2,j,k}].rho - LU[{N-3,pr,pc}].w*points[{N-1,j,k}].rho )*LU[{N-3,pr,pc}].g
-      points[{N-4,j,k}].rho = ( points[{N-4,j,k}].rho - LU[{N-4,pr,pc}].h*points[{N-3,j,k}].rho - LU[{N-4,pr,pc}].v*points[{N-2,j,k}].rho - LU[{N-4,pr,pc}].w*points[{N-1,j,k}].rho )*LU[{N-4,pr,pc}].g
-      for i = N-5,-1,-1 do
-        points[{i,j,k}].rho = ( points[{i,j,k}].rho - LU[{i,pr,pc}].h*points[{i+1,j,k}].rho - LU[{i,pr,pc}].ff*points[{i+2,j,k}].rho - LU[{i,pr,pc}].v*points[{N-2,j,k}].rho - LU[{i,pr,pc}].w*points[{N-1,j,k}].rho )*LU[{i,pr,pc}].g
-      end
-
     end
+    return 1
   end
-  return 1
+  return SolveXLU
 end
 
-task ddx( r_flux : region(ispace(int3d), conserved),
-          r_cnsr : region(ispace(int3d), conserved),
-          LU     : region(ispace(int3d), LU_struct) )
-where
-  reads(LU, r_flux.rho), reads writes(r_cnsr.rho)
-do
-  ComputeXRHS(r_flux, r_cnsr)
-  var token = SolveXLU(r_cnsr,LU)
-  token = r_cnsr[r_cnsr.ispace.bounds.lo].rho
-  return token
+function make_ddx(r_flux, f_flux, r_cnsr, f_cnsr, NX, NY, NZ, ONEBYDX, a, b, c)
+  local privileges_r_flux   = regentlib.privilege(regentlib.reads,  r_flux, f_flux)
+  local privileges_r_cnsr   = regentlib.privilege(regentlib.writes, r_cnsr, f_cnsr)
+
+  local ComputeXRHS  = make_stencil_x(r_flux, privileges_r_flux, f_flux, r_cnsr, privileges_r_cnsr, f_cnsr, NX, NY, NZ, ONEBYDX, a, b, c, 1)
+  local SolveXLU     = make_SolveXLU(r_cnsr, privileges_r_cnsr, f_cnsr)
+
+  local task ddx( [r_flux],
+                  [r_cnsr],
+                  LU     : region(ispace(int3d), LU_struct) )
+  where
+    reads(LU), [privileges_r_flux], [privileges_r_cnsr]
+  do
+    [ComputeXRHS]([r_flux], [r_cnsr])
+    var token = [SolveXLU]([r_cnsr],LU)
+    token = r_cnsr[ [r_cnsr].ispace.bounds.lo ].[f_cnsr]
+    return token
+  end
+  return ddx
 end
 
-task ddx_MND( r_flux   : region(ispace(int3d), conserved),
-              r_flux_e : region(ispace(int3d), conserved),
-              r_cnsr   : region(ispace(int3d), conserved),
-              LU       : region(ispace(int3d), LU_struct) )
-where
-  reads(LU, r_flux.rho, r_flux_e.rho), reads writes(r_cnsr.rho)
-do
-  ComputeXRHS_MND(r_flux, r_flux_e, r_cnsr)
-  var token = SolveXLU(r_cnsr,LU)
-  token = r_cnsr[r_cnsr.ispace.bounds.lo].rho
-  return token
+function make_ddx_MND(r_flux, r_flux_e, f_flux, r_cnsr, f_cnsr, NX, NY, NZ, ONEBYDX, a, b, c)
+  local privileges_r_flux   = regentlib.privilege(regentlib.reads,  r_flux,   f_flux)
+  local privileges_r_flux_e = regentlib.privilege(regentlib.reads,  r_flux_e, f_flux)
+  local privileges_r_cnsr   = regentlib.privilege(regentlib.writes, r_cnsr,   f_cnsr)
+
+  local ComputeXRHS_MND  = make_stencil_MND_x(r_flux, privileges_r_flux, f_flux, r_flux_e, privileges_r_flux_e, r_cnsr, privileges_r_cnsr, f_cnsr, NX, NY, NZ, ONEBYDX, a, b, c, 1)
+  local SolveXLU         = make_SolveXLU(r_cnsr, privileges_r_cnsr, f_cnsr)
+
+  local task ddx_MND( [r_flux],
+                      [r_flux_e],
+                      [r_cnsr],
+                      LU     : region(ispace(int3d), LU_struct) )
+  where
+    reads(LU), [privileges_r_flux], [privileges_r_flux_e], [privileges_r_cnsr]
+  do
+    [ComputeXRHS_MND]([r_flux], [r_flux_e], [r_cnsr])
+    var token = [SolveXLU]([r_cnsr],LU)
+    token = r_cnsr[ [r_cnsr].ispace.bounds.lo ].[f_cnsr]
+    return token
+  end
+  return ddx_MND
 end
+
+-- task ddx_MND( r_flux   : region(ispace(int3d), conserved),
+--               r_flux_e : region(ispace(int3d), conserved),
+--               r_cnsr   : region(ispace(int3d), conserved),
+--               LU       : region(ispace(int3d), LU_struct) )
+-- where
+--   reads(LU, r_flux.rho, r_flux_e.rho), reads writes(r_cnsr.rho)
+-- do
+--   ComputeXRHS_MND(r_flux, r_flux_e, r_cnsr)
+--   var token = SolveXLU(r_cnsr,LU)
+--   token = r_cnsr[r_cnsr.ispace.bounds.lo].rho
+--   return token
+-- end

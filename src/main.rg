@@ -5,18 +5,25 @@ local cmath = terralib.includec("math.h")
 local PI    = cmath.M_PI
 
 require("fields")
-require("derivatives")
+require("IO")
 local superlu = require("superlu_util")
 
 -- Grid dimensions
-local NX = 64
-local NY = 64
-local NZ = 64
+local NX = 200
+local NY = 8
+local NZ = 8
 
 -- Domain size
-local LX = 2.0*math.pi
-local LY = 2.0*math.pi
-local LZ = 2.0*math.pi
+-- local LX = 2.0*math.pi
+-- local LY = 2.0*math.pi
+-- local LZ = 2.0*math.pi
+local LX = 10.0
+local LY = 1.0
+local LZ = 1.0
+
+local X1 = -5.0
+local Y1 = 0.0
+local Z1 = 0.0
 
 -- Grid spacing
 local DX = LX / NX
@@ -27,61 +34,76 @@ local ONEBYDX = 1.0 / DX
 local ONEBYDY = 1.0 / DY
 local ONEBYDZ = 1.0 / DZ
 
-
-
-
-
--- local r_flux = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux")
--- local r_cnsr = regentlib.newsymbol(region(ispace(int3d), conserved), "r_cnsr")
+-- Make the node and midpoint-node differencing tasks (Using pentadiagonal solver for this instead of tridiagonal solver)
+-- require("derivatives")
+-- local alpha10d1 = 1.0/3.0
+-- local beta10d1  = 0.0
+-- local a06d1 = ( 14.0/ 9.0)/2.0
+-- local b06d1 = (  1.0/ 9.0)/4.0
+-- local c06d1 = (  0.0/100.0)/6.0
 -- 
--- local privileges_r_flux = regentlib.privilege(regentlib.reads,  r_flux, "rho")
--- local privileges_r_cnsr = regentlib.privilege(regentlib.writes, r_cnsr, "rho")
+-- local alpha06MND = -1.0/12.0
+-- local beta06MND  = 0.0
+-- local a06MND = 16.0/9.0
+-- local b06MND = (-17.0/18.0)/2.0
+-- local c06MND = (0.0)/3.0
 -- 
--- local ComputeXRHS  = make_stencil_x(r_flux, privileges_r_flux, "rho", r_cnsr, privileges_r_cnsr, "rho", NX, NY, NZ, ONEBYDX, a10d1, b10d1, c10d1, 1)
--- local ComputeYRHS  = make_stencil_y(r_flux, privileges_r_flux, "rho", r_cnsr, privileges_r_cnsr, "rho", NX, NY, NZ, ONEBYDY, a10d1, b10d1, c10d1, 1)
--- local ComputeZRHS  = make_stencil_z(r_flux, privileges_r_flux, "rho", r_cnsr, privileges_r_cnsr, "rho", NX, NY, NZ, ONEBYDZ, a10d1, b10d1, c10d1, 1)
-
-
-
-
+-- local r_flux   = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux")
+-- local r_flux_e = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux_e")
+-- local r_cnsr   = regentlib.newsymbol(region(ispace(int3d), conserved), "r_cnsr")
+-- 
+-- local ddx     = make_ddx(r_flux, "rho", r_cnsr, "rho", NX, NY, NZ, ONEBYDX, a06d1, b06d1, c06d1)
+-- local ddx_MND = make_ddx_MND(r_flux, r_flux_e, "rho", r_cnsr, "rho", NX, NY, NZ, ONEBYDX, a06MND, b06MND, c06MND)
+-----------------------------------------------------
 
 task initialize( coords     : region(ispace(int3d), coordinates),
-                 r_flux_c   : region(ispace(int3d), conserved),
-                 r_flux_e_x : region(ispace(int3d), conserved),
-                 r_flux_e_y : region(ispace(int3d), conserved),
-                 r_flux_e_z : region(ispace(int3d), conserved),
+                 r_prim_c   : region(ispace(int3d), primitive),
+                 r_prim_l_x : region(ispace(int3d), primitive),
+                 r_prim_l_y : region(ispace(int3d), primitive),
+                 r_prim_l_z : region(ispace(int3d), primitive),
                  dx         : double,
                  dy         : double,
                  dz         : double )
 where
-  reads writes(coords, r_flux_c, r_flux_e_x, r_flux_e_y, r_flux_e_z)
+  reads writes(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z)
 do
   for i in coords.ispace do
-    coords[i].x_c = (i.x + 0.5) * dx
-    coords[i].y_c = (i.y + 0.5) * dy
-    coords[i].z_c = (i.z + 0.5) * dz
-    r_flux_c[i].rho = cmath.sin(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.cos(coords[i].z_c)
+    coords[i].x_c = X1 + (i.x + 0.5) * dx
+    coords[i].y_c = Y1 + (i.y + 0.5) * dy
+    coords[i].z_c = Z1 + (i.z + 0.5) * dz
+
+    if (coords[i].x_c < -4.0) then
+      r_prim_c[i].rho = 3.857143
+      r_prim_c[i].u   = 2.62936
+      r_prim_c[i].v   = 0.0 
+      r_prim_c[i].w   = 0.0
+      r_prim_c[i].p   = 10.33339
+    else
+      r_prim_c[i].rho = 1.0 + 0.2*cmath.sin(5.0*coords[i].x_c)
+      r_prim_c[i].u   = 0.0
+      r_prim_c[i].v   = 0.0 
+      r_prim_c[i].w   = 0.0
+      r_prim_c[i].p   = 1.0
+    end
   end
 
-  for i in r_flux_e_x do
-    var x_c : double = (i.x + 0.0) * dx
-    var y_c : double = (i.y + 0.5) * dy
-    var z_c : double = (i.z + 0.5) * dz
-    r_flux_e_x[i].rho = cmath.sin(x_c) * cmath.cos(y_c) * cmath.cos(z_c)
-  end
-
-  for i in r_flux_e_y do
-    var x_c : double = (i.x + 0.5) * dx
-    var y_c : double = (i.y + 0.0) * dy
-    var z_c : double = (i.z + 0.5) * dz
-    r_flux_e_y[i].rho = cmath.sin(x_c) * cmath.cos(y_c) * cmath.cos(z_c)
-  end
-
-  for i in r_flux_e_z do
-    var x_c : double = (i.x + 0.5) * dx
-    var y_c : double = (i.y + 0.5) * dy
-    var z_c : double = (i.z + 0.0) * dz
-    r_flux_e_z[i].rho = cmath.sin(x_c) * cmath.cos(y_c) * cmath.cos(z_c)
+  for i in r_prim_l_x do
+    var x_c : double = X1 + (i.x) * dx
+    var y_c : double = Y1 + (i.y) * dy
+    var z_c : double = Z1 + (i.z) * dz
+    if (x_c < -4.0) then
+      r_prim_l_x[i].rho = 3.857143
+      r_prim_l_x[i].u   = 2.62936
+      r_prim_l_x[i].v   = 0.0 
+      r_prim_l_x[i].w   = 0.0
+      r_prim_l_x[i].p   = 10.33339
+    else
+      r_prim_l_x[i].rho = 1.0 + 0.2*cmath.sin(5.0*x_c)
+      r_prim_l_x[i].u   = 0.0
+      r_prim_l_x[i].v   = 0.0 
+      r_prim_l_x[i].w   = 0.0
+      r_prim_l_x[i].p   = 1.0
+    end
   end
 
   return 1
@@ -120,8 +142,14 @@ task main()
   var dz : double = DZ
 
   c.printf("================ Problem parameters ================\n")
+  c.printf("           Nx, Ny, Nz = %d, %d, %d\n", Nx, Ny, Nz)
+  c.printf("           Lx, Ly, Lz = %f, %f, %f\n", Lx, Ly, Lz)
   c.printf("           dx, dy, dz = %f, %f, %f\n", dx, dy, dz)
   c.printf("====================================================\n")
+
+  generate_hdf5_file_coords("cell_coords.h5", Nx, Ny, Nz)
+  generate_hdf5_file("cell_primitive.h5", Nx, Ny, Nz)
+  generate_hdf5_file("edge_primitive_l_x.h5", Nx+1, Ny, Nz)
 
   --------------------------------------------------------------------------------------------
   --                       DATA STUCTURES
@@ -185,24 +213,21 @@ task main()
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
-  var token = initialize(coords, r_flux_c, r_flux_e_x, r_flux_e_y, r_flux_e_z, dx, dy, dz)
+  attach(hdf5, coords.{x_c, y_c, z_c}, "cell_coords.h5", regentlib.file_read_write)
+  attach(hdf5, r_prim_c.{rho, u, v, w, p}, "cell_primitive.h5", regentlib.file_read_write)
+  attach(hdf5, r_prim_l_x.{rho, u, v, w, p}, "edge_primitive_l_x.h5", regentlib.file_read_write)
+  -- acquire(r_prim_c)
+  -- acquire(r_prim_l_x)
+
+  var token = initialize(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z, dx, dy, dz)
   wait_for(token)
 
-  -- var alpha10d1 : double = 1.0/2.0
-  -- var beta10d1  : double = 1.0/20.0
-  var alpha10d1 : double = 1.0/3.0
-  var beta10d1  : double = 0.0
-  get_LU_decomposition(LU_x, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
-  token += ddx(r_flux_c, r_cnsr, LU_x)
-  wait_for(token)
-  c.printf("Error in ddx = %g\n", check_ddx(coords, r_cnsr))
+  -- release(r_prim_c)
+  -- release(r_prim_l_x)
+  detach(hdf5, coords.{x_c, y_c, z_c})
+  detach(hdf5, r_prim_c.{rho, u, v, w, p})
+  detach(hdf5, r_prim_l_x.{rho, u, v, w, p})
 
-  var alpha06MND : double = -1.0/12.0
-  var beta06MND  : double = 0.0
-  get_LU_decomposition(LU_x, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
-  token += ddx_MND(r_flux_c, r_flux_e_x, r_cnsr, LU_x)
-  wait_for(token)
-  c.printf("Error in ddx_MND = %g\n", check_ddx(coords, r_cnsr))
 end
 
 regentlib.start(main)
