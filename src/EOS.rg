@@ -83,4 +83,3 @@ do
     r_flux[i].rhoE =(r_cnsr[i].rhoE + r_prim[i].p) * r_prim[i].w
   end
 end
-

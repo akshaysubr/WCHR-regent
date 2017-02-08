@@ -1,7 +1,6 @@
 import "regent"
 
 require("fields")
-local superlu = require("superlu_util")
 
 task get_LU_decomposition(LU : region(ispace(int3d), LU_struct),
                           e  : double,
@@ -192,7 +191,7 @@ local function make_stencil_x(r1, privileges_r1, f1, r2, privileges_r2, f2, Nx, 
     [privileges_r1], [privileges_r2]
   do
     for i in r2 do
-      r2[i].[f2] = [make_stencil_pattern(r1, f1, i, a, b, c, Nx, Ny, Nz, onebydx, 0, der)]
+      [r2][i].[f2] = [make_stencil_pattern(r1, f1, i, a, b, c, Nx, Ny, Nz, onebydx, 0, der)]
     end
   end
   return rhs_x
@@ -204,7 +203,7 @@ local function make_stencil_MND_x(r1, privileges_r1, f1, r2, privileges_r2, r3, 
     [privileges_r1], [privileges_r2], [privileges_r3]
   do
     for i in r3 do
-      r3[i].[f3] = [make_stencil_pattern_MND(r1, r2, f1, i, a, b, c, Nx, Ny, Nz, onebydx, 0, der)]
+      [r3][i].[f3] = [make_stencil_pattern_MND(r1, r2, f1, i, a, b, c, Nx, Ny, Nz, onebydx, 0, der)]
     end
   end
   return rhs_x
@@ -236,15 +235,15 @@ local function make_SolveXLU(r, privileges_r, f)
         end
   
         -- Step 10
-        [r][{N-2,j,k}].[f] = [r][{N-2,j,k}].[f] - sum1
-        [r][{N-1,j,k}].[f] = ( [r][{N-1,j,k}].[f] - sum2 - LU[{N-2,pr,pc}].l*[r][{N-2,j,k}].[f] )*LU[{N-1,pr,pc}].g
+        [r][{N-2,j,k}].[f] = [r][{N-2,j,k}].[f] - sum1;
+        [r][{N-1,j,k}].[f] = ( [r][{N-1,j,k}].[f] - sum2 - LU[{N-2,pr,pc}].l*[r][{N-2,j,k}].[f] )*LU[{N-1,pr,pc}].g;
   
         -- Step 11
-        [r][{N-2,j,k}].[f] = ( [r][{N-2,j,k}].[f] - LU[{N-2,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{N-2,pr,pc}].g
-        [r][{N-3,j,k}].[f] = ( [r][{N-3,j,k}].[f] - LU[{N-3,pr,pc}].v*[r][{N-2,j,k}].[f] - LU[{N-3,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{N-3,pr,pc}].g
-        [r][{N-4,j,k}].[f] = ( [r][{N-4,j,k}].[f] - LU[{N-4,pr,pc}].h*[r][{N-3,j,k}].[f] - LU[{N-4,pr,pc}].v*[r][{N-2,j,k}].[f] - LU[{N-4,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{N-4,pr,pc}].g
+        [r][{N-2,j,k}].[f] = ( [r][{N-2,j,k}].[f] - LU[{N-2,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{N-2,pr,pc}].g;
+        [r][{N-3,j,k}].[f] = ( [r][{N-3,j,k}].[f] - LU[{N-3,pr,pc}].v*[r][{N-2,j,k}].[f] - LU[{N-3,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{N-3,pr,pc}].g;
+        [r][{N-4,j,k}].[f] = ( [r][{N-4,j,k}].[f] - LU[{N-4,pr,pc}].h*[r][{N-3,j,k}].[f] - LU[{N-4,pr,pc}].v*[r][{N-2,j,k}].[f] - LU[{N-4,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{N-4,pr,pc}].g;
         for i = N-5,-1,-1 do
-          [r][{i,j,k}].[f] = ( [r][{i,j,k}].[f] - LU[{i,pr,pc}].h*[r][{i+1,j,k}].[f] - LU[{i,pr,pc}].ff*[r][{i+2,j,k}].[f] - LU[{i,pr,pc}].v*[r][{N-2,j,k}].[f] - LU[{i,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{i,pr,pc}].g
+          [r][{i,j,k}].[f] = ( [r][{i,j,k}].[f] - LU[{i,pr,pc}].h*[r][{i+1,j,k}].[f] - LU[{i,pr,pc}].ff*[r][{i+2,j,k}].[f] - LU[{i,pr,pc}].v*[r][{N-2,j,k}].[f] - LU[{i,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{i,pr,pc}].g;
         end
   
       end
@@ -255,8 +254,11 @@ local function make_SolveXLU(r, privileges_r, f)
 end
 
 function make_ddx(r_flux, f_flux, r_cnsr, f_cnsr, NX, NY, NZ, ONEBYDX, a, b, c)
-  local privileges_r_flux   = regentlib.privilege(regentlib.reads,  r_flux, f_flux)
-  local privileges_r_cnsr   = regentlib.privilege(regentlib.writes, r_cnsr, f_cnsr)
+  local privileges_r_flux = regentlib.privilege(regentlib.reads,  r_flux, f_flux)
+  
+  local reads_r_cnsr      = regentlib.privilege(regentlib.reads,  r_cnsr, f_cnsr)
+  local writes_r_cnsr     = regentlib.privilege(regentlib.writes, r_cnsr, f_cnsr)
+  local privileges_r_cnsr = terralib.newlist({reads_r_cnsr, writes_r_cnsr})
 
   local ComputeXRHS  = make_stencil_x(r_flux, privileges_r_flux, f_flux, r_cnsr, privileges_r_cnsr, f_cnsr, NX, NY, NZ, ONEBYDX, a, b, c, 1)
   local SolveXLU     = make_SolveXLU(r_cnsr, privileges_r_cnsr, f_cnsr)
@@ -278,7 +280,10 @@ end
 function make_ddx_MND(r_flux, r_flux_e, f_flux, r_cnsr, f_cnsr, NX, NY, NZ, ONEBYDX, a, b, c)
   local privileges_r_flux   = regentlib.privilege(regentlib.reads,  r_flux,   f_flux)
   local privileges_r_flux_e = regentlib.privilege(regentlib.reads,  r_flux_e, f_flux)
-  local privileges_r_cnsr   = regentlib.privilege(regentlib.writes, r_cnsr,   f_cnsr)
+  
+  local reads_r_cnsr      = regentlib.privilege(regentlib.reads,  r_cnsr, f_cnsr)
+  local writes_r_cnsr     = regentlib.privilege(regentlib.writes, r_cnsr, f_cnsr)
+  local privileges_r_cnsr = terralib.newlist({reads_r_cnsr, writes_r_cnsr})
 
   local ComputeXRHS_MND  = make_stencil_MND_x(r_flux, privileges_r_flux, f_flux, r_flux_e, privileges_r_flux_e, r_cnsr, privileges_r_cnsr, f_cnsr, NX, NY, NZ, ONEBYDX, a, b, c, 1)
   local SolveXLU         = make_SolveXLU(r_cnsr, privileges_r_cnsr, f_cnsr)

@@ -204,12 +204,12 @@ task main()
   var slu_y      = region(pgrid_y, superlu.c.superlu_vars_t) -- Super LU data structure for y interpolation
   var slu_z      = region(pgrid_z, superlu.c.superlu_vars_t) -- Super LU data structure for z interpolation
 
-  var matrix_x_l = region(pgrid_x, superlu.CSR_matrix) -- matrix data structure for x left interpolation
-  var matrix_x_r = region(pgrid_x, superlu.CSR_matrix) -- matrix data structure for x right interpolation
-  var matrix_y_l = region(pgrid_y, superlu.CSR_matrix) -- matrix data structure for y left interpolation
-  var matrix_y_r = region(pgrid_y, superlu.CSR_matrix) -- matrix data structure for y right interpolation
-  var matrix_z_l = region(pgrid_z, superlu.CSR_matrix) -- matrix data structure for z left interpolation
-  var matrix_z_r = region(pgrid_z, superlu.CSR_matrix) -- matrix data structure for z right interpolation
+  var matrix_l_x = region(pgrid_x, superlu.CSR_matrix) -- matrix data structure for x left interpolation
+  var matrix_r_x = region(pgrid_x, superlu.CSR_matrix) -- matrix data structure for x right interpolation
+  var matrix_l_y = region(pgrid_y, superlu.CSR_matrix) -- matrix data structure for y left interpolation
+  var matrix_r_y = region(pgrid_y, superlu.CSR_matrix) -- matrix data structure for y right interpolation
+  var matrix_l_z = region(pgrid_z, superlu.CSR_matrix) -- matrix data structure for z left interpolation
+  var matrix_r_z = region(pgrid_z, superlu.CSR_matrix) -- matrix data structure for z right interpolation
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
