@@ -99,10 +99,6 @@ do
 
 end
 
-local function poff(i, x, y, z, Nx, Ny, Nz)
-  return rexpr int3d { x = (i.x + x + Nx)%Nx, y = (i.y + y + Ny)%Ny, z = (i.z + z + Nz)%Nz } end
-end
-
 local function make_stencil_pattern(points, f, index, a, b, c, Nx, Ny, Nz, onebydx, dir, der)
   local value
 

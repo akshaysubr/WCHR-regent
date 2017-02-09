@@ -1,20 +1,26 @@
 import "regent"
 
-local c       = regentlib.c
-local cmath   = terralib.includec("math.h")
-local PI      = cmath.M_PI
+local c     = regentlib.c
+local cmath = terralib.includec("math.h")
+local PI    = cmath.M_PI
 
 require("fields")
+require("IO")
+require("interpolation")
+local superlu = require("superlu_util")
 
 -- Grid dimensions
-local NX = 64
-local NY = 64
-local NZ = 64
+local NX = 6
+local NY = 1
+local NZ = 1
 
 -- Domain size
 local LX = 2.0*math.pi
 local LY = 2.0*math.pi
 local LZ = 2.0*math.pi
+-- local LX = 10.0
+-- local LY = 1.0
+-- local LZ = 1.0
 
 local X1 = 0.0
 local Y1 = 0.0
@@ -29,27 +35,9 @@ local ONEBYDX = 1.0 / DX
 local ONEBYDY = 1.0 / DY
 local ONEBYDZ = 1.0 / DZ
 
--- Make the node and midpoint-node differencing tasks (Using pentadiagonal solver for this instead of tridiagonal solver)
-require("derivatives")
-local alpha10d1 = 1.0/3.0
-local beta10d1  = 0.0
-local a06d1 = ( 14.0/ 9.0)/2.0
-local b06d1 = (  1.0/ 9.0)/4.0
-local c06d1 = (  0.0/100.0)/6.0
-
-local alpha06MND = -1.0/12.0
-local beta06MND  = 0.0
-local a06MND = 16.0/9.0
-local b06MND = (-17.0/18.0)/2.0
-local c06MND = (0.0)/3.0
-
-local r_prim   = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim")
-local r_prim_e = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim_e")
-local r_der    = regentlib.newsymbol(region(ispace(int3d), primitive), "r_der")
-
-local ddx     = make_ddx(r_prim, "rho", r_der, "rho", NX, NY, NZ, ONEBYDX, a06d1, b06d1, c06d1)
-local ddx_MND = make_ddx_MND(r_prim, r_prim_e, "rho", r_der, "rho", NX, NY, NZ, ONEBYDX, a06MND, b06MND, c06MND)
------------------------------------------------------
+local alpha06CI = 3.0/16.0
+local beta06CI  = 5.0/8.0
+local gamma06CI = 3.0/16.0
 
 task initialize( coords     : region(ispace(int3d), coordinates),
                  r_prim_c   : region(ispace(int3d), primitive),
@@ -67,33 +55,41 @@ do
     coords[i].y_c = Y1 + (i.y + 0.5) * dy
     coords[i].z_c = Z1 + (i.z + 0.5) * dz
 
-    r_prim_c[i].rho = cmath.sin(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.cos(coords[i].z_c)
+    if (coords[i].x_c < -4.0) then
+      r_prim_c[i].rho = 3.857143
+      r_prim_c[i].u   = 2.62936
+      r_prim_c[i].v   = 0.0 
+      r_prim_c[i].w   = 0.0
+      r_prim_c[i].p   = 10.33339
+    else
+      r_prim_c[i].rho = 1.0 + 0.2*cmath.sin(1.0*coords[i].x_c)
+      r_prim_c[i].u   = 0.0
+      r_prim_c[i].v   = 0.0 
+      r_prim_c[i].w   = 0.0
+      r_prim_c[i].p   = 1.0
+    end
   end
 
   for i in r_prim_l_x do
-    var x_c : double = X1 + (i.x + 0.0) * dx
-    var y_c : double = Y1 + (i.y + 0.5) * dy
-    var z_c : double = Z1 + (i.z + 0.5) * dz
-
-    r_prim_l_x[i].rho = cmath.sin(x_c) * cmath.cos(y_c) * cmath.cos(z_c)
+    var x_c : double = X1 + (i.x) * dx
+    var y_c : double = Y1 + (i.y) * dy
+    var z_c : double = Z1 + (i.z) * dz
+    if (x_c < -4.0) then
+      r_prim_l_x[i].rho = 3.857143
+      r_prim_l_x[i].u   = 2.62936
+      r_prim_l_x[i].v   = 0.0 
+      r_prim_l_x[i].w   = 0.0
+      r_prim_l_x[i].p   = 10.33339
+    else
+      r_prim_l_x[i].rho = 1.0 + 0.2*cmath.sin(5.0*x_c)
+      r_prim_l_x[i].u   = 0.0
+      r_prim_l_x[i].v   = 0.0 
+      r_prim_l_x[i].w   = 0.0
+      r_prim_l_x[i].p   = 1.0
+    end
   end
 
   return 1
-end
-
-task check_ddx( coords : region(ispace(int3d), coordinates),
-                r_der  : region(ispace(int3d), primitive) )
-where
-  reads writes(coords, r_der)
-do
-  var err : double = 0.0
-  for i in coords.ispace do
-    var err_t : double = cmath.fabs( r_der[i].rho - cmath.cos(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.cos(coords[i].z_c) )
-    if err_t > err then
-      err = err_t
-    end
-  end
-  return err
 end
 
 terra wait_for(x : int)
@@ -134,38 +130,41 @@ task main()
   var r_prim_l_x = region(grid_e_x, primitive)  -- Primitive variables at left x cell edge
   var r_prim_l_y = region(grid_e_y, primitive)  -- Primitive variables at left y cell edge
   var r_prim_l_z = region(grid_e_z, primitive)  -- Primitive variables at left z cell edge
+  var r_prim_r_x = region(grid_e_x, primitive)  -- Primitive variables at right x cell edge
+  var r_prim_r_y = region(grid_e_y, primitive)  -- Primitive variables at right y cell edge
+  var r_prim_r_z = region(grid_e_z, primitive)  -- Primitive variables at right z cell edge
   
-  var r_der      = region(grid_c,   primitive)  -- RHS for time stepping at cell center
-
-  var LU_x       = region(ispace(int3d, {x = Nx, y = 1, z = 1}), LU_struct) -- Data structure to hold x derivative LU decomposition
-  var LU_y       = region(ispace(int3d, {x = Ny, y = 1, z = 1}), LU_struct) -- Data structure to hold y derivative LU decomposition
-  var LU_z       = region(ispace(int3d, {x = Nz, y = 1, z = 1}), LU_struct) -- Data structure to hold z derivative LU decomposition
-
   var pgrid_x    = ispace(int2d, {x = 1, y = 1}) -- Processor grid in x
   var pgrid_y    = ispace(int2d, {x = 1, y = 1}) -- Processor grid in y
   var pgrid_z    = ispace(int2d, {x = 1, y = 1}) -- Processor grid in z
+
+  var slu_x      = region(pgrid_x, superlu.c.superlu_vars_t) -- Super LU data structure for x interpolation
+  var slu_y      = region(pgrid_y, superlu.c.superlu_vars_t) -- Super LU data structure for y interpolation
+  var slu_z      = region(pgrid_z, superlu.c.superlu_vars_t) -- Super LU data structure for z interpolation
+
+  var matrix_l_x = region(pgrid_x, superlu.CSR_matrix) -- matrix data structure for x left interpolation
+  var matrix_r_x = region(pgrid_x, superlu.CSR_matrix) -- matrix data structure for x right interpolation
+  var matrix_l_y = region(pgrid_y, superlu.CSR_matrix) -- matrix data structure for y left interpolation
+  var matrix_r_y = region(pgrid_y, superlu.CSR_matrix) -- matrix data structure for y right interpolation
+  var matrix_l_z = region(pgrid_z, superlu.CSR_matrix) -- matrix data structure for z left interpolation
+  var matrix_r_z = region(pgrid_z, superlu.CSR_matrix) -- matrix data structure for z right interpolation
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
+
+  -- Initialize SuperLU stuff
+  matrix_l_x[{0,0}] = superlu.initialize_matrix_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  superlu.initialize_superlu_vars( matrix_l_x[{0,0}], (Nx+1)*Ny*Nz, __physical(r_prim_r_x.rho), __fields(r_prim_r_x.rho),
+                                   __physical(r_prim_l_x.rho), __fields(r_prim_l_x.rho), r_prim_l_x.bounds,
+                                   __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds)
 
   var token = initialize(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z, dx, dy, dz)
   wait_for(token)
 
-  get_LU_decomposition(LU_x, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
-  token += ddx(r_prim_c, r_der, LU_x)
-  wait_for(token)
-  var err = check_ddx(coords, r_der)
-  c.printf("Error in ddx     = %g\n", err)
-  regentlib.assert( err <= 1.e-9, "Derivative test failed for task ddx")
+  WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, matrix_l_x, matrix_r_x, slu_x )
 
-  fill(r_der.rho, 0.0)
-  get_LU_decomposition(LU_x, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
-  token += ddx_MND(r_prim_c, r_prim_l_x, r_der, LU_x)
-  wait_for(token)
-  err = check_ddx(coords, r_der)
-  c.printf("Error in ddx_MND = %g\n", err)
-  regentlib.assert( err <= 1.e-10, "Derivative test failed for task ddx_MND")
-
-  c.printf("\nAll tests passed! :)\n")
+  -- write_coords(coords)
+  -- write_primitive(r_prim_c, "cell_primitive", 0)
+  write_primitive(r_prim_l_x, "edge_primitive_l_x", 0)
 end
 
 regentlib.start(main)

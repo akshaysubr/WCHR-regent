@@ -57,3 +57,8 @@ fspace LU_struct {
   v  : double,
   w  : double,
 }
+
+function poff(i, x, y, z, Nx, Ny, Nz)
+  return rexpr int3d { x = (i.x + x + Nx)%Nx, y = (i.y + y + Ny)%Ny, z = (i.z + z + Nz)%Nz } end
+end
+

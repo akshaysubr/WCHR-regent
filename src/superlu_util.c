@@ -17,6 +17,7 @@ void MatrixSolve(double * restrict dX, double * restrict df, double * restrict n
     ((DNformat*) vars->B.Store)->nzval = (void*)(dX);
     ((DNformat*) vars->X.Store)->nzval = (void*)(df);
     
+    // dPrint_CompCol_Matrix("A: ", &(vars->A));
     dgssvx(&(vars->options), &(vars->A), vars->perm_c, vars->perm_r, vars->etree, vars->equed, vars->R, vars->C,
            &(vars->L), &(vars->U), vars->work, vars->lwork, &(vars->B), &(vars->X), &(vars->rpg), &(vars->rcond), vars->ferr, vars->berr,
            &(vars->Glu), &(vars->mem_usage), &(vars->stat), &info);
