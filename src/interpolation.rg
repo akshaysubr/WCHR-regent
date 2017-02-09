@@ -15,7 +15,7 @@ task get_char_values( r_prim_c : region(ispace(int3d), primitive),
 where
   reads(r_prim_c)
 do
-  var char_values : double[5][6]
+  var char_values : double[6][5]
 
   for i = -3, 3 do
     char_values[0][i+3] = r_prim_c[ [poff(idx, i, 0, 0, Nx, Ny, Nz)] ].rho
@@ -31,7 +31,7 @@ end
 -- __demand(__inline)
 -- task get_beta( values : double[5][6],
 --                eq     : int32 )
-terra get_beta( values : double[5][6],
+terra get_beta( values : double[6][5],
                 eq     : int32 )
   var beta : double[4]
 
@@ -59,8 +59,8 @@ end
 
 -- __demand(__inline)
 -- task get_nonlinear_weights( values : double[5][6] )
-terra get_nonlinear_weights( values : double[5][6] )
-  var nlweights : double[5][4]
+terra get_nonlinear_weights( values : double[6][5] )
+  var nlweights : double[4][5]
 
   for eq = 0, 5 do 
     var beta = get_beta(values, eq)
@@ -90,14 +90,14 @@ end
 
 -- __demand(__inline)
 -- task get_coefficients( nlweights : double[5][4] )
-terra get_coefficients( nlweights : double[5][4] )
+terra get_coefficients( nlweights : double[4][5] )
 
   var lcoeff0 = array(3.0/4.0, 1.0/4.0, 0.0/4.0, 1.0/4.0, 3.0/4.0, 0.0/4.0, 0.0/4.0)
   var lcoeff1 = array(1.0/4.0, 3.0/4.0, 0.0/4.0, 0.0/4.0, 3.0/4.0, 1.0/4.0, 0.0/4.0)
   var lcoeff2 = array(0.0/4.0, 3.0/4.0, 1.0/4.0, 0.0/4.0, 1.0/4.0, 3.0/4.0, 0.0/4.0)
   var lcoeff3 = array(0.0/4.0, 1.0/4.0, 3.0/4.0, 0.0/4.0, 0.0/4.0, 3.0/4.0, 1.0/4.0)
 
-  var coeffs : double[5][7]
+  var coeffs : double[7][5]
 
   for eq = 0, 5 do
     c.printf("get_coefficients: \n")
@@ -155,7 +155,7 @@ do
       for row = 0, nx do
         var eq : int32 = 0  -- Interpolation only for rho right now
 
-        var char_values : double[5][6] = get_char_values(r_prim_c, int3d({x = row, y = iy + bounds_c.lo.y, z = iz + bounds_c.lo.z}), nx, ny, nz)
+        var char_values : double[6][5] = get_char_values(r_prim_c, int3d({x = row, y = iy + bounds_c.lo.y, z = iz + bounds_c.lo.z}), nx, ny, nz)
         var nlweights = get_nonlinear_weights(char_values)
         var coeffs = get_coefficients(nlweights)
 
