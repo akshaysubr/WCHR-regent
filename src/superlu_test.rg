@@ -32,6 +32,13 @@ local c10d1 = (1./100.)/6.
 local alpha10d1 = 1./2.
 local beta10d1  = 1./20.
 
+-- 6th order derivative parameters
+local a06d1 = (14./9.)/2.
+local b06d1 = (1./9.)/4.
+local c06d1 = (0.)/6.
+local alpha06d1 = 1./3.
+local beta06d1 = 0.
+
 fspace point {
   x_c : double,
   y_c : double,
@@ -88,11 +95,11 @@ local function make_stencil_x(Nx, Ny, Nz, onebydx, a10, b10, c10)
   return rhs_x
 end
 
-local ComputeXRHS  = make_stencil_x(NX, NY, NZ, ONEBYDX, a10d1, b10d1, c10d1)
+local ComputeXRHS  = make_stencil_x(NX, NY, NZ, ONEBYDX, a06d1, b06d1, c06d1)
 
 task ddx( points : region(ispace(int3d), point),
-          matrix : region(ispace(int1d), superlu.CSR_matrix),
-          slu    : region(ispace(int1d), superlu.c.superlu_vars_t) )
+          matrix : region(ispace(int2d), superlu.CSR_matrix),
+          slu    : region(ispace(int2d), superlu.c.superlu_vars_t) )
 where
   reads(points.f), reads writes(points.dX, points.df, matrix, slu)
 do
@@ -101,7 +108,7 @@ do
   var ny = bounds.hi.y + 1 - bounds.lo.y
   var nz = bounds.hi.z + 1 - bounds.lo.z
   ComputeXRHS(points)
-  superlu.MatrixSolve(__physical(points.dX), __fields(points.dX), __physical(points.df), __fields(points.df), points.bounds, matrix[0], nx, ny, nz, __physical(slu)[0], __fields(slu)[0], slu.bounds ) 
+  superlu.MatrixSolve(__physical(points.dX), __fields(points.dX), __physical(points.df), __fields(points.df), points.bounds, matrix[{0,0}], nx, ny, nz, __physical(slu)[0], __fields(slu)[0], slu.bounds ) 
   var token = points[points.ispace.bounds.lo].df
   return token
 end
@@ -163,15 +170,15 @@ task main()
   var grid   = ispace(int3d, { x = Nx, y = Ny, z = Nz })
   var points = region(grid, point)
 
-  var slu    = region(ispace(int1d, 1), superlu.c.superlu_vars_t)
-  var matrix = region(ispace(int1d, 1), superlu.CSR_matrix)
+  var slu    = region(ispace(int2d, {x = 1, y = 1}), superlu.c.superlu_vars_t)
+  var matrix = region(ispace(int2d, {x = 1, y = 1}), superlu.CSR_matrix)
 
   var token = 0 
   token += initialize_fields(points, dx, dy, dz)
 
   -- Initialize SuperLU stuff
-  matrix[0] = superlu.initialize_matrix(alpha10d1, beta10d1, Nx, Ny, Nz)
-  superlu.initialize_superlu_vars( matrix[0], Nx*Ny*Nz, __physical(points.dX), __fields(points.dX),
+  matrix[{0,0}] = superlu.initialize_matrix_x(alpha06d1, 1.0, alpha06d1, Nx, Ny, Nz)
+  superlu.initialize_superlu_vars( matrix[{0,0}], Nx*Ny*Nz, __physical(points.dX), __fields(points.dX),
                                    __physical(points.df), __fields(points.df), points.bounds,
                                    __physical(slu)[0], __fields(slu)[0], slu.bounds)
 
