@@ -10,19 +10,19 @@ require("interpolation")
 local superlu = require("superlu_util")
 
 -- Grid dimensions
-local NX = 6
-local NY = 1
-local NZ = 1
+local NX = 200
+local NY = 8
+local NZ = 4
 
 -- Domain size
-local LX = 2.0*math.pi
-local LY = 2.0*math.pi
-local LZ = 2.0*math.pi
--- local LX = 10.0
--- local LY = 1.0
--- local LZ = 1.0
+-- local LX = 2.0*math.pi
+-- local LY = 2.0*math.pi
+-- local LZ = 2.0*math.pi
+local LX = 10.0
+local LY = 1.0
+local LZ = 1.0
 
-local X1 = 0.0
+local X1 = -5.0
 local Y1 = 0.0
 local Z1 = 0.0
 
@@ -62,7 +62,7 @@ do
       r_prim_c[i].w   = 0.0
       r_prim_c[i].p   = 10.33339
     else
-      r_prim_c[i].rho = 1.0 + 0.2*cmath.sin(1.0*coords[i].x_c)
+      r_prim_c[i].rho = 1.0 + 0.2*cmath.sin(5.0*coords[i].x_c)
       r_prim_c[i].u   = 0.0
       r_prim_c[i].v   = 0.0 
       r_prim_c[i].w   = 0.0

@@ -2,10 +2,10 @@ import "regent"
 
 local superlu = {}
 do
-  local superlu_library = "-lsuperlu -Lsuperlu/SuperLU_5.2.1/SRC/"
-  local superlu_include_dir = "./superlu/SuperLU_5.2.1/SRC/"
+  local superlu_library = "-lsuperlu"
+  local superlu_include_dir = "/opt/SuperLU_5.2.1"
   -- local root_dir = arg[0]:match(".*/") or "./"
-  local root_dir = "./"
+  local root_dir = "/home/akshays/Codes/WCHR-regent/src/"
   local superlu_util_cc = root_dir .. "superlu_util.c"
   superlu_util_so = os.tmpname() .. ".so"
   local cc = os.getenv('CC') or 'cc'

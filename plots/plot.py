@@ -18,6 +18,7 @@ w   = f['w'].value
 p   = f['p'].value
 f.close()
 
+x_e = numpy.hstack((x[0,0,:]-0.5*dx, x[0,0,-1]+0.5*dx))
 f = h5py.File('../tests/edge_primitive_l_x0000.h5')
 rho_l = f['rho'].value
 u_l   = f['u'].value
@@ -26,13 +27,27 @@ w_l   = f['w'].value
 p_l   = f['p'].value
 f.close()
 
-f = h5py.File('../tests/rhs_l_x0000.h5')
-rho_rhs = f['rho'].value
-f.close()
-
+plt.figure()
 plt.plot(x[0,0,:], rho[0,0,:], 'ok-')
+plt.plot(x_e, rho_l[0,0,:], 'ob-')
+plt.show()
 
-x_e = numpy.hstack((x[0,0,:]-0.5*dx, x[0,0,-1]+0.5*dx))
-plt.plot(x_e, rho_l[0,0,:], 'or-')
-plt.plot(x_e, rho_rhs[0,0,:], 'ob-')
+plt.figure()
+plt.plot(x[0,0,:], u[0,0,:], 'ok-')
+plt.plot(x_e, u_l[0,0,:], 'ob-')
+plt.show()
+
+plt.figure()
+plt.plot(x[0,0,:], v[0,0,:], 'ok-')
+plt.plot(x_e, v_l[0,0,:], 'ob-')
+plt.show()
+
+plt.figure()
+plt.plot(x[0,0,:], w[0,0,:], 'ok-')
+plt.plot(x_e, w_l[0,0,:], 'ob-')
+plt.show()
+
+plt.figure()
+plt.plot(x[0,0,:], p[0,0,:], 'ok-')
+plt.plot(x_e, p_l[0,0,:], 'ob-')
 plt.show()
