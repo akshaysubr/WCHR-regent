@@ -5,35 +5,14 @@ local cmath   = terralib.includec("math.h")
 
 require("fields")
 require("IO")
+require("EOS")
 local superlu = require("superlu_util")
-
-__demand(__inline)
-task get_char_values( r_prim_c : region(ispace(int3d), primitive),
-                      idx      : int3d,
-                      Nx       : int64,
-                      Ny       : int64,
-                      Nz       : int64)
-where
-  reads(r_prim_c)
-do
-  var char_values : double[6][5]
-
-  for i = -3, 3 do
-    char_values[0][i+3] = r_prim_c[ [poff(idx, i, 0, 0, Nx, Ny, Nz)] ].rho
-    char_values[1][i+3] = r_prim_c[ [poff(idx, i, 0, 0, Nx, Ny, Nz)] ].u
-    char_values[2][i+3] = r_prim_c[ [poff(idx, i, 0, 0, Nx, Ny, Nz)] ].v
-    char_values[3][i+3] = r_prim_c[ [poff(idx, i, 0, 0, Nx, Ny, Nz)] ].w
-    char_values[4][i+3] = r_prim_c[ [poff(idx, i, 0, 0, Nx, Ny, Nz)] ].p
-  end
-
-  return char_values
-end
 
 local function v_index(i,is_left)
   if is_left then
     return i
   else
-    return (6 - i - 1)
+    return (len_stencil - i - 1)
   end
 end
 
@@ -41,7 +20,7 @@ local function nl_index(i,is_left)
   if is_left then
     return rexpr i end
   else
-    return rexpr (4 - i - 1) end
+    return rexpr (num_beta - i - 1) end
   end
 end
 
