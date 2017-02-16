@@ -298,16 +298,3 @@ function make_ddx_MND(r_flux, r_flux_e, f_flux, r_cnsr, f_cnsr, NX, NY, NZ, ONEB
   end
   return ddx_MND
 end
-
--- task ddx_MND( r_flux   : region(ispace(int3d), conserved),
---               r_flux_e : region(ispace(int3d), conserved),
---               r_cnsr   : region(ispace(int3d), conserved),
---               LU       : region(ispace(int3d), LU_struct) )
--- where
---   reads(LU, r_flux.rho, r_flux_e.rho), reads writes(r_cnsr.rho)
--- do
---   ComputeXRHS_MND(r_flux, r_flux_e, r_cnsr)
---   var token = SolveXLU(r_cnsr,LU)
---   token = r_cnsr[r_cnsr.ispace.bounds.lo].rho
---   return token
--- end

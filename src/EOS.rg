@@ -88,6 +88,8 @@ do
     r_prim[i].w   = prim[3]
     r_prim[i].p   = prim[4]
   end
+
+  return 1
 end
 
 task get_conserved_r( r_prim : region(ispace(int3d), primitive),
@@ -104,6 +106,8 @@ do
     r_cnsr[i].rhow = cnsr[3]
     r_cnsr[i].rhoE = cnsr[4]
   end
+
+  return 1
 end
 
 __demand(__inline)

@@ -1,18 +1,22 @@
 import "regent"
 
-local c = regentlib.c
-local cmath   = terralib.includec("math.h")
+local c     = regentlib.c
+local cmath = terralib.includec("math.h")
 
 require("fields")
 require("IO")
 require("EOS")
 local superlu = require("superlu_util")
 
+alpha06CI = 3.0/16.0
+beta06CI  = 5.0/8.0
+gamma06CI = 3.0/16.0
+
 local function v_index(i,is_left)
   if is_left then
     return i
   else
-    return (len_stencil - i - 1)
+    return (6 - i - 1)
   end
 end
 
@@ -20,7 +24,7 @@ local function nl_index(i,is_left)
   if is_left then
     return rexpr i end
   else
-    return rexpr (num_beta - i - 1) end
+    return rexpr (4 - i - 1) end
   end
 end
 

@@ -5,151 +5,35 @@ local cmath = terralib.includec("math.h")
 local PI    = cmath.M_PI
 
 require("fields")
+require("derivatives")
 require("IO")
+require("RHS")
+
 local superlu = require("superlu_util")
-
--- Grid dimensions
-local NX = 200
-local NY = 8
-local NZ = 8
-
--- Domain size
--- local LX = 2.0*math.pi
--- local LY = 2.0*math.pi
--- local LZ = 2.0*math.pi
-local LX = 10.0
-local LY = 1.0
-local LZ = 1.0
-
-local X1 = -5.0
-local Y1 = 0.0
-local Z1 = 0.0
-
--- Grid spacing
-local DX = LX / NX
-local DY = LY / NY
-local DZ = LZ / NZ
-
-local ONEBYDX = 1.0 / DX
-local ONEBYDY = 1.0 / DY
-local ONEBYDZ = 1.0 / DZ
-
--- Make the node and midpoint-node differencing tasks (Using pentadiagonal solver for this instead of tridiagonal solver)
--- require("derivatives")
--- local alpha10d1 = 1.0/3.0
--- local beta10d1  = 0.0
--- local a06d1 = ( 14.0/ 9.0)/2.0
--- local b06d1 = (  1.0/ 9.0)/4.0
--- local c06d1 = (  0.0/100.0)/6.0
--- 
--- local alpha06MND = -1.0/12.0
--- local beta06MND  = 0.0
--- local a06MND = 16.0/9.0
--- local b06MND = (-17.0/18.0)/2.0
--- local c06MND = (0.0)/3.0
--- 
--- local r_flux   = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux")
--- local r_flux_e = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux_e")
--- local r_cnsr   = regentlib.newsymbol(region(ispace(int3d), conserved), "r_cnsr")
--- 
--- local ddx     = make_ddx(r_flux, "rho", r_cnsr, "rho", NX, NY, NZ, ONEBYDX, a06d1, b06d1, c06d1)
--- local ddx_MND = make_ddx_MND(r_flux, r_flux_e, "rho", r_cnsr, "rho", NX, NY, NZ, ONEBYDX, a06MND, b06MND, c06MND)
------------------------------------------------------
-
-task initialize( coords     : region(ispace(int3d), coordinates),
-                 r_prim_c   : region(ispace(int3d), primitive),
-                 r_prim_l_x : region(ispace(int3d), primitive),
-                 r_prim_l_y : region(ispace(int3d), primitive),
-                 r_prim_l_z : region(ispace(int3d), primitive),
-                 dx         : double,
-                 dy         : double,
-                 dz         : double )
-where
-  reads writes(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z)
-do
-  for i in coords.ispace do
-    coords[i].x_c = X1 + (i.x + 0.5) * dx
-    coords[i].y_c = Y1 + (i.y + 0.5) * dy
-    coords[i].z_c = Z1 + (i.z + 0.5) * dz
-
-    if (coords[i].x_c < -4.0) then
-      r_prim_c[i].rho = 3.857143
-      r_prim_c[i].u   = 2.62936
-      r_prim_c[i].v   = 0.0 
-      r_prim_c[i].w   = 0.0
-      r_prim_c[i].p   = 10.33339
-    else
-      r_prim_c[i].rho = 1.0 + 0.2*cmath.sin(5.0*coords[i].x_c)
-      r_prim_c[i].u   = 0.0
-      r_prim_c[i].v   = 0.0 
-      r_prim_c[i].w   = 0.0
-      r_prim_c[i].p   = 1.0
-    end
-  end
-
-  for i in r_prim_l_x do
-    var x_c : double = X1 + (i.x) * dx
-    var y_c : double = Y1 + (i.y) * dy
-    var z_c : double = Z1 + (i.z) * dz
-    if (x_c < -4.0) then
-      r_prim_l_x[i].rho = 3.857143
-      r_prim_l_x[i].u   = 2.62936
-      r_prim_l_x[i].v   = 0.0 
-      r_prim_l_x[i].w   = 0.0
-      r_prim_l_x[i].p   = 10.33339
-    else
-      r_prim_l_x[i].rho = 1.0 + 0.2*cmath.sin(5.0*x_c)
-      r_prim_l_x[i].u   = 0.0
-      r_prim_l_x[i].v   = 0.0 
-      r_prim_l_x[i].w   = 0.0
-      r_prim_l_x[i].p   = 1.0
-    end
-  end
-
-  return 1
-end
-
-task check_ddx( coords     : region(ispace(int3d), coordinates),
-                r_cnsr     : region(ispace(int3d), conserved) )
-where
-  reads writes(coords, r_cnsr)
-do
-  var err : double = 0.0
-  for i in coords.ispace do
-    var err_t : double = cmath.fabs( r_cnsr[i].rho - cmath.cos(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.cos(coords[i].z_c) )
-    if err_t > err then
-      err = err_t
-    end
-  end
-  return err
-end
+local problem = require("problem")
 
 terra wait_for(x : int)
   return x
 end
 
 task main()
-  var Nx : int64 = NX
-  var Ny : int64 = NY
-  var Nz : int64 = NZ
+  var Nx : int64 = problem.NX
+  var Ny : int64 = problem.NY
+  var Nz : int64 = problem.NZ
 
-  var Lx : double = LX
-  var Ly : double = LY
-  var Lz : double = LZ
+  var Lx : double = problem.LX
+  var Ly : double = problem.LY
+  var Lz : double = problem.LZ
 
-  var dx : double = DX
-  var dy : double = DY
-  var dz : double = DZ
+  var dx : double = problem.DX
+  var dy : double = problem.DY
+  var dz : double = problem.DZ
 
   c.printf("================ Problem parameters ================\n")
   c.printf("           Nx, Ny, Nz = %d, %d, %d\n", Nx, Ny, Nz)
   c.printf("           Lx, Ly, Lz = %f, %f, %f\n", Lx, Ly, Lz)
   c.printf("           dx, dy, dz = %f, %f, %f\n", dx, dy, dz)
   c.printf("====================================================\n")
-
-  generate_hdf5_file_coords("cell_coords.h5", Nx, Ny, Nz)
-  generate_hdf5_file("cell_primitive.h5", Nx, Ny, Nz)
-  generate_hdf5_file("edge_primitive_l_x.h5", Nx+1, Ny, Nz)
 
   --------------------------------------------------------------------------------------------
   --                       DATA STUCTURES
@@ -163,7 +47,6 @@ task main()
   var coords     = region(grid_c, coordinates)  -- Coordinates of cell center
 
   var r_cnsr     = region(grid_c,   conserved)  -- Conserved variables at cell center
-  var r_aux      = region(grid_c,   auxiliary)  -- Conserved variables at cell center
 
   var r_prim_c   = region(grid_c,   primitive)  -- Primitive variables at cell center
   var r_prim_l_x = region(grid_e_x, primitive)  -- Primitive variables at left x cell edge
@@ -172,25 +55,18 @@ task main()
   var r_prim_r_x = region(grid_e_x, primitive)  -- Primitive variables at right x cell edge
   var r_prim_r_y = region(grid_e_y, primitive)  -- Primitive variables at right y cell edge
   var r_prim_r_z = region(grid_e_z, primitive)  -- Primitive variables at right z cell edge
-  
-  var r_vect_x   = region(grid_e_x, soe_vector) -- RHS variables at cell edge for characteristic interpolation
-  var r_vect_y   = region(grid_e_y, soe_vector) -- RHS variables at cell edge for characteristic interpolation
-  var r_vect_z   = region(grid_e_z, soe_vector) -- RHS variables at cell edge for characteristic interpolation
 
   var r_flux_c   = region(grid_c,   conserved)  -- Flux at cell center
   var r_flux_e_x = region(grid_e_x, conserved)  -- Flux at x cell edge
   var r_flux_e_y = region(grid_e_y, conserved)  -- Flux at y cell edge
   var r_flux_e_z = region(grid_e_z, conserved)  -- Flux at z cell edge
   
-  var r_frhs_c_x = region(grid_c,   double)     -- RHS while getting x flux derivative
-  var r_frhs_c_y = region(grid_c,   double)     -- RHS while getting y flux derivative
-  var r_frhs_c_z = region(grid_c,   double)     -- RHS while getting z flux derivative
-  
-  var r_fder_c_x = region(grid_c,   double)     -- x flux derivative
-  var r_fder_c_y = region(grid_c,   double)     -- y flux derivative
-  var r_fder_c_z = region(grid_c,   double)     -- z flux derivative
+  var r_fder_c_x = region(grid_c,   conserved)     -- x flux derivative
+  var r_fder_c_y = region(grid_c,   conserved)     -- y flux derivative
+  var r_fder_c_z = region(grid_c,   conserved)     -- z flux derivative
   
   var r_rhs      = region(grid_c,   conserved)  -- RHS for time stepping at cell center
+  var Q_rhs      = region(grid_c,   conserved)  -- Buffer for RK45 time stepping
 
   var LU_x       = region(ispace(int3d, {x = Nx, y = 1, z = 1}), LU_struct) -- Data structure to hold x derivative LU decomposition
   var LU_y       = region(ispace(int3d, {x = Ny, y = 1, z = 1}), LU_struct) -- Data structure to hold y derivative LU decomposition
@@ -213,20 +89,76 @@ task main()
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
-  attach(hdf5, coords.{x_c, y_c, z_c}, "cell_coords.h5", regentlib.file_read_write)
-  attach(hdf5, r_prim_c.{rho, u, v, w, p}, "cell_primitive.h5", regentlib.file_read_write)
-  attach(hdf5, r_prim_l_x.{rho, u, v, w, p}, "edge_primitive_l_x.h5", regentlib.file_read_write)
-  -- acquire(r_prim_c)
-  -- acquire(r_prim_l_x)
+  -- Initialize SuperLU stuff
+  matrix_l_x[{0,0}] = superlu.initialize_matrix_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  matrix_r_x[{0,0}] = superlu.initialize_matrix_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  superlu.initialize_superlu_vars( matrix_l_x[{0,0}], (Nx+1)*Ny*Nz, __physical(r_prim_r_x.rho), __fields(r_prim_r_x.rho),
+                                   __physical(r_prim_l_x.rho), __fields(r_prim_l_x.rho), r_prim_l_x.bounds,
+                                   __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds)
+  
+  -- Initialize derivatives stuff
+  get_LU_decomposition(LU_x, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
 
-  var token = initialize(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z, dx, dy, dz)
+  var token = problem.initialize(coords, r_prim_c, dx, dy, dz)
   wait_for(token)
+  
+  var A_RK45 = array(0.0,
+                     -6234157559845.0/12983515589748.0,
+                     -6194124222391.0/4410992767914.0,
+                     -31623096876824.0/15682348800105.0,
+                     -12251185447671.0/11596622555746.0 )
 
-  -- release(r_prim_c)
-  -- release(r_prim_l_x)
-  detach(hdf5, coords.{x_c, y_c, z_c})
-  detach(hdf5, r_prim_c.{rho, u, v, w, p})
-  detach(hdf5, r_prim_l_x.{rho, u, v, w, p})
+  var B_RK45 = array( 494393426753.0/4806282396855.0,
+                      4047970641027.0/5463924506627.0,
+                      9795748752853.0/13190207949281.0,
+                      4009051133189.0/8539092990294.0,
+                      1348533437543.0/7166442652324.0 )
+
+  var tstop : double = problem.tstop
+  var dt    : double = problem.dt
+  var tsim  : double = 0.0
+  var step  : int64  = 0
+
+  token += get_conserved_r(r_prim_c, r_cnsr) -- Get conserved variables after initialization
+  wait_for(token)
+  var t_start = c.legion_get_current_time_in_micros()
+
+  __demand(__spmd)
+  for step = 0,10 do -- Run for 10 time steps
+  -- while tsim + dt < tstop do
+
+    var Q_t : double = 0.0
+    fill(Q_rhs.{rho, rhou, rhov, rhow, rhoE}, 0.0)
+    for isub = 0,5 do
+        fill(r_rhs.{rho, rhou, rhov, rhow, rhoE}, 0.0)
+        add_xflux_der_to_rhs( r_cnsr, r_prim_c, r_prim_l_x, r_prim_r_x,
+                              r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs,
+                              LU_x, slu_x, matrix_l_x, matrix_r_x )
+
+        update_substep( r_cnsr, r_rhs, Q_rhs, dt, A_RK45[isub], B_RK45[isub] )
+
+        -- Update simulation time as well
+        Q_t = dt + A_RK45[isub]*Q_t
+        tsim += B_RK45[isub]*Q_t
+
+        token += get_primitive_r(r_cnsr, r_prim_c)
+    end
+    -- step = step + 1
+
+  end
+  
+  wait_for(token)
+  var t_simulation = c.legion_get_current_time_in_micros() - t_start
+  
+  c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/10)
+
+  var errors = problem.get_errors(coords, r_prim_c, tsim)
+
+  c.printf("Error in rho = %g\n", errors[0])
+  c.printf("Error in u   = %g\n", errors[1])
+  c.printf("Error in v   = %g\n", errors[2])
+  c.printf("Error in w   = %g\n", errors[3])
+  c.printf("Error in p   = %g\n", errors[4])
 
 end
 
