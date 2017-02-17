@@ -220,19 +220,22 @@ end
 task WCHR_interpolation_x( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l_x : region(ispace(int3d), primitive),
                            r_prim_r_x : region(ispace(int3d), primitive),
+                           r_rhs_l    : region(ispace(int3d), primitive),
+                           r_rhs_r    : region(ispace(int3d), primitive),
                            matrix_l_x : region(ispace(int2d), superlu.CSR_matrix),
                            matrix_r_x : region(ispace(int2d), superlu.CSR_matrix),
                            slu_x      : region(ispace(int2d), superlu.c.superlu_vars_t) )
 where
-  reads(r_prim_c, matrix_l_x, matrix_r_x, slu_x), writes(r_prim_l_x, r_prim_r_x, matrix_l_x, matrix_r_x, slu_x)
+  reads(r_prim_c, matrix_l_x, matrix_r_x, slu_x), writes(r_prim_l_x, r_prim_r_x, matrix_l_x, matrix_r_x, slu_x),
+  reads writes(r_rhs_l, r_rhs_r)
 do
 
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
   var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
   var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
 
-  var r_rhs_l = region(ispace(int3d, {x = nx+1, y = ny, z = nz}), primitive)  
-  var r_rhs_r = region(ispace(int3d, {x = nx+1, y = ny, z = nz}), primitive)  
+  -- var r_rhs_l = region(ispace(int3d, {x = nx+1, y = ny, z = nz}), primitive)  
+  -- var r_rhs_r = region(ispace(int3d, {x = nx+1, y = ny, z = nz}), primitive)  
   var xdim : int64 = nx+1
 
   var pr = matrix_l_x.ispace.bounds.hi.x
@@ -351,8 +354,8 @@ do
     end
   end
 
-  __delete(r_rhs_l)
-  __delete(r_rhs_r)
+  -- __delete(r_rhs_l)
+  -- __delete(r_rhs_r)
 
   return 1
 end

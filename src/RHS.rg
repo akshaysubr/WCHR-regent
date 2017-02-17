@@ -40,6 +40,8 @@ task add_xflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
                            r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l_x : region(ispace(int3d), primitive),
                            r_prim_r_x : region(ispace(int3d), primitive),
+                           r_rhs_l_x  : region(ispace(int3d), primitive),
+                           r_rhs_r_x  : region(ispace(int3d), primitive),
                            r_flux_c   : region(ispace(int3d), conserved),
                            r_flux_e_x : region(ispace(int3d), conserved),
                            r_fder_c_x : region(ispace(int3d), conserved),
@@ -50,9 +52,9 @@ task add_xflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
                            matrix_r_x : region(ispace(int2d), superlu.CSR_matrix) )
 where
   reads(r_cnsr, r_prim_c, LU_x),
-  reads writes(r_prim_l_x, r_prim_r_x, r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs, slu_x, matrix_l_x, matrix_r_x)
+  reads writes(r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs, slu_x, matrix_l_x, matrix_r_x)
 do
-  WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, matrix_l_x, matrix_r_x, slu_x )
+  WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_x )
   HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
   get_xfluxes_r( r_prim_c, r_cnsr, r_flux_c )
 

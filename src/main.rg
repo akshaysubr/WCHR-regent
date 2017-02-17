@@ -56,6 +56,9 @@ task main()
   var r_prim_r_y = region(grid_e_y, primitive)  -- Primitive variables at right y cell edge
   var r_prim_r_z = region(grid_e_z, primitive)  -- Primitive variables at right z cell edge
 
+  var r_rhs_l_x  = region(grid_e_x, primitive)  -- Store RHS for left interpolation in x
+  var r_rhs_r_x  = region(grid_e_x, primitive)  -- Store RHS for right interpolation in x
+
   var r_flux_c   = region(grid_c,   conserved)  -- Flux at cell center
   var r_flux_e_x = region(grid_e_x, conserved)  -- Flux at x cell edge
   var r_flux_e_y = region(grid_e_y, conserved)  -- Flux at y cell edge
@@ -124,14 +127,14 @@ task main()
   var t_start = c.legion_get_current_time_in_micros()
 
   __demand(__spmd)
-  for step = 0,10 do -- Run for 10 time steps
-  -- while tsim + dt < tstop do
+  -- for step = 0,10 do -- Run for 10 time steps
+  while tsim < tstop*(1.0 - 1.0e-16) do
 
     var Q_t : double = 0.0
     fill(Q_rhs.{rho, rhou, rhov, rhow, rhoE}, 0.0)
     for isub = 0,5 do
         fill(r_rhs.{rho, rhou, rhov, rhow, rhoE}, 0.0)
-        add_xflux_der_to_rhs( r_cnsr, r_prim_c, r_prim_l_x, r_prim_r_x,
+        add_xflux_der_to_rhs( r_cnsr, r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x,
                               r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs,
                               LU_x, slu_x, matrix_l_x, matrix_r_x )
 
@@ -143,14 +146,17 @@ task main()
 
         token += get_primitive_r(r_cnsr, r_prim_c)
     end
-    -- step = step + 1
+    step = step + 1
 
+    c.printf("Step: %d\n", step)
+    c.printf("Simulation time: %g\n", tsim)
+    c.printf("\n")
   end
   
   wait_for(token)
   var t_simulation = c.legion_get_current_time_in_micros() - t_start
   
-  c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/10)
+  c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/step)
 
   var errors = problem.get_errors(coords, r_prim_c, tsim)
 
