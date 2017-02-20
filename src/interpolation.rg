@@ -234,8 +234,6 @@ do
   var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
   var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
 
-  -- var r_rhs_l = region(ispace(int3d, {x = nx+1, y = ny, z = nz}), primitive)  
-  -- var r_rhs_r = region(ispace(int3d, {x = nx+1, y = ny, z = nz}), primitive)  
   var xdim : int64 = nx+1
 
   var pr = matrix_l_x.ispace.bounds.hi.x
@@ -353,9 +351,6 @@ do
                           __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds )
     end
   end
-
-  -- __delete(r_rhs_l)
-  -- __delete(r_rhs_r)
 
   return 1
 end
