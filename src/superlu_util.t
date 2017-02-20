@@ -103,6 +103,97 @@ terra superlu.initialize_matrix_x( alpha  : double,
   return matrix
 end
 
+terra superlu.initialize_matrix_char_x( alpha  : double,
+                                        beta   : double,
+                                        gamma  : double,
+                                        nx     : int64,
+                                        ny     : int64,
+                                        nz     : int64 )
+  var matrix : superlu.CSR_matrix
+
+  var Nsize : int64 = 3*(nx+1)*ny*nz
+  matrix.nnz = (6*3*nx+6)*ny*nz
+  matrix.rowptr = [&int] ( c.malloc ( (Nsize+1) * sizeof(int) ) )
+  matrix.colind = [&int] ( c.malloc ( matrix.nnz * sizeof(int) ) )
+  matrix.nzval  = [&double] ( c.malloc ( matrix.nnz * sizeof(double) ) )
+
+  var xdim : int = nx+1
+
+  var Avals : double[3]
+  Avals[0] = alpha
+  Avals[1] = beta
+  Avals[2] = gamma
+
+  var counter : int64 = 0
+  matrix.rowptr[0] = counter
+
+  for iz = 0, nz do
+    for iy = 0, ny do
+      for brow = 0, nx do
+        var grow : int64 = 3*brow + iy*3*xdim + iz*3*xdim*ny
+        for j = 0, 3 do
+          var bcol : int64 = brow + j - 1
+          var gcol : int64 = ((bcol + nx)%nx)*3 + iy*3*xdim + iz*3*xdim*ny -- Top of the block
+
+          matrix.colind[counter] = gcol+1
+          matrix.nzval [counter] = Avals[j] * (-0.5)
+          counter = counter + 1
+
+          matrix.colind[counter] = gcol+2
+          matrix.nzval [counter] = Avals[j] * (0.5)
+          counter = counter + 1
+        end
+        matrix.rowptr[grow+1] = matrix.rowptr[grow] + 6
+
+        for j = 0, 3 do
+          var bcol : int64 = brow + j - 1
+          var gcol : int64 = ((bcol + nx)%nx)*3 + iy*3*xdim + iz*3*xdim*ny -- Top of the block
+
+          matrix.colind[counter] = gcol
+          matrix.nzval [counter] = Avals[j] * (1.0)
+          counter = counter + 1
+
+          matrix.colind[counter] = gcol+2
+          matrix.nzval [counter] = Avals[j] * (-1.0)
+          counter = counter + 1
+        end
+        matrix.rowptr[grow+2] = matrix.rowptr[grow+1] + 6
+
+        for j = 0, 3 do
+          var bcol : int64 = brow + j - 1
+          var gcol : int64 = ((bcol + nx)%nx)*3 + iy*3*xdim + iz*3*xdim*ny -- Top of the block
+
+          matrix.colind[counter] = gcol+1
+          matrix.nzval [counter] = Avals[j] * (0.5)
+          counter = counter + 1
+
+          matrix.colind[counter] = gcol+2
+          matrix.nzval [counter] = Avals[j] * (0.5)
+          counter = counter + 1
+        end
+        matrix.rowptr[grow+3] = matrix.rowptr[grow+2] + 6
+      end
+      -- For the last point
+      for pvar = 0,3 do
+        var gcol : int64 = 3*nx+pvar + iy*3*xdim + iz*3*xdim*ny
+        matrix.colind[counter] = gcol
+        matrix.nzval [counter] = 1.0
+        counter = counter + 1
+
+        gcol = 3*0+pvar + iy*3*xdim + iz*3*xdim*ny
+        matrix.colind[counter] = gcol
+        matrix.nzval [counter] = -1.0
+        counter = counter + 1
+
+        var grow : int64 = 3*nx+pvar + iy*3*xdim + iz*3*xdim*ny
+        matrix.rowptr[grow+1] = matrix.rowptr[grow] + 2
+      end
+    end
+  end
+
+  return matrix
+end
+
 local terra get_base_pointer_2d(pr   : c.legion_physical_region_t,
                                 fid  : c.legion_field_id_t,
                                 rect : c.legion_rect_2d_t)

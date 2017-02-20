@@ -53,7 +53,7 @@ void initialize_superlu_vars(double *nzval, int* rowind, int *colptr, long int N
 
     // dCreate_CompCol_Matrix (&(vars->A), Nsize, Nsize, nnz, nzval, rowind, colptr, SLU_NC, SLU_D, SLU_GE);
     dCreate_CompRow_Matrix (&(vars->A), Nsize, Nsize, nnz, nzval, rowind, colptr, SLU_NR, SLU_D, SLU_GE);
-    // dPrint_CompCol_Matrix("A: ", &(vars->A));
+    dPrint_CompCol_Matrix("A: ", &(vars->A));
 
     vars->perm_r = (int *) malloc( Nsize * sizeof(int));
     vars->perm_c = (int *) malloc( Nsize * sizeof(int));
