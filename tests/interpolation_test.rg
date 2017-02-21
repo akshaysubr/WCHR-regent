@@ -120,7 +120,7 @@ task main()
   --------------------------------------------------------------------------------------------
   var grid_c     = ispace(int3d, {x = Nx,   y = Ny,   z = Nz  })  -- Cell center index space
 
-  var grid_e_x   = ispace(int3d, {x = 3*(Nx+1), y = Ny,   z = Nz  })  -- x cell edge index space
+  var grid_e_x   = ispace(int3d, {x = 5*(Nx+1), y = Ny,   z = Nz  })  -- x cell edge index space
   var grid_e_y   = ispace(int3d, {x = Nx,   y = Ny+1, z = Nz  })  -- y cell edge index space
   var grid_e_z   = ispace(int3d, {x = Nx,   y = Ny,   z = Nz+1})  -- z cell edge index space
 
@@ -154,7 +154,7 @@ task main()
   -- Initialize SuperLU stuff
   matrix_l_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
   matrix_r_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  superlu.initialize_superlu_vars( matrix_l_x[{0,0}], 3*(Nx+1)*Ny*Nz, __physical(r_prim_r_x.rho), __fields(r_prim_r_x.rho),
+  superlu.initialize_superlu_vars( matrix_l_x[{0,0}], 5*(Nx+1)*Ny*Nz, __physical(r_prim_r_x.rho), __fields(r_prim_r_x.rho),
                                    __physical(r_prim_l_x.rho), __fields(r_prim_l_x.rho), r_prim_l_x.bounds,
                                    __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds)
 

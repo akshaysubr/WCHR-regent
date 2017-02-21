@@ -187,12 +187,7 @@ do
 end
 
 terra sign(x : double)
-  -- return (x >= 0) ? 1 : -1
-  if (x >= 0) then
-    return 1
-  else
-    return -1
-  end
+  return 2*([int](x >= 0)) - 1
 end
 
 task HLLC_x( r_prim_l_x : region(ispace(int3d), primitive),
