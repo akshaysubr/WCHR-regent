@@ -124,114 +124,117 @@ terra superlu.initialize_matrix_char_x( alpha  : double,
   Avals[1] = beta
   Avals[2] = gamma
 
-  var counter : int64 = 0
-  matrix.rowptr[0] = counter
+  matrix.rowptr[0] = 0
 
   for iz = 0, nz do
     for iy = 0, ny do
       for brow = 0, nx do
         var grow : int64 = 5*brow + iy*5*xdim + iz*5*xdim*ny
+        var bcounter : int64 = 8*3*brow + iy*(8*3*nx+10) + iz*(8*3*nx+10)*ny
 
         -- rho
         for j = 0, 3 do
           var bcol : int64 = brow + j - 1
           var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*xdim + iz*5*xdim*ny -- Top of the block
+          var counter : int64 = bcounter + 2*j
 
           matrix.colind[counter] = gcol+1
           matrix.nzval [counter] = Avals[j] * (-0.5)
-          counter = counter + 1
 
-          matrix.colind[counter] = gcol+4
-          matrix.nzval [counter] = Avals[j] * (0.5)
-          counter = counter + 1
+          matrix.colind[counter+1] = gcol+4
+          matrix.nzval [counter+1] = Avals[j] * (0.5)
         end
-        matrix.rowptr[grow+1] = matrix.rowptr[grow] + 3*2
+        bcounter = bcounter + 3*2
+        matrix.rowptr[grow+1] = bcounter
 
         -- u
         for j = 0, 3 do
           var bcol : int64 = brow + j - 1
           var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*xdim + iz*5*xdim*ny -- Top of the block
+          var counter : int64 = bcounter + 2*j
 
           matrix.colind[counter] = gcol
           matrix.nzval [counter] = Avals[j] * (1.0)
-          counter = counter + 1
 
-          matrix.colind[counter] = gcol+4
-          matrix.nzval [counter] = Avals[j] * (-1.0)
-          counter = counter + 1
+          matrix.colind[counter+1] = gcol+4
+          matrix.nzval [counter+1] = Avals[j] * (-1.0)
         end
-        matrix.rowptr[grow+2] = matrix.rowptr[grow+1] + 3*2
+        bcounter = bcounter + 3*2
+        matrix.rowptr[grow+2] = bcounter
 
         -- v
         for j = 0, 3 do
           var bcol : int64 = brow + j - 1
           var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*xdim + iz*5*xdim*ny -- Top of the block
+          var counter : int64 = bcounter + j
 
           matrix.colind[counter] = gcol+2
           matrix.nzval [counter] = Avals[j] * (1.0)
-          counter = counter + 1
         end
-        matrix.rowptr[grow+3] = matrix.rowptr[grow+2] + 3*1
+        bcounter = bcounter + 3*1
+        matrix.rowptr[grow+3] = bcounter
 
         -- w
         for j = 0, 3 do
           var bcol : int64 = brow + j - 1
           var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*xdim + iz*5*xdim*ny -- Top of the block
+          var counter : int64 = bcounter + j
 
           matrix.colind[counter] = gcol+3
           matrix.nzval [counter] = Avals[j] * (1.0)
-          counter = counter + 1
         end
-        matrix.rowptr[grow+4] = matrix.rowptr[grow+3] + 3*1
+        bcounter = bcounter + 3*1
+        matrix.rowptr[grow+4] = bcounter
 
         -- p
         for j = 0, 3 do
           var bcol : int64 = brow + j - 1
           var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*xdim + iz*5*xdim*ny -- Top of the block
+          var counter : int64 = bcounter + 2*j
 
           matrix.colind[counter] = gcol+1
           matrix.nzval [counter] = Avals[j] * (0.5)
-          counter = counter + 1
 
-          matrix.colind[counter] = gcol+4
-          matrix.nzval [counter] = Avals[j] * (0.5)
-          counter = counter + 1
+          matrix.colind[counter+1] = gcol+4
+          matrix.nzval [counter+1] = Avals[j] * (0.5)
         end
-        matrix.rowptr[grow+5] = matrix.rowptr[grow+4] + 3*2
+        bcounter = bcounter + 3*2
+        matrix.rowptr[grow+5] = bcounter
       end
       -- For the last point
+      
+      var bcounter : int64 = 8*3*nx + iy*(8*3*nx+10) + iz*(8*3*nx+10)*ny
       for pvar = 0,5 do
         var gcol : int64 = 5*nx+pvar + iy*5*xdim + iz*5*xdim*ny
+        var counter : int64 = bcounter + 2*pvar
         matrix.colind[counter] = gcol
         matrix.nzval [counter] = 1.0
-        counter = counter + 1
 
         gcol = 5*0+pvar + iy*5*xdim + iz*5*xdim*ny
-        matrix.colind[counter] = gcol
-        matrix.nzval [counter] = -1.0
-        counter = counter + 1
+        matrix.colind[counter+1] = gcol
+        matrix.nzval [counter+1] = -1.0
 
         var grow : int64 = 5*nx+pvar + iy*5*xdim + iz*5*xdim*ny
-        matrix.rowptr[grow+1] = matrix.rowptr[grow] + 2
+        matrix.rowptr[grow+1] = counter + 2
       end
     end
   end
 
-  c.printf("nzval = numpy.array([")
-  for i = 0,matrix.nnz do
-    c.printf("%g, ", matrix.nzval[i])
-  end
-  c.printf("])\n")
-  c.printf("colind = numpy.array([")
-  for i = 0,matrix.nnz do
-    c.printf("%d, ", matrix.colind[i])
-  end
-  c.printf("])\n")
-  c.printf("rowptr = numpy.array([")
-  for i = 0,Nsize+1 do
-    c.printf("%d, ", matrix.rowptr[i])
-  end
-  c.printf("])\n")
+  -- c.printf("nzval = numpy.array([")
+  -- for i = 0,matrix.nnz do
+  --   c.printf("%g, ", matrix.nzval[i])
+  -- end
+  -- c.printf("])\n")
+  -- c.printf("colind = numpy.array([")
+  -- for i = 0,matrix.nnz do
+  --   c.printf("%d, ", matrix.colind[i])
+  -- end
+  -- c.printf("])\n")
+  -- c.printf("rowptr = numpy.array([")
+  -- for i = 0,Nsize+1 do
+  --   c.printf("%d, ", matrix.rowptr[i])
+  -- end
+  -- c.printf("])\n")
   return matrix
 end
 
