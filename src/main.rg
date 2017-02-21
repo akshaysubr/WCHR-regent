@@ -105,8 +105,8 @@ task main()
   var token = problem.initialize(coords, r_prim_c, dx, dy, dz)
   wait_for(token)
   
-  write_coords(coords)
-  write_primitive(r_prim_c, "cell_primitive", 0)
+  -- write_coords(coords)
+  -- write_primitive(r_prim_c, "cell_primitive", 0)
   
   var A_RK45 = array(0.0,
                      -6234157559845.0/12983515589748.0,
@@ -130,8 +130,8 @@ task main()
   var t_start = c.legion_get_current_time_in_micros()
 
   __demand(__spmd)
-  -- for step = 0,10 do -- Run for 10 time steps
-  while tsim < tstop*(1.0 - 1.0e-16) do
+  for step = 0,10 do -- Run for 10 time steps
+  -- while tsim < tstop*(1.0 - 1.0e-16) do
 
     var Q_t : double = 0.0
     fill(Q_rhs.{rho, rhou, rhov, rhow, rhoE}, 0.0)
@@ -149,7 +149,7 @@ task main()
 
         token += get_primitive_r(r_cnsr, r_prim_c)
     end
-    step = step + 1
+    -- step = step + 1
 
     c.printf("Step: %d\n", step)
     c.printf("Simulation time: %g\n", tsim)
@@ -159,7 +159,7 @@ task main()
   wait_for(token)
   var t_simulation = c.legion_get_current_time_in_micros() - t_start
   
-  c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/step)
+  c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/10)
 
   var errors = problem.get_errors(coords, r_prim_c, tsim)
 
@@ -169,7 +169,7 @@ task main()
   c.printf("Error in w   = %g\n", errors[3])
   c.printf("Error in p   = %g\n", errors[4])
 
-  write_primitive(r_prim_c, "cell_primitive", step)
+  -- write_primitive(r_prim_c, "cell_primitive", step)
 end
 
 regentlib.start(main)
