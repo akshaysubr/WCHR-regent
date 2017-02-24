@@ -278,23 +278,23 @@ task superlu.initialize_superlu_vars( matrix : superlu.CSR_matrix,
                                       r_sol  : region(ispace(int3d), primitive),
                                       slu    : region(ispace(int2d), superlu.c.superlu_vars_t) )
 where
-  reads(r_rhs), reads writes(r_sol), reads writes(slu)
+  reads(r_rhs), writes(r_sol), reads writes(slu)
 do
   var b = get_base_pointer_3d(__physical(r_rhs.rho), __fields(r_rhs.rho), r_rhs.bounds)
   var x = get_base_pointer_3d(__physical(r_sol.rho), __fields(r_sol.rho), r_sol.bounds)
   var vars = get_base_pointer_2d(__physical(slu)[0], __fields(slu)[0], slu.bounds)
-  -- superlu.c.initialize_superlu_vars(matrix.nzval, matrix.colind, matrix.rowptr, Nsize, matrix.nnz, b, x, vars)
+  superlu.c.initialize_superlu_vars(matrix.nzval, matrix.colind, matrix.rowptr, Nsize, matrix.nnz, b, x, vars)
   
-  var bnds = r_sol.ispace.bounds
-  var nx = bnds.hi.x + 1
-  var ny = bnds.hi.y + 1
-  var nz = bnds.hi.z + 1
-  c.printf("=== initialize superlu ===\n")
-  c.printf("%p\n", x)
-  for i = 0, 5*nx*ny*nz do
-    c.printf("%.0f ", x[i])
-  end
-  c.printf("\n==================\n")
+  -- var bnds = r_sol.ispace.bounds
+  -- var nx = bnds.hi.x + 1
+  -- var ny = bnds.hi.y + 1
+  -- var nz = bnds.hi.z + 1
+  -- c.printf("=== initialize superlu ===\n")
+  -- c.printf("%p\n", x)
+  -- for i = 0, 5*nx*ny*nz do
+  --   c.printf("%.0f ", x[i])
+  -- end
+  -- c.printf("\n==================\n")
 
 end
 --   return initialize_superlu_vars
@@ -316,20 +316,20 @@ task superlu.MatrixSolve( r_rhs  : region(ispace(int3d), primitive),
                           nz     : int,
                           slu    : region(ispace(int2d), superlu.c.superlu_vars_t) )
 where
-  reads(r_rhs), reads writes(r_sol), reads writes(slu)
+  reads(r_rhs), writes(r_sol), reads writes(slu)
 do
   var b = get_base_pointer_3d(__physical(r_rhs.rho), __fields(r_rhs.rho), r_rhs.bounds)
   var x = get_base_pointer_3d(__physical(r_sol.rho), __fields(r_sol.rho), r_sol.bounds)
   var vars = get_base_pointer_2d(__physical(slu)[0], __fields(slu)[0], slu.bounds)
-  -- superlu.c.MatrixSolve(b, x, matrix.nzval, nx, ny, nz, vars)
+  superlu.c.MatrixSolve(b, x, matrix.nzval, nx, ny, nz, vars)
   
-  var bnds = r_sol.ispace.bounds
-  c.printf("=== MatrixSolve ===\n")
-  c.printf("%p\n", x)
-  for i = 0, 5*(nx+1)*ny*nz do
-    c.printf("%.0f ", x[i])
-  end
-  c.printf("\n==================\n")
+  -- var bnds = r_sol.ispace.bounds
+  -- c.printf("=== MatrixSolve ===\n")
+  -- c.printf("%p\n", x)
+  -- for i = 0, 5*(nx+1)*ny*nz do
+  --   c.printf("%.0f ", x[i])
+  -- end
+  -- c.printf("\n==================\n")
 
 end
 --   return MatrixSolver

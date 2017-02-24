@@ -9,6 +9,8 @@ require("IO")
 require("interpolation")
 local superlu = require("superlu_util")
 
+local csuperlu_mapper = require("superlu_mapper")
+
 -- Grid dimensions
 local NX = 80
 local NY = 1
@@ -157,9 +159,8 @@ task main()
   -- Initialize SuperLU stuff
   matrix_l_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
   matrix_r_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  -- superlu.initialize_superlu_vars( matrix_l_x[{0,0}], 5*(Nx+1)*Ny*Nz, __physical(r_prim_r_x.rho), __fields(r_prim_r_x.rho),
-  --                                  __physical(r_prim_l_x.rho), __fields(r_prim_l_x.rho), r_prim_l_x.bounds,
-  --                                  __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds)
+
+  superlu.initialize_superlu_vars( matrix_l_x[{0,0}], 5*(Nx+1)*Ny*Nz, r_rhs_l_x, r_prim_l_x, slu_x ) 
 
   var token = initialize(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z, dx, dy, dz)
   wait_for(token)
@@ -170,10 +171,10 @@ task main()
   var t_WCHR = c.legion_get_current_time_in_micros() - t_start
   c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_WCHR)*1e-6)
 
-  -- -- write_coords(coords)
-  -- -- write_primitive(r_prim_c, "cell_primitive", 0)
+  write_coords(coords)
+  -- write_primitive(r_prim_c, "cell_primitive", 0)
   -- write_primitive(r_prim_l_x, "edge_primitive_l_x", 0)
-  -- -- write_primitive(r_prim_r_x, "edge_primitive_r_x", 0)
+  -- write_primitive(r_prim_r_x, "edge_primitive_r_x", 0)
 end
 
-regentlib.start(main)
+regentlib.start(main, csuperlu_mapper.register_mappers)

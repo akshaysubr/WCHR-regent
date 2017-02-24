@@ -226,7 +226,7 @@ task WCHR_interpolation_x( r_prim_c   : region(ispace(int3d), primitive),
                            matrix_r_x : region(ispace(int2d), superlu.CSR_matrix),
                            slu_x      : region(ispace(int2d), superlu.c.superlu_vars_t) )
 where
-  reads(r_prim_c), writes(r_prim_l_x, r_prim_r_x, r_rhs_l, r_rhs_r), reads writes(matrix_l_x, matrix_r_x, slu_x)
+  reads(r_prim_c), writes(r_prim_l_x, r_prim_r_x), reads writes(r_rhs_l, r_rhs_r, matrix_l_x, matrix_r_x, slu_x)
 do
 
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
@@ -386,30 +386,24 @@ do
     end
   end
 
-  c.printf("nzval = numpy.array([")
-  for i = 0,matrix_l_x[{pr,pc}].nnz do
-    c.printf("%g, ", matrix_l_x[{pr,pc}].nzval[i])
-  end
-  c.printf("])\n")
-  c.printf("colind = numpy.array([")
-  for i = 0,matrix_l_x[{pr,pc}].nnz do
-    c.printf("%d, ", matrix_l_x[{pr,pc}].colind[i])
-  end
-  c.printf("])\n")
-  c.printf("rowptr = numpy.array([")
-  for i = 0,5*(nx+1)*ny*nz+1 do
-    c.printf("%d, ", matrix_l_x[{pr,pc}].rowptr[i])
-  end
-  c.printf("])\n")
+  -- c.printf("nzval = numpy.array([")
+  -- for i = 0,matrix_l_x[{pr,pc}].nnz do
+  --   c.printf("%g, ", matrix_l_x[{pr,pc}].nzval[i])
+  -- end
+  -- c.printf("])\n")
+  -- c.printf("colind = numpy.array([")
+  -- for i = 0,matrix_l_x[{pr,pc}].nnz do
+  --   c.printf("%d, ", matrix_l_x[{pr,pc}].colind[i])
+  -- end
+  -- c.printf("])\n")
+  -- c.printf("rowptr = numpy.array([")
+  -- for i = 0,5*(nx+1)*ny*nz+1 do
+  --   c.printf("%d, ", matrix_l_x[{pr,pc}].rowptr[i])
+  -- end
+  -- c.printf("])\n")
 
-  -- superlu.MatrixSolve(__physical(r_rhs_l.rho), __fields(r_rhs_l.rho),
-  --                     __physical(r_prim_l_x.rho), __fields(r_prim_l_x.rho), r_prim_l_x.bounds,
-  --                     matrix_l_x[{pr,pc}], nx, ny, nz,
-  --                     __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds )
-  -- superlu.MatrixSolve(__physical(r_rhs_r.rho), __fields(r_rhs_r.rho),
-  --                     __physical(r_prim_r_x.rho), __fields(r_prim_r_x.rho), r_prim_r_x.bounds,
-  --                     matrix_r_x[{pr,pc}], nx, ny, nz,
-  --                     __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds )
-
+  superlu.MatrixSolve( r_rhs_l, r_prim_l_x, matrix_l_x[{pr,pc}], nx, ny, nz, slu_x )
+  superlu.MatrixSolve( r_rhs_r, r_prim_r_x, matrix_r_x[{pr,pc}], nx, ny, nz, slu_x )
+                      
   return 1
 end
