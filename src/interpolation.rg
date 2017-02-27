@@ -249,9 +249,9 @@ do
     var rhosos_avg : double[2] = get_rho_sos_avg_x( r_prim_c, i, nx, ny, nz )
     var char_values : double[6][5] = get_char_values_x(r_prim_c, rhosos_avg[0], rhosos_avg[1], i, nx, ny, nz)
 
-    var nlweights_l = get_nonlinear_weights_LD_l(char_values)
+    var nlweights_l = get_nonlinear_weights_JS_l(char_values)
     var coeffs_l = get_coefficients(nlweights_l)
-    var nlweights_r = get_nonlinear_weights_LD_r(char_values)
+    var nlweights_r = get_nonlinear_weights_JS_r(char_values)
     var coeffs_r = get_coefficients(nlweights_r)
 
     r_rhs_l[i].rho = coeffs_l[0][3] * char_values[0][1]
