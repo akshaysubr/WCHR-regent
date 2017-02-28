@@ -132,9 +132,9 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
       var epsilon : double = 1.0e-6
       var alpha_beta : double = 40.0
       
-      var alpha_2 : double = (values[2] - values[1])
-      var alpha_3 : double = (values[3] - values[2])
-      var alpha_4 : double = (values[4] - values[3])
+      var alpha_2 : double = (values[eq][2] - values[eq][1])
+      var alpha_3 : double = (values[eq][3] - values[eq][2])
+      var alpha_4 : double = (values[eq][4] - values[eq][3])
   
       var theta_2 : double = cmath.fabs(alpha_2 - alpha_3) / (cmath.fabs(alpha_2) + cmath.fabs(alpha_3) + epsilon)
       var theta_3 : double = cmath.fabs(alpha_3 - alpha_4) / (cmath.fabs(alpha_3) + cmath.fabs(alpha_4) + epsilon)
@@ -226,7 +226,7 @@ task WCHR_interpolation_x( r_prim_c   : region(ispace(int3d), primitive),
                            matrix_r_x : region(ispace(int2d), superlu.CSR_matrix),
                            slu_x      : region(ispace(int2d), superlu.c.superlu_vars_t) )
 where
-  reads(r_prim_c), writes(r_prim_l_x, r_prim_r_x), reads writes(r_rhs_l, r_rhs_r, matrix_l_x, matrix_r_x, slu_x)
+  reads(r_prim_c), reads writes(r_prim_l_x, r_prim_r_x), reads writes(r_rhs_l, r_rhs_r, matrix_l_x, matrix_r_x, slu_x)
 do
 
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
@@ -249,10 +249,45 @@ do
     var rhosos_avg : double[2] = get_rho_sos_avg_x( r_prim_c, i, nx, ny, nz )
     var char_values : double[6][5] = get_char_values_x(r_prim_c, rhosos_avg[0], rhosos_avg[1], i, nx, ny, nz)
 
-    var nlweights_l = get_nonlinear_weights_JS_l(char_values)
+    var nlweights_l = get_nonlinear_weights_LD_l(char_values)
     var coeffs_l = get_coefficients(nlweights_l)
-    var nlweights_r = get_nonlinear_weights_JS_r(char_values)
+    var nlweights_r = get_nonlinear_weights_LD_r(char_values)
     var coeffs_r = get_coefficients(nlweights_r)
+
+    if (i.x == 7) then
+        c.printf("rho: ")
+        for nlind = -3,3 do
+          c.printf(" %26.16e,", r_prim_c[ [poff(i,nlind,0,0,nx,ny,nz)] ].rho)
+        end
+        c.printf("\n")
+      for charind = 0,5 do
+        c.printf("char_values[%d]: ",charind)
+        for nlind = 0,6 do
+          c.printf(" %26.16e,", char_values[charind][nlind])
+        end
+        c.printf("\n")
+        c.printf("nlweights_l[%d]: ",charind)
+        for nlind = 0,4 do
+          c.printf(" %26.16e,", nlweights_l[charind][nlind])
+        end
+        c.printf("\n")
+        c.printf("coeffs_l[%d]: ",charind)
+        for nlind = 0,7 do
+          c.printf(" %26.16e,", coeffs_l[charind][nlind])
+        end
+        c.printf("\n")
+        c.printf("nlweights_r[%d]: ",charind)
+        for nlind = 0,4 do
+          c.printf(" %26.16e,", nlweights_r[charind][nlind])
+        end
+        c.printf("\n")
+        c.printf("coeffs_r[%d]: ",charind)
+        for nlind = 0,7 do
+          c.printf(" %26.16e,", coeffs_r[charind][nlind])
+        end
+        c.printf("\n")
+      end
+    end
 
     r_rhs_l[i].rho = coeffs_l[0][3] * char_values[0][1]
                    + coeffs_l[0][4] * char_values[0][2]
@@ -386,24 +421,62 @@ do
     end
   end
 
-  -- c.printf("nzval = numpy.array([")
-  -- for i = 0,matrix_l_x[{pr,pc}].nnz do
-  --   c.printf("%g, ", matrix_l_x[{pr,pc}].nzval[i])
-  -- end
-  -- c.printf("])\n")
-  -- c.printf("colind = numpy.array([")
-  -- for i = 0,matrix_l_x[{pr,pc}].nnz do
-  --   c.printf("%d, ", matrix_l_x[{pr,pc}].colind[i])
-  -- end
-  -- c.printf("])\n")
-  -- c.printf("rowptr = numpy.array([")
-  -- for i = 0,5*(nx+1)*ny*nz+1 do
-  --   c.printf("%d, ", matrix_l_x[{pr,pc}].rowptr[i])
-  -- end
-  -- c.printf("])\n")
+  c.printf("nzval = numpy.array([")
+  for i = 0,matrix_l_x[{pr,pc}].nnz do
+    c.printf("%26.16e, ", matrix_l_x[{pr,pc}].nzval[i])
+  end
+  c.printf("])\n")
+  c.printf("colind = numpy.array([")
+  for i = 0,matrix_l_x[{pr,pc}].nnz do
+    c.printf("%d, ", matrix_l_x[{pr,pc}].colind[i])
+  end
+  c.printf("])\n")
+  c.printf("rowptr = numpy.array([")
+  for i = 0,5*(nx+1)*ny*nz+1 do
+    c.printf("%d, ", matrix_l_x[{pr,pc}].rowptr[i])
+  end
+  c.printf("])\n")
 
   superlu.MatrixSolve( r_rhs_l, r_prim_l_x, matrix_l_x[{pr,pc}], nx, ny, nz, slu_x )
   superlu.MatrixSolve( r_rhs_r, r_prim_r_x, matrix_r_x[{pr,pc}], nx, ny, nz, slu_x )
+
+  c.printf("rho_L: ")
+  for ix = 1,nx+1 do
+    c.printf(" %26.16e,", r_prim_l_x[{ix,0,0}].rho)
+  end
+  c.printf("\nPeriodicity error = %26.16e", r_prim_l_x[{nx,0,0}].rho - r_prim_l_x[{0,0,0}].rho)
+  c.printf("\n\n")
+  c.printf("u_L: ")
+  for ix = 1,nx+1 do
+    c.printf(" %26.16e,", r_prim_l_x[{ix,0,0}].u)
+  end
+  c.printf("\nPeriodicity error = %26.16e", r_prim_l_x[{nx,0,0}].u - r_prim_l_x[{0,0,0}].u)
+  c.printf("\n\n")
+  c.printf("p_L: ")
+  for ix = 1,nx+1 do
+    c.printf(" %26.16e,", r_prim_l_x[{ix,0,0}].p)
+  end
+  c.printf("\nPeriodicity error = %26.16e", r_prim_l_x[{nx,0,0}].p - r_prim_l_x[{0,0,0}].p)
+  c.printf("\n\n")
+                      
+  c.printf("rho_R: ")
+  for ix = 1,nx+1 do
+    c.printf(" %26.16e,", r_prim_r_x[{ix,0,0}].rho)
+  end
+  c.printf("\nPeriodicity error = %26.16e", r_prim_r_x[{nx,0,0}].rho - r_prim_r_x[{0,0,0}].rho)
+  c.printf("\n\n")
+  c.printf("u_R: ")
+  for ix = 1,nx+1 do
+    c.printf(" %26.16e,", r_prim_r_x[{ix,0,0}].u)
+  end
+  c.printf("\nPeriodicity error = %26.16e", r_prim_r_x[{nx,0,0}].u - r_prim_r_x[{0,0,0}].u)
+  c.printf("\n\n")
+  c.printf("p_R: ")
+  for ix = 1,nx+1 do
+    c.printf(" %26.16e,", r_prim_r_x[{ix,0,0}].p)
+  end
+  c.printf("\nPeriodicity error = %26.16e", r_prim_r_x[{nx,0,0}].p - r_prim_r_x[{0,0,0}].p)
+  c.printf("\n\n")
                       
   return 1
 end

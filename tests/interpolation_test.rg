@@ -58,11 +58,11 @@ do
     coords[i].z_c = Z1 + (i.z + 0.5) * dz
 
     if (coords[i].x_c < -4.0) then
-      r_prim_c[i].rho = 3.857143
-      r_prim_c[i].u   = 2.62936
+      r_prim_c[i].rho = 27./7.
+      r_prim_c[i].u   = 4.0*cmath.sqrt(35.0)/9.0
       r_prim_c[i].v   = 0.0 
       r_prim_c[i].w   = 0.0
-      r_prim_c[i].p   = 10.33339
+      r_prim_c[i].p   = 31./3.
     else
       r_prim_c[i].rho = 1.0 + 0.2*cmath.sin(5.0*coords[i].x_c)
       r_prim_c[i].u   = 0.0
@@ -77,11 +77,11 @@ do
     var y_c : double = Y1 + (i.y) * dy
     var z_c : double = Z1 + (i.z) * dz
     if (x_c < -4.0) then
-      r_prim_l_x[i].rho = 3.857143
-      r_prim_l_x[i].u   = 2.62936
+      r_prim_l_x[i].rho = 27./7.
+      r_prim_l_x[i].u   = 4.0*cmath.sqrt(35.0)/9.0
       r_prim_l_x[i].v   = 0.0 
       r_prim_l_x[i].w   = 0.0
-      r_prim_l_x[i].p   = 10.33339
+      r_prim_l_x[i].p   = 31./3.
     else
       r_prim_l_x[i].rho = 1.0 + 0.2*cmath.sin(5.0*x_c)
       r_prim_l_x[i].u   = 0.0
