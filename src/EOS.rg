@@ -73,6 +73,24 @@ task get_sos( rho : double, p : double )
   return cmath.sqrt(gamma*p/rho)
 end
 
+__demand(__inline)
+task get_rho_sos_avg_x( r_prim_c : region(ispace(int3d), primitive),
+                        idx      : int3d,
+                        Nx       : int64,
+                        Ny       : int64,
+                        Nz       : int64)
+where
+  reads(r_prim_c)
+do
+  var rhosos : double[2]
+
+  var idxm1 = [poff(idx, -1, 0, 0, Nx, Ny, Nz)]
+  rhosos[0] = 0.5*( r_prim_c[ idxm1 ].rho + r_prim_c[ idx ].rho )
+  rhosos[1] = 0.5*( get_sos(r_prim_c[idxm1].rho, r_prim_c[idxm1].p) + get_sos(r_prim_c[idx].rho, r_prim_c[idx].p))
+
+  return rhosos
+end
+
 task get_primitive_r( r_cnsr : region(ispace(int3d), conserved),
                       r_prim : region(ispace(int3d), primitive) )
 where
@@ -111,22 +129,25 @@ do
 end
 
 __demand(__inline)
-task get_char_values( r_prim_c : region(ispace(int3d), primitive),
-                      idx      : int3d,
-                      Nx       : int64,
-                      Ny       : int64,
-                      Nz       : int64)
+task get_char_values_x( r_prim_c : region(ispace(int3d), primitive),
+                        rho_avg  : double,
+                        sos_avg  : double,
+                        idx      : int3d,
+                        Nx       : int64,
+                        Ny       : int64,
+                        Nz       : int64)
 where
   reads(r_prim_c)
 do
   var char_values : double[6][5]
 
   for i = -3, 3 do
-    char_values[0][i+3] = r_prim_c[ [poff(idx, i, 0, 0, Nx, Ny, Nz)] ].rho
-    char_values[1][i+3] = r_prim_c[ [poff(idx, i, 0, 0, Nx, Ny, Nz)] ].u
-    char_values[2][i+3] = r_prim_c[ [poff(idx, i, 0, 0, Nx, Ny, Nz)] ].v
-    char_values[3][i+3] = r_prim_c[ [poff(idx, i, 0, 0, Nx, Ny, Nz)] ].w
-    char_values[4][i+3] = r_prim_c[ [poff(idx, i, 0, 0, Nx, Ny, Nz)] ].p
+    var p = [poff(idx, i, 0, 0, Nx, Ny, Nz)]
+    char_values[0][i+3] = -0.5*rho_avg*sos_avg * r_prim_c[p].u + 0.5*r_prim_c[p].p
+    char_values[1][i+3] = r_prim_c[p].rho - r_prim_c[p].p/(sos_avg*sos_avg)
+    char_values[2][i+3] = r_prim_c[p].v
+    char_values[3][i+3] = r_prim_c[p].w
+    char_values[4][i+3] = 0.5*rho_avg*sos_avg * r_prim_c[p].u + 0.5*r_prim_c[p].p
   end
 
   return char_values

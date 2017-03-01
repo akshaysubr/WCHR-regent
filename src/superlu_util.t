@@ -103,6 +103,141 @@ terra superlu.initialize_matrix_x( alpha  : double,
   return matrix
 end
 
+terra superlu.initialize_matrix_char_x( alpha  : double,
+                                        beta   : double,
+                                        gamma  : double,
+                                        nx     : int64,
+                                        ny     : int64,
+                                        nz     : int64 )
+  var matrix : superlu.CSR_matrix
+
+  var Nsize : int64 = 5*(nx+1)*ny*nz
+  matrix.nnz = (8*3*nx+10)*ny*nz
+  matrix.rowptr = [&int] ( c.malloc ( (Nsize+1) * sizeof(int) ) )
+  matrix.colind = [&int] ( c.malloc ( matrix.nnz * sizeof(int) ) )
+  matrix.nzval  = [&double] ( c.malloc ( matrix.nnz * sizeof(double) ) )
+
+  var xdim : int = nx+1
+
+  var Avals : double[3]
+  Avals[0] = alpha
+  Avals[1] = beta
+  Avals[2] = gamma
+
+  matrix.rowptr[0] = 0
+
+  for iz = 0, nz do
+    for iy = 0, ny do
+      for brow = 0, nx do
+        var grow : int64 = 5*brow + iy*5*xdim + iz*5*xdim*ny
+        var bcounter : int64 = 8*3*brow + iy*(8*3*nx+10) + iz*(8*3*nx+10)*ny
+
+        -- rho
+        for j = 0, 3 do
+          var bcol : int64 = brow + j - 1
+          var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*xdim + iz*5*xdim*ny -- Top of the block
+          var counter : int64 = bcounter + 2*j
+
+          matrix.colind[counter] = gcol+1
+          matrix.nzval [counter] = Avals[j] * (-0.5)
+
+          matrix.colind[counter+1] = gcol+4
+          matrix.nzval [counter+1] = Avals[j] * (0.5)
+        end
+        bcounter = bcounter + 3*2
+        matrix.rowptr[grow+1] = bcounter
+
+        -- u
+        for j = 0, 3 do
+          var bcol : int64 = brow + j - 1
+          var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*xdim + iz*5*xdim*ny -- Top of the block
+          var counter : int64 = bcounter + 2*j
+
+          matrix.colind[counter] = gcol
+          matrix.nzval [counter] = Avals[j] * (1.0)
+
+          matrix.colind[counter+1] = gcol+4
+          matrix.nzval [counter+1] = Avals[j] * (-1.0)
+        end
+        bcounter = bcounter + 3*2
+        matrix.rowptr[grow+2] = bcounter
+
+        -- v
+        for j = 0, 3 do
+          var bcol : int64 = brow + j - 1
+          var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*xdim + iz*5*xdim*ny -- Top of the block
+          var counter : int64 = bcounter + j
+
+          matrix.colind[counter] = gcol+2
+          matrix.nzval [counter] = Avals[j] * (1.0)
+        end
+        bcounter = bcounter + 3*1
+        matrix.rowptr[grow+3] = bcounter
+
+        -- w
+        for j = 0, 3 do
+          var bcol : int64 = brow + j - 1
+          var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*xdim + iz*5*xdim*ny -- Top of the block
+          var counter : int64 = bcounter + j
+
+          matrix.colind[counter] = gcol+3
+          matrix.nzval [counter] = Avals[j] * (1.0)
+        end
+        bcounter = bcounter + 3*1
+        matrix.rowptr[grow+4] = bcounter
+
+        -- p
+        for j = 0, 3 do
+          var bcol : int64 = brow + j - 1
+          var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*xdim + iz*5*xdim*ny -- Top of the block
+          var counter : int64 = bcounter + 2*j
+
+          matrix.colind[counter] = gcol+1
+          matrix.nzval [counter] = Avals[j] * (0.5)
+
+          matrix.colind[counter+1] = gcol+4
+          matrix.nzval [counter+1] = Avals[j] * (0.5)
+        end
+        bcounter = bcounter + 3*2
+        matrix.rowptr[grow+5] = bcounter
+      end
+      -- For the last point
+      
+      var bcounter : int64 = 8*3*nx + iy*(8*3*nx+10) + iz*(8*3*nx+10)*ny
+      for pvar = 0,5 do
+        var gcol : int64 = 5*nx+pvar + iy*5*xdim + iz*5*xdim*ny
+        var counter : int64 = bcounter + 2*pvar
+        matrix.colind[counter] = gcol
+        matrix.nzval [counter] = 1.0
+
+        gcol = 5*0+pvar + iy*5*xdim + iz*5*xdim*ny
+        matrix.colind[counter+1] = gcol
+        matrix.nzval [counter+1] = -1.0
+
+        var grow : int64 = 5*nx+pvar + iy*5*xdim + iz*5*xdim*ny
+        matrix.rowptr[grow+1] = counter + 2
+      end
+    end
+  end
+
+  -- c.printf("nzval = numpy.array([")
+  -- for i = 0,matrix.nnz do
+  --   c.printf("%g, ", matrix.nzval[i])
+  -- end
+  -- c.printf("])\n")
+  -- c.printf("colind = numpy.array([")
+  -- for i = 0,matrix.nnz do
+  --   c.printf("%d, ", matrix.colind[i])
+  -- end
+  -- c.printf("])\n")
+  -- c.printf("rowptr = numpy.array([")
+  -- for i = 0,Nsize+1 do
+  --   c.printf("%d, ", matrix.rowptr[i])
+  -- end
+  -- c.printf("])\n")
+  return matrix
+end
+
 local terra get_base_pointer_2d(pr   : c.legion_physical_region_t,
                                 fid  : c.legion_field_id_t,
                                 rect : c.legion_rect_2d_t)
@@ -129,38 +264,75 @@ local terra get_base_pointer_3d(pr   : c.legion_physical_region_t[1],
   return base_pointer
 end
 
-terra superlu.initialize_superlu_vars( matrix : superlu.CSR_matrix,
-                                       Nsize  : int64,
-                                       pr1    : c.legion_physical_region_t[1],
-                                       fid1   : c.legion_field_id_t[1],
-                                       pr2    : c.legion_physical_region_t[1],
-                                       fid2   : c.legion_field_id_t[1],
-                                       rect   : c.legion_rect_3d_t,
-                                       prv    : c.legion_physical_region_t,
-                                       fidv   : c.legion_field_id_t,
-                                       rectv  : c.legion_rect_2d_t )
-  var b = get_base_pointer_3d(pr1, fid1, rect)
-  var x = get_base_pointer_3d(pr2, fid2, rect)
-  var vars = get_base_pointer_2d(prv, fidv, rectv)
-  superlu.c.initialize_superlu_vars(matrix.nzval, matrix.colind, matrix.rowptr, Nsize, matrix.nnz, b, x, vars)
-end
+-- function superlu.make_superlu_initialization( r_rhs, r_sol, field )
+--   local privileges_r_rhs  = regentlib.privilege(regentlib.reads,  r_rhs,   field)
+--   
+--   local reads_r_sol       = regentlib.privilege(regentlib.reads,  r_sol, field)
+--   local writes_r_sol      = regentlib.privilege(regentlib.writes, r_sol, field)
+--   local privileges_r_sol  = terralib.newlist({reads_r_sol, writes_r_sol})
 
-terra superlu.MatrixSolve( pr1    : c.legion_physical_region_t[1],
-                           fid1   : c.legion_field_id_t[1],
-                           pr2    : c.legion_physical_region_t[1],
-                           fid2   : c.legion_field_id_t[1],
-                           rect   : c.legion_rect_3d_t,
-                           matrix : superlu.CSR_matrix,
-                           nx     : int,
-                           ny     : int,
-                           nz     : int,
-                           prv    : c.legion_physical_region_t,
-                           fidv   : c.legion_field_id_t,
-                           rectv  : c.legion_rect_2d_t )
-  var b = get_base_pointer_3d(pr1, fid1, rect)
-  var x = get_base_pointer_3d(pr2, fid2, rect)
-  var vars = get_base_pointer_2d(prv, fidv, rectv)
-  superlu.c.MatrixSolve(b, x, matrix.nzval, nx, ny, nz, vars)
+__demand(__external)
+task superlu.initialize_superlu_vars( matrix : superlu.CSR_matrix,
+                                      Nsize  : int64,
+                                      r_rhs  : region(ispace(int3d), primitive),
+                                      r_sol  : region(ispace(int3d), primitive),
+                                      slu    : region(ispace(int2d), superlu.c.superlu_vars_t) )
+where
+  reads(r_rhs), writes(r_sol), reads writes(slu)
+do
+  var b = get_base_pointer_3d(__physical(r_rhs.rho), __fields(r_rhs.rho), r_rhs.bounds)
+  var x = get_base_pointer_3d(__physical(r_sol.rho), __fields(r_sol.rho), r_sol.bounds)
+  var vars = get_base_pointer_2d(__physical(slu)[0], __fields(slu)[0], slu.bounds)
+  superlu.c.initialize_superlu_vars(matrix.nzval, matrix.colind, matrix.rowptr, Nsize, matrix.nnz, b, x, vars)
+  
+  -- var bnds = r_sol.ispace.bounds
+  -- var nx = bnds.hi.x + 1
+  -- var ny = bnds.hi.y + 1
+  -- var nz = bnds.hi.z + 1
+  -- c.printf("=== initialize superlu ===\n")
+  -- c.printf("%p\n", x)
+  -- for i = 0, 5*nx*ny*nz do
+  --   c.printf("%.0f ", x[i])
+  -- end
+  -- c.printf("\n==================\n")
+
 end
+--   return initialize_superlu_vars
+-- end
+
+-- function superlu.make_MatrixSolver( r_rhs, r_sol, field )
+--   local privileges_r_rhs  = regentlib.privilege(regentlib.reads,  r_rhs,   field)
+--   
+--   local reads_r_sol       = regentlib.privilege(regentlib.reads,  r_sol, field)
+--   local writes_r_sol      = regentlib.privilege(regentlib.writes, r_sol, field)
+--   local privileges_r_sol  = terralib.newlist({reads_r_sol, writes_r_sol})
+
+__demand(__external)
+task superlu.MatrixSolve( r_rhs  : region(ispace(int3d), primitive),
+                          r_sol  : region(ispace(int3d), primitive),
+                          matrix : superlu.CSR_matrix,
+                          nx     : int,
+                          ny     : int,
+                          nz     : int,
+                          slu    : region(ispace(int2d), superlu.c.superlu_vars_t) )
+where
+  reads(r_rhs), writes(r_sol), reads writes(slu)
+do
+  var b = get_base_pointer_3d(__physical(r_rhs.rho), __fields(r_rhs.rho), r_rhs.bounds)
+  var x = get_base_pointer_3d(__physical(r_sol.rho), __fields(r_sol.rho), r_sol.bounds)
+  var vars = get_base_pointer_2d(__physical(slu)[0], __fields(slu)[0], slu.bounds)
+  superlu.c.MatrixSolve(b, x, matrix.nzval, nx, ny, nz, vars)
+  
+  -- var bnds = r_sol.ispace.bounds
+  -- c.printf("=== MatrixSolve ===\n")
+  -- c.printf("%p\n", x)
+  -- for i = 0, 5*(nx+1)*ny*nz do
+  --   c.printf("%.0f ", x[i])
+  -- end
+  -- c.printf("\n==================\n")
+
+end
+--   return MatrixSolver
+-- end
 
 return superlu

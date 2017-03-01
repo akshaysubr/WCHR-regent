@@ -132,9 +132,9 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
       var epsilon : double = 1.0e-6
       var alpha_beta : double = 40.0
       
-      var alpha_2 : double = (values[2] - values[1])
-      var alpha_3 : double = (values[3] - values[2])
-      var alpha_4 : double = (values[4] - values[3])
+      var alpha_2 : double = (values[eq][2] - values[eq][1])
+      var alpha_3 : double = (values[eq][3] - values[eq][2])
+      var alpha_4 : double = (values[eq][4] - values[eq][3])
   
       var theta_2 : double = cmath.fabs(alpha_2 - alpha_3) / (cmath.fabs(alpha_2) + cmath.fabs(alpha_3) + epsilon)
       var theta_3 : double = cmath.fabs(alpha_3 - alpha_4) / (cmath.fabs(alpha_3) + cmath.fabs(alpha_4) + epsilon)
@@ -226,8 +226,7 @@ task WCHR_interpolation_x( r_prim_c   : region(ispace(int3d), primitive),
                            matrix_r_x : region(ispace(int2d), superlu.CSR_matrix),
                            slu_x      : region(ispace(int2d), superlu.c.superlu_vars_t) )
 where
-  reads(r_prim_c, matrix_l_x, matrix_r_x, slu_x), writes(r_prim_l_x, r_prim_r_x, matrix_l_x, matrix_r_x, slu_x),
-  reads writes(r_rhs_l, r_rhs_r)
+  reads(r_prim_c), reads writes(r_prim_l_x, r_prim_r_x), reads writes(r_rhs_l, r_rhs_r, matrix_l_x, matrix_r_x, slu_x)
 do
 
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
@@ -238,7 +237,7 @@ do
 
   var pr = matrix_l_x.ispace.bounds.hi.x
   var pc = matrix_l_x.ispace.bounds.hi.y
-  matrix_l_x[{pr,pc}].rowptr[0] = 0
+  -- matrix_l_x[{pr,pc}].rowptr[0] = 0
 
   var bounds_c = r_prim_c.ispace.bounds
   var bounds_x = r_prim_l_x.ispace.bounds
@@ -246,111 +245,149 @@ do
   regentlib.assert(bounds_c.lo.x == 0, "Can only perform X interpolation in the X pencil")
   regentlib.assert(bounds_x.lo.x == 0, "Can only perform X interpolation in the X pencil")
 
-  for eq = 0, 5 do
-    for i in r_prim_c do
-      var counter : int64 = 3*i.x + i.y*(3*nx+2) + i.z*(3*nx+2)*ny
+  for i in r_prim_c do
+    var rhosos_avg : double[2] = get_rho_sos_avg_x( r_prim_c, i, nx, ny, nz )
+    var char_values : double[6][5] = get_char_values_x(r_prim_c, rhosos_avg[0], rhosos_avg[1], i, nx, ny, nz)
 
-      if i.x < nx then
-        var char_values : double[6][5] = get_char_values(r_prim_c, i, nx, ny, nz)
+    var nlweights_l = get_nonlinear_weights_LD_l(char_values)
+    var coeffs_l = get_coefficients(nlweights_l)
+    var nlweights_r = get_nonlinear_weights_LD_r(char_values)
+    var coeffs_r = get_coefficients(nlweights_r)
 
-        var nlweights_l = get_nonlinear_weights_LD_l(char_values)
-        var coeffs_l = get_coefficients(nlweights_l)
-        var nlweights_r = get_nonlinear_weights_LD_r(char_values)
-        var coeffs_r = get_coefficients(nlweights_r)
+    r_rhs_l[i].rho = coeffs_l[0][3] * char_values[0][1]
+                   + coeffs_l[0][4] * char_values[0][2]
+                   + coeffs_l[0][5] * char_values[0][3]
+                   + coeffs_l[0][6] * char_values[0][4]
+    r_rhs_l[i].u   = coeffs_l[1][3] * char_values[1][1]
+                   + coeffs_l[1][4] * char_values[1][2]
+                   + coeffs_l[1][5] * char_values[1][3]
+                   + coeffs_l[1][6] * char_values[1][4]
+    r_rhs_l[i].v   = coeffs_l[2][3] * char_values[2][1]
+                   + coeffs_l[2][4] * char_values[2][2]
+                   + coeffs_l[2][5] * char_values[2][3]
+                   + coeffs_l[2][6] * char_values[2][4]
+    r_rhs_l[i].w   = coeffs_l[3][3] * char_values[3][1]
+                   + coeffs_l[3][4] * char_values[3][2]
+                   + coeffs_l[3][5] * char_values[3][3]
+                   + coeffs_l[3][6] * char_values[3][4]
+    r_rhs_l[i].p   = coeffs_l[4][3] * char_values[4][1]
+                   + coeffs_l[4][4] * char_values[4][2]
+                   + coeffs_l[4][5] * char_values[4][3]
+                   + coeffs_l[4][6] * char_values[4][4]
 
-        for j = 0, 3 do
-          var col : int = i.x + j - 1
-          var gcol : int64 = (col + nx)%nx + i.y*xdim + i.z*xdim*ny
-          matrix_l_x[{pr,pc}].colind[counter] = gcol
-          matrix_l_x[{pr,pc}].nzval [counter] = coeffs_l[eq][j]
-          matrix_r_x[{pr,pc}].colind[counter] = gcol
-          matrix_r_x[{pr,pc}].nzval [counter] = coeffs_r[eq][j]
-          counter = counter + 1
-        end
-        var grow : int64 = i.x + i.y*xdim + i.z*xdim*ny
-        matrix_l_x[{pr,pc}].rowptr[grow+1] = counter
-        matrix_r_x[{pr,pc}].rowptr[grow+1] = counter
+    r_rhs_r[i].rho = coeffs_r[0][3] * char_values[0][1]
+                   + coeffs_r[0][4] * char_values[0][2]
+                   + coeffs_r[0][5] * char_values[0][3]
+                   + coeffs_r[0][6] * char_values[0][4]
+    r_rhs_r[i].u   = coeffs_r[1][3] * char_values[1][1]
+                   + coeffs_r[1][4] * char_values[1][2]
+                   + coeffs_r[1][5] * char_values[1][3]
+                   + coeffs_r[1][6] * char_values[1][4]
+    r_rhs_r[i].v   = coeffs_r[2][3] * char_values[2][1]
+                   + coeffs_r[2][4] * char_values[2][2]
+                   + coeffs_r[2][5] * char_values[2][3]
+                   + coeffs_r[2][6] * char_values[2][4]
+    r_rhs_r[i].w   = coeffs_r[3][3] * char_values[3][1]
+                   + coeffs_r[3][4] * char_values[3][2]
+                   + coeffs_r[3][5] * char_values[3][3]
+                   + coeffs_r[3][6] * char_values[3][4]
+    r_rhs_r[i].p   = coeffs_r[4][3] * char_values[4][1]
+                   + coeffs_r[4][4] * char_values[4][2]
+                   + coeffs_r[4][5] * char_values[4][3]
+                   + coeffs_r[4][6] * char_values[4][4]
 
-        r_rhs_l[i].rho = coeffs_l[eq][3] * char_values[eq][1]
-                       + coeffs_l[eq][4] * char_values[eq][2]
-                       + coeffs_l[eq][5] * char_values[eq][3]
-                       + coeffs_l[eq][6] * char_values[eq][4]
-        r_rhs_r[i].rho = coeffs_r[eq][3] * char_values[eq][1]
-                       + coeffs_r[eq][4] * char_values[eq][2]
-                       + coeffs_r[eq][5] * char_values[eq][3]
-                       + coeffs_r[eq][6] * char_values[eq][4]
-      else
-        -- For the last point (enforcing periodicity)
-        var gcol : int64 = nx + i.y*xdim + i.z*xdim*ny
-        matrix_l_x[{pr,pc}].colind[counter] = gcol
-        matrix_l_x[{pr,pc}].nzval [counter] = 1.0
-        matrix_r_x[{pr,pc}].colind[counter] = gcol
-        matrix_r_x[{pr,pc}].nzval [counter] = 1.0
-        counter = counter + 1
+    var grow : int64 = 5*i.x + i.y*5*xdim + i.z*5*xdim*ny
+    var bcounter : int64 = 8*3*i.x + i.y*(8*3*nx+10) + i.z*(8*3*nx+10)*ny
 
-        gcol = 0 + i.y*xdim + i.z*xdim*ny
-        matrix_l_x[{pr,pc}].colind[counter] = gcol
-        matrix_l_x[{pr,pc}].nzval [counter] = -1.0
-        matrix_r_x[{pr,pc}].colind[counter] = gcol
-        matrix_r_x[{pr,pc}].nzval [counter] = -1.0
-        counter = counter + 1
+    -- rho
+    for j = 0, 3 do
+      var bcol : int64 = i.x + j - 1
+      var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*xdim + i.z*5*xdim*ny -- Top of the block
+      var counter : int64 = bcounter + 2*j
 
-        var grow : int64 = nx + i.y*xdim + i.z*xdim*ny
-        matrix_l_x[{pr,pc}].rowptr[grow+1] = counter
-        matrix_r_x[{pr,pc}].rowptr[grow+1] = counter
+      -- matrix_l_x.colind[counter] = gcol+1
+      matrix_l_x[{pr,pc}].nzval [counter] = coeffs_l[0][j] * (-0.5*rhosos_avg[0]*rhosos_avg[1])
+      matrix_r_x[{pr,pc}].nzval [counter] = coeffs_r[0][j] * (-0.5*rhosos_avg[0]*rhosos_avg[1])
 
-        r_rhs_l[i].rho = 0.0
-        r_rhs_r[i].rho = 0.0
-      end
+      -- matrix_l_x.colind[counter+1] = gcol+4
+      matrix_l_x[{pr,pc}].nzval [counter+1] = coeffs_l[0][j] * (0.5)
+      matrix_r_x[{pr,pc}].nzval [counter+1] = coeffs_r[0][j] * (0.5)
     end
+    bcounter = bcounter + 3*2
+    -- matrix.rowptr[grow+1] = bcounter
 
-    if eq == 0 then
-      superlu.MatrixSolve(__physical(r_rhs_l.rho), __fields(r_rhs_l.rho),
-                          __physical(r_prim_l_x.rho), __fields(r_prim_l_x.rho), r_prim_l_x.bounds,
-                          matrix_l_x[{pr,pc}], nx, ny, nz,
-                          __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds )
-      superlu.MatrixSolve(__physical(r_rhs_r.rho), __fields(r_rhs_r.rho),
-                          __physical(r_prim_r_x.rho), __fields(r_prim_r_x.rho), r_prim_r_x.bounds,
-                          matrix_r_x[{pr,pc}], nx, ny, nz,
-                          __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds )
-    elseif eq == 1 then
-      superlu.MatrixSolve(__physical(r_rhs_l.rho), __fields(r_rhs_l.rho),
-                          __physical(r_prim_l_x.u), __fields(r_prim_l_x.u), r_prim_l_x.bounds,
-                          matrix_l_x[{pr,pc}], nx, ny, nz,
-                          __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds )
-      superlu.MatrixSolve(__physical(r_rhs_r.rho), __fields(r_rhs_r.rho),
-                          __physical(r_prim_r_x.u), __fields(r_prim_r_x.u), r_prim_r_x.bounds,
-                          matrix_r_x[{pr,pc}], nx, ny, nz,
-                          __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds )
-    elseif eq == 2 then
-      superlu.MatrixSolve(__physical(r_rhs_l.rho), __fields(r_rhs_l.rho),
-                          __physical(r_prim_l_x.v), __fields(r_prim_l_x.v), r_prim_l_x.bounds,
-                          matrix_l_x[{pr,pc}], nx, ny, nz,
-                          __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds )
-      superlu.MatrixSolve(__physical(r_rhs_r.rho), __fields(r_rhs_r.rho),
-                          __physical(r_prim_r_x.v), __fields(r_prim_r_x.v), r_prim_r_x.bounds,
-                          matrix_r_x[{pr,pc}], nx, ny, nz,
-                          __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds )
-    elseif eq == 3 then
-      superlu.MatrixSolve(__physical(r_rhs_l.rho), __fields(r_rhs_l.rho),
-                          __physical(r_prim_l_x.w), __fields(r_prim_l_x.w), r_prim_l_x.bounds,
-                          matrix_l_x[{pr,pc}], nx, ny, nz,
-                          __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds )
-      superlu.MatrixSolve(__physical(r_rhs_r.rho), __fields(r_rhs_r.rho),
-                          __physical(r_prim_r_x.w), __fields(r_prim_r_x.w), r_prim_r_x.bounds,
-                          matrix_r_x[{pr,pc}], nx, ny, nz,
-                          __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds )
-    elseif eq == 4 then
-      superlu.MatrixSolve(__physical(r_rhs_l.rho), __fields(r_rhs_l.rho),
-                          __physical(r_prim_l_x.p), __fields(r_prim_l_x.p), r_prim_l_x.bounds,
-                          matrix_l_x[{pr,pc}], nx, ny, nz,
-                          __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds )
-      superlu.MatrixSolve(__physical(r_rhs_r.rho), __fields(r_rhs_r.rho),
-                          __physical(r_prim_r_x.p), __fields(r_prim_r_x.p), r_prim_r_x.bounds,
-                          matrix_r_x[{pr,pc}], nx, ny, nz,
-                          __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds )
+    -- u
+    for j = 0, 3 do
+      var bcol : int64 = i.x + j - 1
+      var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*xdim + i.z*5*xdim*ny -- Top of the block
+      var counter : int64 = bcounter + 2*j
+
+      -- matrix_l_x.colind[counter] = gcol
+      matrix_l_x[{pr,pc}].nzval [counter] = coeffs_l[1][j] * (1.0)
+      matrix_r_x[{pr,pc}].nzval [counter] = coeffs_r[1][j] * (1.0)
+
+      -- matrix_l_x.colind[counter+1] = gcol+4
+      matrix_l_x[{pr,pc}].nzval [counter+1] = coeffs_l[1][j] * (-1.0/(rhosos_avg[1]*rhosos_avg[1]))
+      matrix_r_x[{pr,pc}].nzval [counter+1] = coeffs_r[1][j] * (-1.0/(rhosos_avg[1]*rhosos_avg[1]))
+    end
+    bcounter = bcounter + 3*2
+    -- matrix.rowptr[grow+2] = bcounter
+
+    -- v
+    for j = 0, 3 do
+      var bcol : int64 = i.x + j - 1
+      var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*xdim + i.z*5*xdim*ny -- Top of the block
+      var counter : int64 = bcounter + j
+
+      -- matrix_l_x.colind[counter] = gcol+2
+      matrix_l_x[{pr,pc}].nzval [counter] = coeffs_l[2][j] * (1.0)
+      matrix_r_x[{pr,pc}].nzval [counter] = coeffs_r[2][j] * (1.0)
+    end
+    bcounter = bcounter + 3*1
+    -- matrix.rowptr[grow+3] = bcounter
+
+    -- w
+    for j = 0, 3 do
+      var bcol : int64 = i.x + j - 1
+      var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*xdim + i.z*5*xdim*ny -- Top of the block
+      var counter : int64 = bcounter + j
+
+      -- matrix_l_x.colind[counter] = gcol+3
+      matrix_l_x[{pr,pc}].nzval [counter] = coeffs_l[3][j] * (1.0)
+      matrix_r_x[{pr,pc}].nzval [counter] = coeffs_r[3][j] * (1.0)
+    end
+    bcounter = bcounter + 3*1
+    -- matrix.rowptr[grow+4] = bcounter
+
+    -- p
+    for j = 0, 3 do
+      var bcol : int64 = i.x + j - 1
+      var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*xdim + i.z*5*xdim*ny -- Top of the block
+      var counter : int64 = bcounter + 2*j
+
+      -- matrix_l_x.colind[counter] = gcol+1
+      matrix_l_x[{pr,pc}].nzval [counter] = coeffs_l[4][j] * (0.5*rhosos_avg[0]*rhosos_avg[1])
+      matrix_r_x[{pr,pc}].nzval [counter] = coeffs_r[4][j] * (0.5*rhosos_avg[0]*rhosos_avg[1])
+
+      -- matrix_l_x.colind[counter+1] = gcol+4
+      matrix_l_x[{pr,pc}].nzval [counter+1] = coeffs_l[4][j] * (0.5)
+      matrix_r_x[{pr,pc}].nzval [counter+1] = coeffs_r[4][j] * (0.5)
+    end
+    bcounter = bcounter + 3*2
+    -- matrix.rowptr[grow+5] = bcounter
+  end
+
+  -- var perinds : rect3d = { bounds_x.lo + {nx,0,0}, bounds_x.hi }
+  -- for i in perinds do
+  for iz = bounds_x.lo.z, bounds_x.hi.z+1 do
+    for iy = bounds_x.lo.y, bounds_x.hi.y+1 do
+      r_rhs_l[{nx,iy,iz}].{rho, u, v, w, p} = 0.0
+      r_rhs_r[{nx,iy,iz}].{rho, u, v, w, p} = 0.0
     end
   end
+
+  superlu.MatrixSolve( r_rhs_l, r_prim_l_x, matrix_l_x[{pr,pc}], nx, ny, nz, slu_x )
+  superlu.MatrixSolve( r_rhs_r, r_prim_r_x, matrix_r_x[{pr,pc}], nx, ny, nz, slu_x )
 
   return 1
 end

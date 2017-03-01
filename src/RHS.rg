@@ -6,7 +6,7 @@ require("interpolation")
 require("EOS")
 
 local superlu = require("superlu_util")
-local problem = require("problem")
+local problem = require("shocktube_problem")
 
 local c     = regentlib.c
 local cmath = terralib.includec("math.h")
@@ -24,6 +24,12 @@ beta06MND  = 0.0
 a06MND = 16.0/9.0
 b06MND = (-17.0/18.0)/2.0
 c06MND = (0.0)/3.0
+
+-- alpha06MND = 0.0
+-- beta06MND  = 0.0
+-- a06MND = 3.0/2.0
+-- b06MND = (-3.0/10.0)
+-- c06MND = (1.0)/30.0
 
 local r_flux   = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux")
 local r_flux_e = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux_e")

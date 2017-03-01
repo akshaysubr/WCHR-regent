@@ -10,7 +10,9 @@ require("IO")
 require("RHS")
 
 local superlu = require("superlu_util")
-local problem = require("problem")
+local problem = require("shocktube_problem")
+
+local csuperlu_mapper = require("superlu_mapper")
 
 terra wait_for(x : int)
   return x
@@ -93,11 +95,10 @@ task main()
   --------------------------------------------------------------------------------------------
 
   -- Initialize SuperLU stuff
-  matrix_l_x[{0,0}] = superlu.initialize_matrix_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  matrix_r_x[{0,0}] = superlu.initialize_matrix_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  superlu.initialize_superlu_vars( matrix_l_x[{0,0}], (Nx+1)*Ny*Nz, __physical(r_prim_r_x.rho), __fields(r_prim_r_x.rho),
-                                   __physical(r_prim_l_x.rho), __fields(r_prim_l_x.rho), r_prim_l_x.bounds,
-                                   __physical(slu_x)[0], __fields(slu_x)[0], slu_x.bounds)
+  matrix_l_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  matrix_r_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+
+  superlu.initialize_superlu_vars( matrix_l_x[{0,0}], 5*(Nx+1)*Ny*Nz, r_rhs_l_x, r_prim_l_x, slu_x )
   
   -- Initialize derivatives stuff
   get_LU_decomposition(LU_x, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
@@ -105,7 +106,7 @@ task main()
   var token = problem.initialize(coords, r_prim_c, dx, dy, dz)
   wait_for(token)
   
-  -- write_coords(coords)
+  write_coords(coords)
   -- write_primitive(r_prim_c, "cell_primitive", 0)
   
   var A_RK45 = array(0.0,
@@ -130,8 +131,8 @@ task main()
   var t_start = c.legion_get_current_time_in_micros()
 
   __demand(__spmd)
-  for step = 0,10 do -- Run for 10 time steps
-  -- while tsim < tstop*(1.0 - 1.0e-16) do
+  -- for step = 0,10 do -- Run for 10 time steps
+  while tsim < tstop*(1.0 - 1.0e-16) do
 
     var Q_t : double = 0.0
     fill(Q_rhs.{rho, rhou, rhov, rhow, rhoE}, 0.0)
@@ -149,27 +150,29 @@ task main()
 
         token += get_primitive_r(r_cnsr, r_prim_c)
     end
-    -- step = step + 1
+    step = step + 1
 
-    c.printf("Step: %d\n", step)
     c.printf("Simulation time: %g\n", tsim)
+    c.printf("    Step: %d\n", step)
+
+    var errors = problem.get_errors(coords, r_prim_c, tsim)
+
+    c.printf("    Error in rho = %g\n", errors[0])
+    c.printf("    Error in u   = %g\n", errors[1])
+    c.printf("    Error in v   = %g\n", errors[2])
+    c.printf("    Error in w   = %g\n", errors[3])
+    c.printf("    Error in p   = %g\n", errors[4])
+
     c.printf("\n")
   end
   
   wait_for(token)
   var t_simulation = c.legion_get_current_time_in_micros() - t_start
   
-  c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/10)
+  c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/step)
+  
+  write_primitive(r_prim_c, "cell_primitive", step)
 
-  var errors = problem.get_errors(coords, r_prim_c, tsim)
-
-  c.printf("Error in rho = %g\n", errors[0])
-  c.printf("Error in u   = %g\n", errors[1])
-  c.printf("Error in v   = %g\n", errors[2])
-  c.printf("Error in w   = %g\n", errors[3])
-  c.printf("Error in p   = %g\n", errors[4])
-
-  -- write_primitive(r_prim_c, "cell_primitive", step)
 end
 
-regentlib.start(main)
+regentlib.start(main, csuperlu_mapper.register_mappers)
