@@ -106,8 +106,8 @@ task main()
   var token = problem.initialize(coords, r_prim_c, dx, dy, dz)
   wait_for(token)
   
-  write_coords(coords)
-  -- write_primitive(r_prim_c, "cell_primitive", 0)
+  -- write_coords(coords)
+  write_primitive(r_prim_c, "cell_primitive", 0)
   
   var A_RK45 = array(0.0,
                      -6234157559845.0/12983515589748.0,
@@ -171,7 +171,7 @@ task main()
   
   c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/step)
 
-  write_primitive(r_prim_c, "cell_primitive", step)
+  -- write_primitive(r_prim_c, "cell_primitive", step)
 end
 
 regentlib.start(main, csuperlu_mapper.register_mappers)
