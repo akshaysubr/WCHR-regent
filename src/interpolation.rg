@@ -217,16 +217,16 @@ task get_coefficients( nlweights : double[4][5] )
   return coeffs
 end
 
-task WCHR_interpolation_x( r_prim_c   : region(ispace(int3d), primitive),
-                           r_prim_l_x : region(ispace(int3d), primitive),
-                           r_prim_r_x : region(ispace(int3d), primitive),
-                           r_rhs_l    : region(ispace(int3d), primitive),
-                           r_rhs_r    : region(ispace(int3d), primitive),
-                           matrix_l_x : region(ispace(int2d), superlu.CSR_matrix),
-                           matrix_r_x : region(ispace(int2d), superlu.CSR_matrix),
-                           slu_x      : region(ispace(int2d), superlu.c.superlu_vars_t) )
+task WCHR_interpolation_x( r_prim_c : region(ispace(int3d), primitive),
+                           r_prim_l : region(ispace(int3d), primitive),
+                           r_prim_r : region(ispace(int3d), primitive),
+                           r_rhs_l  : region(ispace(int3d), primitive),
+                           r_rhs_r  : region(ispace(int3d), primitive),
+                           matrix_l : region(ispace(int2d), superlu.CSR_matrix),
+                           matrix_r : region(ispace(int2d), superlu.CSR_matrix),
+                           slu      : region(ispace(int2d), superlu.c.superlu_vars_t) )
 where
-  reads(r_prim_c), reads writes(r_prim_l_x, r_prim_r_x), reads writes(r_rhs_l, r_rhs_r, matrix_l_x, matrix_r_x, slu_x)
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r), reads writes(r_rhs_l, r_rhs_r, matrix_l, matrix_r, slu)
 do
 
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
@@ -235,12 +235,12 @@ do
 
   var xdim : int64 = nx+1
 
-  var pr = matrix_l_x.ispace.bounds.hi.x
-  var pc = matrix_l_x.ispace.bounds.hi.y
-  -- matrix_l_x[{pr,pc}].rowptr[0] = 0
+  var pr = matrix_l.ispace.bounds.hi.x
+  var pc = matrix_l.ispace.bounds.hi.y
+  -- matrix_l[{pr,pc}].rowptr[0] = 0
 
   var bounds_c = r_prim_c.ispace.bounds
-  var bounds_x = r_prim_l_x.ispace.bounds
+  var bounds_x = r_prim_l.ispace.bounds
 
   regentlib.assert(bounds_c.lo.x == 0, "Can only perform X interpolation in the X pencil")
   regentlib.assert(bounds_x.lo.x == 0, "Can only perform X interpolation in the X pencil")
@@ -305,13 +305,13 @@ do
       var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*xdim + i.z*5*xdim*ny -- Top of the block
       var counter : int64 = bcounter + 2*j
 
-      -- matrix_l_x.colind[counter] = gcol+1
-      matrix_l_x[{pr,pc}].nzval [counter] = coeffs_l[0][j] * (-0.5*rhosos_avg[0]*rhosos_avg[1])
-      matrix_r_x[{pr,pc}].nzval [counter] = coeffs_r[0][j] * (-0.5*rhosos_avg[0]*rhosos_avg[1])
+      -- matrix_l.colind[counter] = gcol+1
+      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[0][j] * (-0.5*rhosos_avg[0]*rhosos_avg[1])
+      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[0][j] * (-0.5*rhosos_avg[0]*rhosos_avg[1])
 
-      -- matrix_l_x.colind[counter+1] = gcol+4
-      matrix_l_x[{pr,pc}].nzval [counter+1] = coeffs_l[0][j] * (0.5)
-      matrix_r_x[{pr,pc}].nzval [counter+1] = coeffs_r[0][j] * (0.5)
+      -- matrix_l.colind[counter+1] = gcol+4
+      matrix_l[{pr,pc}].nzval [counter+1] = coeffs_l[0][j] * (0.5)
+      matrix_r[{pr,pc}].nzval [counter+1] = coeffs_r[0][j] * (0.5)
     end
     bcounter = bcounter + 3*2
     -- matrix.rowptr[grow+1] = bcounter
@@ -322,13 +322,13 @@ do
       var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*xdim + i.z*5*xdim*ny -- Top of the block
       var counter : int64 = bcounter + 2*j
 
-      -- matrix_l_x.colind[counter] = gcol
-      matrix_l_x[{pr,pc}].nzval [counter] = coeffs_l[1][j] * (1.0)
-      matrix_r_x[{pr,pc}].nzval [counter] = coeffs_r[1][j] * (1.0)
+      -- matrix_l.colind[counter] = gcol
+      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[1][j] * (1.0)
+      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[1][j] * (1.0)
 
-      -- matrix_l_x.colind[counter+1] = gcol+4
-      matrix_l_x[{pr,pc}].nzval [counter+1] = coeffs_l[1][j] * (-1.0/(rhosos_avg[1]*rhosos_avg[1]))
-      matrix_r_x[{pr,pc}].nzval [counter+1] = coeffs_r[1][j] * (-1.0/(rhosos_avg[1]*rhosos_avg[1]))
+      -- matrix_l.colind[counter+1] = gcol+4
+      matrix_l[{pr,pc}].nzval [counter+1] = coeffs_l[1][j] * (-1.0/(rhosos_avg[1]*rhosos_avg[1]))
+      matrix_r[{pr,pc}].nzval [counter+1] = coeffs_r[1][j] * (-1.0/(rhosos_avg[1]*rhosos_avg[1]))
     end
     bcounter = bcounter + 3*2
     -- matrix.rowptr[grow+2] = bcounter
@@ -339,9 +339,9 @@ do
       var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*xdim + i.z*5*xdim*ny -- Top of the block
       var counter : int64 = bcounter + j
 
-      -- matrix_l_x.colind[counter] = gcol+2
-      matrix_l_x[{pr,pc}].nzval [counter] = coeffs_l[2][j] * (1.0)
-      matrix_r_x[{pr,pc}].nzval [counter] = coeffs_r[2][j] * (1.0)
+      -- matrix_l.colind[counter] = gcol+2
+      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[2][j] * (1.0)
+      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[2][j] * (1.0)
     end
     bcounter = bcounter + 3*1
     -- matrix.rowptr[grow+3] = bcounter
@@ -352,9 +352,9 @@ do
       var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*xdim + i.z*5*xdim*ny -- Top of the block
       var counter : int64 = bcounter + j
 
-      -- matrix_l_x.colind[counter] = gcol+3
-      matrix_l_x[{pr,pc}].nzval [counter] = coeffs_l[3][j] * (1.0)
-      matrix_r_x[{pr,pc}].nzval [counter] = coeffs_r[3][j] * (1.0)
+      -- matrix_l.colind[counter] = gcol+3
+      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[3][j] * (1.0)
+      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[3][j] * (1.0)
     end
     bcounter = bcounter + 3*1
     -- matrix.rowptr[grow+4] = bcounter
@@ -365,13 +365,13 @@ do
       var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*xdim + i.z*5*xdim*ny -- Top of the block
       var counter : int64 = bcounter + 2*j
 
-      -- matrix_l_x.colind[counter] = gcol+1
-      matrix_l_x[{pr,pc}].nzval [counter] = coeffs_l[4][j] * (0.5*rhosos_avg[0]*rhosos_avg[1])
-      matrix_r_x[{pr,pc}].nzval [counter] = coeffs_r[4][j] * (0.5*rhosos_avg[0]*rhosos_avg[1])
+      -- matrix_l.colind[counter] = gcol+1
+      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[4][j] * (0.5*rhosos_avg[0]*rhosos_avg[1])
+      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[4][j] * (0.5*rhosos_avg[0]*rhosos_avg[1])
 
-      -- matrix_l_x.colind[counter+1] = gcol+4
-      matrix_l_x[{pr,pc}].nzval [counter+1] = coeffs_l[4][j] * (0.5)
-      matrix_r_x[{pr,pc}].nzval [counter+1] = coeffs_r[4][j] * (0.5)
+      -- matrix_l.colind[counter+1] = gcol+4
+      matrix_l[{pr,pc}].nzval [counter+1] = coeffs_l[4][j] * (0.5)
+      matrix_r[{pr,pc}].nzval [counter+1] = coeffs_r[4][j] * (0.5)
     end
     bcounter = bcounter + 3*2
     -- matrix.rowptr[grow+5] = bcounter
@@ -386,8 +386,9 @@ do
     end
   end
 
-  superlu.MatrixSolve( r_rhs_l, r_prim_l_x, matrix_l_x[{pr,pc}], nx, ny, nz, slu_x )
-  superlu.MatrixSolve( r_rhs_r, r_prim_r_x, matrix_r_x[{pr,pc}], nx, ny, nz, slu_x )
+  superlu.MatrixSolve( r_rhs_l, r_prim_l, matrix_l[{pr,pc}], nx, ny, nz, slu )
+  superlu.MatrixSolve( r_rhs_r, r_prim_r, matrix_r[{pr,pc}], nx, ny, nz, slu )
 
-  return 1
+ return 1
 end
+
