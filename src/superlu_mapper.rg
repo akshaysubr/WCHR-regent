@@ -18,7 +18,9 @@ local csuperlu_mapper
 do
   assert(os.getenv('LG_RT_DIR') ~= nil, "$LG_RT_DIR should be set!")
   -- local root_dir = arg[0]:match(".*/") or "./"
-  local root_dir = "/home/akshays/Codes/WCHR-regent/src/"
+  local root_dir = "/home/manlong/Codes/WCHR-regent/src/"
+  -- local root_dir = "/home/akshays/Codes/WCHR-regent/src/"
+  local runtime_dir = os.getenv('LG_RT_DIR') .. "/"
   local runtime_dir = os.getenv('LG_RT_DIR') .. "/"
   local legion_dir = runtime_dir .. "legion/"
   local mapper_dir = runtime_dir .. "mappers/"
