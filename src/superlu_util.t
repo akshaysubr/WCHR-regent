@@ -342,7 +342,7 @@ terra superlu.initialize_matrix_char_y( alpha  : double,
       
     for brow = 0, nx do
       -- For the last point
-      var bcounter : int64 = 8*3*brow + ny*(8*3)*nx + iz*(8*3*ny+10)*nx
+      var bcounter : int64 = 10*brow + ny*(8*3)*nx + iz*(8*3*ny+10)*nx
       for pvar = 0,5 do
         var gcol : int64 = pvar + brow*5 + ny*5*nx + iz*5*dim*nx
         var counter : int64 = bcounter + 2*pvar

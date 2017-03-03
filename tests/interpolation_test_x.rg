@@ -13,7 +13,7 @@ local csuperlu_mapper = require("superlu_mapper")
 
 -- Grid dimensions
 local NX = 80
-local NY = 1
+local NY = 5
 local NZ = 1
 
 -- Domain size
@@ -150,23 +150,23 @@ task main()
 
   -- Initialize SuperLU stuff
   matrix_l_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  -- matrix_r_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  matrix_r_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
   
   superlu.initialize_superlu_vars( matrix_l_x[{0,0}], 5*(Nx+1)*Ny*Nz, r_rhs_l_x, r_prim_l_x, slu_x ) 
 
   var token = initialize(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z, dx, dy, dz)
   wait_for(token)
 
-  -- var t_start = c.legion_get_current_time_in_micros()
-  -- token += WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_x )
-  -- wait_for(token)
-  -- var t_WCHR = c.legion_get_current_time_in_micros() - t_start
-  -- c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_WCHR)*1e-6)
+  var t_start = c.legion_get_current_time_in_micros()
+  token += WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_x )
+  wait_for(token)
+  var t_WCHR = c.legion_get_current_time_in_micros() - t_start
+  c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_WCHR)*1e-6)
 
   -- write_coords(coords)
   -- write_primitive(r_prim_c, "cell_primitive", 0)
   -- write_primitive(r_prim_l_x, "edge_primitive_l_x", 0)
-  -- write_primitive(r_prim_r_x, "edge_primitive_r_x", 0)
+  write_primitive(r_prim_r_x, "edge_primitive_r_x", 0)
 end
 
 regentlib.start(main, csuperlu_mapper.register_mappers)
