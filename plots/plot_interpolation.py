@@ -52,12 +52,35 @@ w_r_y   = f['w'].value
 p_r_y   = f['p'].value
 f.close()
 
+f = h5py.File('../tests/edge_primitive_l_z0000.h5')
+rho_l_z = f['rho'].value
+u_l_z   = f['u'].value
+v_l_z   = f['v'].value
+w_l_z   = f['w'].value
+p_l_z   = f['p'].value
+f.close()
+
+f = h5py.File('../tests/edge_primitive_r_z0000.h5')
+rho_r_z = f['rho'].value
+u_r_z   = f['u'].value
+v_r_z   = f['v'].value
+w_r_z   = f['w'].value
+p_r_z   = f['p'].value
+f.close()
+
 plt.figure()
-plt.plot(x[0,0,:], rho[0,0,:], 'ok-')
-plt.plot(x_e, rho_l_x[0,0,:], 'ob-', fillstyle='none')
-plt.plot(x_e, rho_r_x[0,0,:], 'or-', fillstyle='none')
-plt.plot(x_e, rho_l_y[0,:,0], 'sb', fillstyle='none')
-plt.plot(x_e, rho_r_y[0,:,0], 'sr', fillstyle='none')
+plt.plot(x[0,0,:], rho[0,0,:], 'sk-')
+plt.plot(x_e, rho_l_x[0,0,:], 'sb-', fillstyle='none', label=r'$X-left $')
+plt.plot(x_e, rho_r_x[0,0,:], 'sr-', fillstyle='none', label=r'$X-right$')
+plt.plot(x_e, rho_l_y[0,:,0], '^b',  fillstyle='none', label=r'$Y-left $')
+plt.plot(x_e, rho_r_y[0,:,0], '^r',  fillstyle='none', label=r'$Y-right$')
+plt.plot(x_e, rho_l_z[:,0,0], 'vb',  fillstyle='none', label=r'$Z-left $')
+plt.plot(x_e, rho_r_z[:,0,0], 'vr',  fillstyle='none', label=r'$Z-right$')
+
+plt.xlabel(r'$x$', fontsize=20)
+plt.ylabel(r'$\rho$', fontsize=20)
+plt.title(r'Characteristic Interpolation', fontsize=20)
+plt.legend(loc='upper right')
 plt.show()
 
 # plt.figure()

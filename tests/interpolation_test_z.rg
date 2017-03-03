@@ -13,20 +13,20 @@ local csuperlu_mapper = require("superlu_mapper")
 
 -- Grid dimensions
 local NX = 5
-local NY = 80
-local NZ = 5
+local NY = 5
+local NZ = 80
 
 -- Domain size
 -- local LX = 2.0*math.pi
 -- local LY = 2.0*math.pi
 -- local LZ = 2.0*math.pi
 local LX = 1.0
-local LY = 10.0
-local LZ = 1.0
+local LY = 1.0
+local LZ = 10.0
 
 local X1 = 0.0
-local Y1 = -5.0
-local Z1 = 0.0
+local Y1 = 0.0
+local Z1 = -5.0
 
 -- Grid spacing
 local DX = LX / NX
@@ -57,14 +57,14 @@ do
     coords[i].y_c = Y1 + (i.y + 0.5) * dy
     coords[i].z_c = Z1 + (i.z + 0.5) * dz
 
-    if (coords[i].y_c < -4.0) then
+    if (coords[i].z_c < -4.0) then
       r_prim_c[i].rho = 27./7.
       r_prim_c[i].u   = 0.0 
-      r_prim_c[i].v   = 4.0*cmath.sqrt(35.0)/9.0
-      r_prim_c[i].w   = 0.0
+      r_prim_c[i].v   = 0.0
+      r_prim_c[i].w   = 4.0*cmath.sqrt(35.0)/9.0
       r_prim_c[i].p   = 31./3.
     else
-      r_prim_c[i].rho = 1.0 + 0.2*cmath.sin(5.0*coords[i].y_c)
+      r_prim_c[i].rho = 1.0 + 0.2*cmath.sin(5.0*coords[i].z_c)
       r_prim_c[i].u   = 0.0
       r_prim_c[i].v   = 0.0 
       r_prim_c[i].w   = 0.0
@@ -76,14 +76,14 @@ do
     var x_c : double = X1 + (i.x) * dx
     var y_c : double = Y1 + (i.y) * dy
     var z_c : double = Z1 + (i.z) * dz
-    if (y_c < -4.0) then
+    if (z_c < -4.0) then
       r_prim_l_x[i].rho = 27./7.
       r_prim_l_x[i].u   = 0.0 
-      r_prim_l_x[i].v   = 4.0*cmath.sqrt(35.0)/9.0
-      r_prim_l_x[i].w   = 0.0
+      r_prim_l_x[i].v   = 0.0
+      r_prim_l_x[i].w   = 4.0*cmath.sqrt(35.0)/9.0
       r_prim_l_x[i].p   = 31./3.
     else
-      r_prim_l_x[i].rho = 1.0 + 0.2*cmath.sin(5.0*y_c)
+      r_prim_l_x[i].rho = 1.0 + 0.2*cmath.sin(5.0*z_c)
       r_prim_l_x[i].u   = 0.0
       r_prim_l_x[i].v   = 0.0 
       r_prim_l_x[i].w   = 0.0
@@ -136,37 +136,37 @@ task main()
   var r_prim_l_z = region(grid_e_z, primitive)  -- Primitive variables at left z cell edge
   var r_prim_r_z = region(grid_e_z, primitive)  -- Primitive variables at right z cell edge
   
-  var r_rhs_l_y  = region(grid_e_y, primitive)  -- RHS for left biased interpolation y cell edge
-  var r_rhs_r_y  = region(grid_e_y, primitive)  -- RHS for right biased interpolation y cell edge
+  var r_rhs_l_z  = region(grid_e_z, primitive)  -- RHS for left biased interpolation y cell edge
+  var r_rhs_r_z  = region(grid_e_z, primitive)  -- RHS for right biased interpolation y cell edge
 
-  var pgrid_y    = ispace(int2d, {x = 1, y = 1}) -- Processor grid in y
+  var pgrid_z    = ispace(int2d, {x = 1, y = 1}) -- Processor grid in y
 
-  var slu_y      = region(pgrid_y, superlu.c.superlu_vars_t) -- Super LU data structure for y interpolation
+  var slu_z      = region(pgrid_z, superlu.c.superlu_vars_t) -- Super LU data structure for y interpolation
 
-  var matrix_l_y = region(pgrid_y, superlu.CSR_matrix) -- matrix data structure for y left interpolation
-  var matrix_r_y = region(pgrid_y, superlu.CSR_matrix) -- matrix data structure for y right interpolation
+  var matrix_l_z = region(pgrid_z, superlu.CSR_matrix) -- matrix data structure for y left interpolation
+  var matrix_r_z = region(pgrid_z, superlu.CSR_matrix) -- matrix data structure for y right interpolation
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
   -- Initialize SuperLU stuff
-  matrix_l_y[{0,0}] = superlu.initialize_matrix_char_y(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  matrix_r_y[{0,0}] = superlu.initialize_matrix_char_y(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  matrix_l_z[{0,0}] = superlu.initialize_matrix_char_z(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  matrix_r_z[{0,0}] = superlu.initialize_matrix_char_z(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
 
-  superlu.initialize_superlu_vars( matrix_l_y[{0,0}], 5*Nx*(Ny+1)*Nz, r_rhs_l_y, r_prim_l_y, slu_y ) 
+  superlu.initialize_superlu_vars( matrix_l_z[{0,0}], 5*Nx*Ny*(Nz+1), r_rhs_l_z, r_prim_l_z, slu_z ) 
 
   var token = initialize(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z, dx, dy, dz)
   wait_for(token)
 
   var t_start = c.legion_get_current_time_in_micros()
-  token += WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y, r_rhs_l_y, r_rhs_r_y, matrix_l_y, matrix_r_y, slu_y )
+  token += WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z, r_rhs_l_z, r_rhs_r_z, matrix_l_z, matrix_r_z, slu_z )
   wait_for(token)
   var t_WCHR = c.legion_get_current_time_in_micros() - t_start
   c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_WCHR)*1e-6)
 
   -- write_coords(coords)
   -- write_primitive(r_prim_c, "cell_primitive", 0)
-  write_primitive(r_prim_l_y, "edge_primitive_l_y", 0)
-  -- write_primitive(r_prim_r_y, "edge_primitive_r_y", 0)
+  write_primitive(r_prim_l_z, "edge_primitive_l_z", 0)
+  -- write_primitive(r_prim_r_z, "edge_primitive_r_z", 0)
 end
 
 regentlib.start(main, csuperlu_mapper.register_mappers)

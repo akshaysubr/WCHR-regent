@@ -567,3 +567,177 @@ do
  return 1
 end
 
+task WCHR_interpolation_z( r_prim_c : region(ispace(int3d), primitive),
+                           r_prim_l : region(ispace(int3d), primitive),
+                           r_prim_r : region(ispace(int3d), primitive),
+                           r_rhs_l  : region(ispace(int3d), primitive),
+                           r_rhs_r  : region(ispace(int3d), primitive),
+                           matrix_l : region(ispace(int2d), superlu.CSR_matrix),
+                           matrix_r : region(ispace(int2d), superlu.CSR_matrix),
+                           slu      : region(ispace(int2d), superlu.c.superlu_vars_t) )
+where
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r), reads writes(r_rhs_l, r_rhs_r, matrix_l, matrix_r, slu)
+do
+
+  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+
+  var dim : int64 = nz+1
+
+  var pr = matrix_l.ispace.bounds.hi.x
+  var pc = matrix_l.ispace.bounds.hi.y
+  -- matrix_l[{pr,pc}].rowptr[0] = 0
+
+  var bounds_c = r_prim_c.ispace.bounds
+  var bounds_z = r_prim_l.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.z == 0, "Can only perform Z interpolation in the Z pencil")
+  regentlib.assert(bounds_z.lo.z == 0, "Can only perform Z interpolation in the Z pencil")
+
+  for i in r_prim_c do
+    var rhosos_avg : double[2] = get_rho_sos_avg_z( r_prim_c, i, nx, ny, nz )
+    var char_values : double[6][5] = get_char_values_z(r_prim_c, rhosos_avg[0], rhosos_avg[1], i, nx, ny, nz)
+
+    var nlweights_l = get_nonlinear_weights_LD_l(char_values)
+    var coeffs_l = get_coefficients(nlweights_l)
+    var nlweights_r = get_nonlinear_weights_LD_r(char_values)
+    var coeffs_r = get_coefficients(nlweights_r)
+
+    r_rhs_l[i].rho = coeffs_l[0][3] * char_values[0][1]
+                   + coeffs_l[0][4] * char_values[0][2]
+                   + coeffs_l[0][5] * char_values[0][3]
+                   + coeffs_l[0][6] * char_values[0][4]
+    r_rhs_l[i].u   = coeffs_l[1][3] * char_values[1][1]
+                   + coeffs_l[1][4] * char_values[1][2]
+                   + coeffs_l[1][5] * char_values[1][3]
+                   + coeffs_l[1][6] * char_values[1][4]
+    r_rhs_l[i].v   = coeffs_l[2][3] * char_values[2][1]
+                   + coeffs_l[2][4] * char_values[2][2]
+                   + coeffs_l[2][5] * char_values[2][3]
+                   + coeffs_l[2][6] * char_values[2][4]
+    r_rhs_l[i].w   = coeffs_l[3][3] * char_values[3][1]
+                   + coeffs_l[3][4] * char_values[3][2]
+                   + coeffs_l[3][5] * char_values[3][3]
+                   + coeffs_l[3][6] * char_values[3][4]
+    r_rhs_l[i].p   = coeffs_l[4][3] * char_values[4][1]
+                   + coeffs_l[4][4] * char_values[4][2]
+                   + coeffs_l[4][5] * char_values[4][3]
+                   + coeffs_l[4][6] * char_values[4][4]
+
+    r_rhs_r[i].rho = coeffs_r[0][3] * char_values[0][1]
+                   + coeffs_r[0][4] * char_values[0][2]
+                   + coeffs_r[0][5] * char_values[0][3]
+                   + coeffs_r[0][6] * char_values[0][4]
+    r_rhs_r[i].u   = coeffs_r[1][3] * char_values[1][1]
+                   + coeffs_r[1][4] * char_values[1][2]
+                   + coeffs_r[1][5] * char_values[1][3]
+                   + coeffs_r[1][6] * char_values[1][4]
+    r_rhs_r[i].v   = coeffs_r[2][3] * char_values[2][1]
+                   + coeffs_r[2][4] * char_values[2][2]
+                   + coeffs_r[2][5] * char_values[2][3]
+                   + coeffs_r[2][6] * char_values[2][4]
+    r_rhs_r[i].w   = coeffs_r[3][3] * char_values[3][1]
+                   + coeffs_r[3][4] * char_values[3][2]
+                   + coeffs_r[3][5] * char_values[3][3]
+                   + coeffs_r[3][6] * char_values[3][4]
+    r_rhs_r[i].p   = coeffs_r[4][3] * char_values[4][1]
+                   + coeffs_r[4][4] * char_values[4][2]
+                   + coeffs_r[4][5] * char_values[4][3]
+                   + coeffs_r[4][6] * char_values[4][4]
+
+    var grow : int64 = 5*i.x + i.y*5*nx + i.z*5*nx*ny
+    var bcounter : int64 = 8*3*i.x + i.y*(8*3)*nx + i.z*(8*3)*ny*nx
+
+    -- rho
+    for j = 0, 3 do
+      var bcol : int64 = i.z + j - 1
+      var gcol : int64 = i.x*5 + i.y*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+      var counter : int64 = bcounter + 2*j
+
+      -- matrix.colind[counter] = gcol+3
+      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[0][j] * (-0.5*rhosos_avg[0]*rhosos_avg[1])
+      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[0][j] * (-0.5*rhosos_avg[0]*rhosos_avg[1])
+
+      -- matrix.colind[counter+1] = gcol+4
+      matrix_l[{pr,pc}].nzval [counter+1] = coeffs_l[0][j] * (0.5)
+      matrix_r[{pr,pc}].nzval [counter+1] = coeffs_r[0][j] * (0.5)
+    end
+    bcounter = bcounter + 3*2
+    -- matrix.rowptr[grow+1] = bcounter
+
+    -- u
+    for j = 0, 3 do
+      var bcol : int64 = i.z + j - 1
+      var gcol : int64 = i.x*5 + i.y*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+      var counter : int64 = bcounter + j
+
+      -- matrix.colind[counter] = gcol+1
+      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[1][j] * (1.0)
+      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[1][j] * (1.0)
+    end
+    bcounter = bcounter + 3*1
+    -- matrix.rowptr[grow+2] = bcounter
+
+    -- v
+    for j = 0, 3 do
+      var bcol : int64 = i.z + j - 1
+      var gcol : int64 = i.x*5 + i.y*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+      var counter : int64 = bcounter + j
+
+      -- matrix.colind[counter] = gcol+2
+      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[2][j] * (1.0)
+      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[2][j] * (1.0)
+    end
+    bcounter = bcounter + 3*1
+    -- matrix.rowptr[grow+3] = bcounter
+
+    -- w
+    for j = 0, 3 do
+      var bcol : int64 = i.z + j - 1
+      var gcol : int64 = i.x*5 + i.y*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+      var counter : int64 = bcounter + 2*j
+
+      -- matrix.colind[counter] = gcol
+      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[3][j] * (1.0)
+      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[3][j] * (1.0)
+
+      -- matrix.colind[counter+1] = gcol+4
+      matrix_l[{pr,pc}].nzval [counter+1] = coeffs_l[3][j] * (-1.0/(rhosos_avg[1]*rhosos_avg[1]))
+      matrix_r[{pr,pc}].nzval [counter+1] = coeffs_r[3][j] * (-1.0/(rhosos_avg[1]*rhosos_avg[1]))
+    end
+    bcounter = bcounter + 3*2
+    -- matrix.rowptr[grow+4] = bcounter
+
+    -- p
+    for j = 0, 3 do
+      var bcol : int64 = i.z + j - 1
+      var gcol : int64 = i.x*5 + i.y*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+      var counter : int64 = bcounter + 2*j
+
+      -- matrix.colind[counter] = gcol+3
+      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[4][j] * (0.5*rhosos_avg[0]*rhosos_avg[1])
+      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[4][j] * (0.5*rhosos_avg[0]*rhosos_avg[1])
+
+      -- matrix.colind[counter+1] = gcol+4
+      matrix_l[{pr,pc}].nzval [counter+1] = coeffs_l[4][j] * (0.5)
+      matrix_r[{pr,pc}].nzval [counter+1] = coeffs_r[4][j] * (0.5)
+    end
+    bcounter = bcounter + 3*2
+    -- matrix.rowptr[grow+5] = bcounter
+  end
+
+  -- For the last point
+  for iy = bounds_z.lo.y, bounds_z.hi.y+1 do
+    for ix = bounds_z.lo.x, bounds_z.hi.x+1 do
+      r_rhs_l[{ix,iy,nz}].{rho, u, v, w, p} = 0.0
+      r_rhs_r[{ix,iy,nz}].{rho, u, v, w, p} = 0.0
+    end
+  end
+
+  superlu.MatrixSolve( r_rhs_l, r_prim_l, matrix_l[{pr,pc}], nx, ny, nz, slu )
+  superlu.MatrixSolve( r_rhs_r, r_prim_r, matrix_r[{pr,pc}], nx, ny, nz, slu )
+
+ return 1
+end
+

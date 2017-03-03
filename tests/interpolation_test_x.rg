@@ -14,7 +14,7 @@ local csuperlu_mapper = require("superlu_mapper")
 -- Grid dimensions
 local NX = 80
 local NY = 5
-local NZ = 1
+local NZ = 5
 
 -- Domain size
 -- local LX = 2.0*math.pi

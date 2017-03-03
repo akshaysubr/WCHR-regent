@@ -225,17 +225,17 @@ terra superlu.initialize_matrix_char_x( alpha  : double,
   -- for i = 0,matrix.nnz do
   --   c.printf("%g, ", matrix.nzval[i])
   -- end
-  -- c.printf("])\n")
+  -- c.printf("])\n\n")
   -- c.printf("colind = numpy.array([")
   -- for i = 0,matrix.nnz do
   --   c.printf("%d, ", matrix.colind[i])
   -- end
-  -- c.printf("])\n")
+  -- c.printf("])\n\n")
   -- c.printf("rowptr = numpy.array([")
   -- for i = 0,Nsize+1 do
   --   c.printf("%d, ", matrix.rowptr[i])
   -- end
-  -- c.printf("])\n")
+  -- c.printf("])\n\n")
 
   return matrix
 end
@@ -364,17 +364,158 @@ terra superlu.initialize_matrix_char_y( alpha  : double,
   -- for i = 0,matrix.nnz do
   --   c.printf("%g, ", matrix.nzval[i])
   -- end
-  -- c.printf("])\n")
+  -- c.printf("])\n\n")
   -- c.printf("colind = numpy.array([")
   -- for i = 0,matrix.nnz do
   --   c.printf("%d, ", matrix.colind[i])
   -- end
-  -- c.printf("])\n")
+  -- c.printf("])\n\n")
   -- c.printf("rowptr = numpy.array([")
   -- for i = 0,Nsize+1 do
   --   c.printf("%d, ", matrix.rowptr[i])
   -- end
-  -- c.printf("])\n")
+  -- c.printf("])\n\n")
+
+  return matrix
+end
+
+terra superlu.initialize_matrix_char_z( alpha  : double,
+                                        beta   : double,
+                                        gamma  : double,
+                                        nx     : int64,
+                                        ny     : int64,
+                                        nz     : int64 )
+  var matrix : superlu.CSR_matrix
+
+  var Nsize : int64 = 5*(nz+1)*nx*ny
+  matrix.nnz = (8*3*nz+10)*nx*ny
+  matrix.rowptr = [&int] ( c.malloc ( (Nsize+1) * sizeof(int) ) )
+  matrix.colind = [&int] ( c.malloc ( matrix.nnz * sizeof(int) ) )
+  matrix.nzval  = [&double] ( c.malloc ( matrix.nnz * sizeof(double) ) )
+
+  var dim : int = nz+1
+
+  var Avals : double[3]
+  Avals[0] = alpha
+  Avals[1] = beta
+  Avals[2] = gamma
+
+  matrix.rowptr[0] = 0
+
+  for iz = 0, nz do
+    for iy = 0, ny do
+      for brow = 0, nx do
+        var grow : int64 = 5*brow + iy*5*nx + iz*5*nx*ny
+        var bcounter : int64 = 8*3*brow + iy*(8*3)*nx + iz*(8*3)*ny*nx
+
+        -- rho
+        for j = 0, 3 do
+          var bcol : int64 = iz + j - 1
+          var gcol : int64 = brow*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+          var counter : int64 = bcounter + 2*j
+
+          matrix.colind[counter] = gcol+3
+          matrix.nzval [counter] = Avals[j] * (-0.5)
+
+          matrix.colind[counter+1] = gcol+4
+          matrix.nzval [counter+1] = Avals[j] * (0.5)
+        end
+        bcounter = bcounter + 3*2
+        matrix.rowptr[grow+1] = bcounter
+
+        -- u
+        for j = 0, 3 do
+          var bcol : int64 = iz + j - 1
+          var gcol : int64 = brow*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+          var counter : int64 = bcounter + j
+
+          matrix.colind[counter] = gcol+1
+          matrix.nzval [counter] = Avals[j] * (1.0)
+        end
+        bcounter = bcounter + 3*1
+        matrix.rowptr[grow+2] = bcounter
+
+        -- v
+        for j = 0, 3 do
+          var bcol : int64 = iz + j - 1
+          var gcol : int64 = brow*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+          var counter : int64 = bcounter + j
+
+          matrix.colind[counter] = gcol+2
+          matrix.nzval [counter] = Avals[j] * (1.0)
+        end
+        bcounter = bcounter + 3*1
+        matrix.rowptr[grow+3] = bcounter
+
+        -- w
+        for j = 0, 3 do
+          var bcol : int64 = iz + j - 1
+          var gcol : int64 = brow*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+          var counter : int64 = bcounter + 2*j
+
+          matrix.colind[counter] = gcol
+          matrix.nzval [counter] = Avals[j] * (1.0)
+
+          matrix.colind[counter+1] = gcol+4
+          matrix.nzval [counter+1] = Avals[j] * (-1.0)
+        end
+        bcounter = bcounter + 3*2
+        matrix.rowptr[grow+4] = bcounter
+
+        -- p
+        for j = 0, 3 do
+          var bcol : int64 = iz + j - 1
+          var gcol : int64 = brow*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+          var counter : int64 = bcounter + 2*j
+
+          matrix.colind[counter] = gcol+3
+          matrix.nzval [counter] = Avals[j] * (0.5)
+
+          matrix.colind[counter+1] = gcol+4
+          matrix.nzval [counter+1] = Avals[j] * (0.5)
+        end
+        bcounter = bcounter + 3*2
+        matrix.rowptr[grow+5] = bcounter
+
+      end
+    end
+  end
+
+  for iy = 0, ny do
+    for brow = 0, nx do
+      -- For the last point
+      var bcounter : int64 = 10*brow + 10*iy*nx + nz*(8*3)*ny*nx
+      for pvar = 0,5 do
+        var gcol : int64 = pvar + brow*5 + iy*5*nx + nz*5*nx*nx
+        var counter : int64 = bcounter + 2*pvar
+        matrix.colind[counter] = gcol
+        matrix.nzval [counter] = 1.0
+
+        gcol = pvar + brow*5 + iy*5*nx + 0*5*nx*nx
+        matrix.colind[counter+1] = gcol
+        matrix.nzval [counter+1] = -1.0
+
+        var grow : int64 = pvar + brow*5 + iy*5*nx + nz*5*nx*nx
+        matrix.rowptr[grow+1] = counter + 2
+      end
+    end
+  end
+
+  -- c.printf("nzval = numpy.array([")
+  -- for i = 0,matrix.nnz do
+  --   c.printf("%g, ", matrix.nzval[i])
+  -- end
+  -- c.printf("])\n\n")
+  -- c.printf("colind = numpy.array([")
+  -- for i = 0,matrix.nnz do
+  --   c.printf("%d, ", matrix.colind[i])
+  -- end
+  -- c.printf("])\n\n")
+  -- c.printf("rowptr = numpy.array([")
+  -- for i = 0,Nsize+1 do
+  --   c.printf("%d, ", matrix.rowptr[i])
+  -- end
+  -- c.printf("])\n\n")
 
   return matrix
 end
