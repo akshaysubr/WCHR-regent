@@ -3,9 +3,9 @@ import "regent"
 local superlu = {}
 do
   local superlu_library = "-lsuperlu"
-  local superlu_include_dir = "/usr/local/include"
+  local superlu_include_dir = "/opt/SuperLU_5.2.1"
   -- local root_dir = arg[0]:match(".*/") or "./"
-  local root_dir = "/home/manlong/Codes/WCHR-regent/src/"
+  local root_dir = "/home/akshays/Codes/WCHR-regent/src/"
   -- local root_dir = "/home/akshays/Codes/WCHR-regent/src/"
   local superlu_util_cc = root_dir .. "superlu_util.c"
   superlu_util_so = os.tmpname() .. ".so"

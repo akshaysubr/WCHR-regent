@@ -165,8 +165,8 @@ task main()
 
   -- write_coords(coords)
   -- write_primitive(r_prim_c, "cell_primitive", 0)
-  write_primitive(r_prim_l_y, "edge_primitive_l_y", 0)
-  -- write_primitive(r_prim_r_y, "edge_primitive_r_y", 0)
+  -- write_primitive(r_prim_l_y, "edge_primitive_l_y", 0)
+  write_primitive(r_prim_r_y, "edge_primitive_r_y", 0)
 end
 
 regentlib.start(main, csuperlu_mapper.register_mappers)
