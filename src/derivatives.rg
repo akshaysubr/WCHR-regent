@@ -181,28 +181,28 @@ local function make_stencil_pattern_MND(points_c, points_e, f, index, a, b, c, N
   return value
 end
 
-local function make_stencil_x(r1, privileges_r1, f1, r2, privileges_r2, f2, Nx, Ny, Nz, onebydx, a, b, c, der)
-  local rhs_x __demand(__inline) task rhs_x( [r1], [r2] )
+local function make_stencil(r1, privileges_r1, f1, r2, privileges_r2, f2, Nx, Ny, Nz, onebydx, a, b, c, dir, der)
+  local rhs __demand(__inline) task rhs( [r1], [r2] )
   where
     [privileges_r1], [privileges_r2]
   do
     for i in r2 do
-      [r2][i].[f2] = [make_stencil_pattern(r1, f1, i, a, b, c, Nx, Ny, Nz, onebydx, 0, der)]
+      [r2][i].[f2] = [make_stencil_pattern(r1, f1, i, a, b, c, Nx, Ny, Nz, onebydx, dir, der)]
     end
   end
-  return rhs_x
+  return rhs
 end
 
-local function make_stencil_MND_x(r1, privileges_r1, f1, r2, privileges_r2, r3, privileges_r3, f3, Nx, Ny, Nz, onebydx, a, b, c, der)
-  local rhs_x __demand(__inline) task rhs_x( [r1], [r2], [r3] )
+local function make_stencil_MND(r1, privileges_r1, f1, r2, privileges_r2, r3, privileges_r3, f3, Nx, Ny, Nz, onebydx, a, b, c, dir, der)
+  local rhs __demand(__inline) task rhs( [r1], [r2], [r3] )
   where
     [privileges_r1], [privileges_r2], [privileges_r3]
   do
     for i in r3 do
-      [r3][i].[f3] = [make_stencil_pattern_MND(r1, r2, f1, i, a, b, c, Nx, Ny, Nz, onebydx, 0, der)]
+      [r3][i].[f3] = [make_stencil_pattern_MND(r1, r2, f1, i, a, b, c, Nx, Ny, Nz, onebydx, dir, der)]
     end
   end
-  return rhs_x
+  return rhs
 end
 
 local function make_SolveXLU(r, privileges_r, f)
@@ -249,52 +249,242 @@ local function make_SolveXLU(r, privileges_r, f)
   return SolveXLU
 end
 
-function make_ddx(r_flux, f_flux, r_cnsr, f_cnsr, NX, NY, NZ, ONEBYDX, a, b, c)
-  local privileges_r_flux = regentlib.privilege(regentlib.reads,  r_flux, f_flux)
+local function make_SolveYLU(r, privileges_r, f)
+  local SolveYLU __demand(__inline) task SolveYLU( [r], LU : region(ispace(int3d), LU_struct) )
+  where
+    [privileges_r], reads(LU)
+  do
+    var bounds = [r].ispace.bounds
+    var N = bounds.hi.y + 1
+    var pr = LU.ispace.bounds.hi.y
+    var pc = LU.ispace.bounds.hi.z
   
-  local reads_r_cnsr      = regentlib.privilege(regentlib.reads,  r_cnsr, f_cnsr)
-  local writes_r_cnsr     = regentlib.privilege(regentlib.writes, r_cnsr, f_cnsr)
-  local privileges_r_cnsr = terralib.newlist({reads_r_cnsr, writes_r_cnsr})
+    for i = bounds.lo.x, bounds.hi.x+1 do
+      for k = bounds.lo.z, bounds.hi.z+1 do
+  
+        -- Step 8
+        [r][{i,1,k}].[f] = [r][{i,1,k}].[f] - LU[{1,pr,pc}].b*[r][{i,0,k}].[f]
+        var sum1 : double = LU[{0,pr,pc}].k*[r][{i,0,k}].[f] + LU[{1,pr,pc}].k*[r][{i,1,k}].[f]
+        var sum2 : double = LU[{0,pr,pc}].l*[r][{i,0,k}].[f] + LU[{1,pr,pc}].l*[r][{i,1,k}].[f]
+  
+        -- Step 9
+        for j = 2,N-2 do
+          [r][{i,j,k}].[f] = [r][{i,j,k}].[f] - LU[{j,pr,pc}].b*[r][{i,j-1,k}].[f] - LU[{j,pr,pc}].eg*[r][{i,j-2,k}].[f]
+          sum1 += LU[{j,pr,pc}].k*[r][{i,j,k}].[f]
+          sum2 += LU[{j,pr,pc}].l*[r][{i,j,k}].[f]
+        end
+  
+        -- Step 10
+        [r][{i,N-2,k}].[f] = [r][{i,N-2,k}].[f] - sum1;
+        [r][{i,N-1,k}].[f] = ( [r][{i,N-1,k}].[f] - sum2 - LU[{N-2,pr,pc}].l*[r][{i,N-2,k}].[f] )*LU[{N-1,pr,pc}].g;
+  
+        -- Step 11
+        [r][{i,N-2,k}].[f] = ( [r][{i,N-2,k}].[f] - LU[{N-2,pr,pc}].w*[r][{i,N-1,k}].[f] )*LU[{N-2,pr,pc}].g;
+        [r][{i,N-3,k}].[f] = ( [r][{i,N-3,k}].[f] - LU[{N-3,pr,pc}].v*[r][{i,N-2,k}].[f] - LU[{N-3,pr,pc}].w*[r][{i,N-1,k}].[f] )*LU[{N-3,pr,pc}].g;
+        [r][{i,N-4,k}].[f] = ( [r][{i,N-4,k}].[f] - LU[{N-4,pr,pc}].h*[r][{i,N-3,k}].[f] - LU[{N-4,pr,pc}].v*[r][{i,N-2,k}].[f] - LU[{N-4,pr,pc}].w*[r][{i,N-1,k}].[f] )*LU[{N-4,pr,pc}].g
+        for j = N-5,-1,-1 do
+          [r][{i,j,k}].[f] = ( [r][{i,j,k}].[f] - LU[{j,pr,pc}].h*[r][{i,j+1,k}].[f] - LU[{j,pr,pc}].ff*[r][{i,j+2,k}].[f] - LU[{j,pr,pc}].v*[r][{i,N-2,k}].[f] - LU[{j,pr,pc}].w*[r][{i,N-1,k}].[f] )*LU[{j,pr,pc}].g
+        end
+  
+      end
+    end
+  
+    return 1
+  end
+  return SolveYLU
+end
 
-  local ComputeXRHS  = make_stencil_x(r_flux, privileges_r_flux, f_flux, r_cnsr, privileges_r_cnsr, f_cnsr, NX, NY, NZ, ONEBYDX, a, b, c, 1)
-  local SolveXLU     = make_SolveXLU(r_cnsr, privileges_r_cnsr, f_cnsr)
+local function make_SolveZLU(r, privileges_r, f)
+  local SolveZLU __demand(__inline) task SolveZLU( [r], LU : region(ispace(int3d), LU_struct) )
+  where
+    [privileges_r], reads(LU)
+  do
+    var bounds = [r].ispace.bounds
+    var N = bounds.hi.z + 1
+    var pr = LU.ispace.bounds.hi.y
+    var pc = LU.ispace.bounds.hi.z
+  
+    for i = bounds.lo.x, bounds.hi.x+1 do
+      for j = bounds.lo.y, bounds.hi.y+1 do
+  
+        -- Step 8
+        [r][{i,j,1}].[f] = [r][{i,j,1}].[f] - LU[{1,pr,pc}].b*[r][{i,j,0}].[f]
+        var sum1 : double = LU[{0,pr,pc}].k*[r][{i,j,0}].[f] + LU[{1,pr,pc}].k*[r][{i,j,1}].[f]
+        var sum2 : double = LU[{0,pr,pc}].l*[r][{i,j,0}].[f] + LU[{1,pr,pc}].l*[r][{i,j,1}].[f]
+  
+        -- Step 9
+        for k = 2,N-2 do
+          [r][{i,j,k}].[f] = [r][{i,j,k}].[f] - LU[{k,pr,pc}].b*[r][{i,j,k-1}].[f] - LU[{k,pr,pc}].eg*[r][{i,j,k-2}].[f]
+          sum1 += LU[{k,pr,pc}].k*[r][{i,j,k}].[f]
+          sum2 += LU[{k,pr,pc}].l*[r][{i,j,k}].[f]
+        end
+  
+        -- Step 10
+        [r][{i,j,N-2}].[f] = [r][{i,j,N-2}].[f] - sum1;
+        [r][{i,j,N-1}].[f] = ( [r][{i,j,N-1}].[f] - sum2 - LU[{N-2,pr,pc}].l*[r][{i,j,N-2}].[f] )*LU[{N-1,pr,pc}].g;
+  
+        -- Step 11
+        [r][{i,j,N-2}].[f] = ( [r][{i,j,N-2}].[f] - LU[{N-2,pr,pc}].w*[r][{i,j,N-1}].[f] )*LU[{N-2,pr,pc}].g;
+        [r][{i,j,N-3}].[f] = ( [r][{i,j,N-3}].[f] - LU[{N-3,pr,pc}].v*[r][{i,j,N-2}].[f] - LU[{N-3,pr,pc}].w*[r][{i,j,N-1}].[f] )*LU[{N-3,pr,pc}].g;
+        [r][{i,j,N-4}].[f] = ( [r][{i,j,N-4}].[f] - LU[{N-4,pr,pc}].h*[r][{i,j,N-3}].[f] - LU[{N-4,pr,pc}].v*[r][{i,j,N-2}].[f] - LU[{N-4,pr,pc}].w*[r][{i,j,N-1}].[f] )*LU[{N-4,pr,pc}].g
+        for k = N-5,-1,-1 do
+          [r][{i,j,k}].[f] = ( [r][{i,j,k}].[f] - LU[{k,pr,pc}].h*[r][{i,j,k+1}].[f] - LU[{k,pr,pc}].ff*[r][{i,j,k+2}].[f] - LU[{k,pr,pc}].v*[r][{i,j,N-2}].[f] - LU[{k,pr,pc}].w*[r][{i,j,N-1}].[f] )*LU[{k,pr,pc}].g
+        end
+  
+      end
+    end
+    return 1
+  end
+  return SolveZLU
+end
 
-  local task ddx( [r_flux],
-                  [r_cnsr],
+function make_ddx(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
+  local privileges_r_func = regentlib.privilege(regentlib.reads,  r_func, f_func)
+  
+  local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
+  local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
+  local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
+
+  local ComputeXRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 0, 1)
+  local SolveXLU     = make_SolveXLU(r_der, privileges_r_der, f_der)
+
+  local task ddx( [r_func],
+                  [r_der],
                   LU     : region(ispace(int3d), LU_struct) )
   where
-    reads(LU), [privileges_r_flux], [privileges_r_cnsr]
+    reads(LU), [privileges_r_func], [privileges_r_der]
   do
-    [ComputeXRHS]([r_flux], [r_cnsr])
-    var token = [SolveXLU]([r_cnsr],LU)
-    token = r_cnsr[ [r_cnsr].ispace.bounds.lo ].[f_cnsr]
+    [ComputeXRHS]([r_func], [r_der])
+    var token = [SolveXLU]([r_der],LU)
+    token = r_der[ [r_der].ispace.bounds.lo ].[f_der]
     return token
   end
   return ddx
 end
 
-function make_ddx_MND(r_flux, r_flux_e, f_flux, r_cnsr, f_cnsr, NX, NY, NZ, ONEBYDX, a, b, c)
-  local privileges_r_flux   = regentlib.privilege(regentlib.reads,  r_flux,   f_flux)
-  local privileges_r_flux_e = regentlib.privilege(regentlib.reads,  r_flux_e, f_flux)
+function make_ddy(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
+  local privileges_r_func = regentlib.privilege(regentlib.reads,  r_func, f_func)
   
-  local reads_r_cnsr      = regentlib.privilege(regentlib.reads,  r_cnsr, f_cnsr)
-  local writes_r_cnsr     = regentlib.privilege(regentlib.writes, r_cnsr, f_cnsr)
-  local privileges_r_cnsr = terralib.newlist({reads_r_cnsr, writes_r_cnsr})
+  local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
+  local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
+  local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
 
-  local ComputeXRHS_MND  = make_stencil_MND_x(r_flux, privileges_r_flux, f_flux, r_flux_e, privileges_r_flux_e, r_cnsr, privileges_r_cnsr, f_cnsr, NX, NY, NZ, ONEBYDX, a, b, c, 1)
-  local SolveXLU         = make_SolveXLU(r_cnsr, privileges_r_cnsr, f_cnsr)
+  local ComputeYRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 1, 1)
+  local SolveYLU     = make_SolveYLU(r_der, privileges_r_der, f_der)
 
-  local task ddx_MND( [r_flux],
-                      [r_flux_e],
-                      [r_cnsr],
+  local task ddy( [r_func],
+                  [r_der],
+                  LU     : region(ispace(int3d), LU_struct) )
+  where
+    reads(LU), [privileges_r_func], [privileges_r_der]
+  do
+    [ComputeYRHS]([r_func], [r_der])
+    var token = [SolveYLU]([r_der],LU)
+    token = r_der[ [r_der].ispace.bounds.lo ].[f_der]
+    return token
+  end
+  return ddy
+end
+
+function make_ddz(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
+  local privileges_r_func = regentlib.privilege(regentlib.reads,  r_func, f_func)
+  
+  local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
+  local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
+  local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
+
+  local ComputeZRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 2, 1)
+  local SolveZLU     = make_SolveZLU(r_der, privileges_r_der, f_der)
+
+  local task ddz( [r_func],
+                  [r_der],
+                  LU     : region(ispace(int3d), LU_struct) )
+  where
+    reads(LU), [privileges_r_func], [privileges_r_der]
+  do
+    [ComputeZRHS]([r_func], [r_der])
+    var token = [SolveZLU]([r_der],LU)
+    token = r_der[ [r_der].ispace.bounds.lo ].[f_der]
+    return token
+  end
+  return ddz
+end
+
+function make_ddx_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads,  r_func,   f_func)
+  local privileges_r_func_e = regentlib.privilege(regentlib.reads,  r_func_e, f_func)
+  
+  local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
+  local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
+  local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
+
+  local ComputeXRHS_MND  = make_stencil_MND(r_func, privileges_r_func, f_func, r_func_e, privileges_r_func_e, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 0, 1)
+  local SolveXLU         = make_SolveXLU(r_der, privileges_r_der, f_der)
+
+  local task ddx_MND( [r_func],
+                      [r_func_e],
+                      [r_der],
                       LU     : region(ispace(int3d), LU_struct) )
   where
-    reads(LU), [privileges_r_flux], [privileges_r_flux_e], [privileges_r_cnsr]
+    reads(LU), [privileges_r_func], [privileges_r_func_e], [privileges_r_der]
   do
-    [ComputeXRHS_MND]([r_flux], [r_flux_e], [r_cnsr])
-    var token = [SolveXLU]([r_cnsr],LU)
-    token = r_cnsr[ [r_cnsr].ispace.bounds.lo ].[f_cnsr]
+    [ComputeXRHS_MND]([r_func], [r_func_e], [r_der])
+    var token = [SolveXLU]([r_der],LU)
+    token = r_der[ [r_der].ispace.bounds.lo ].[f_der]
     return token
   end
   return ddx_MND
 end
+
+function make_ddy_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads,  r_func,   f_func)
+  local privileges_r_func_e = regentlib.privilege(regentlib.reads,  r_func_e, f_func)
+  
+  local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
+  local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
+  local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
+
+  local ComputeYRHS_MND  = make_stencil_MND(r_func, privileges_r_func, f_func, r_func_e, privileges_r_func_e, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 1, 1)
+  local SolveYLU         = make_SolveYLU(r_der, privileges_r_der, f_der)
+
+  local task ddy_MND( [r_func],
+                      [r_func_e],
+                      [r_der],
+                      LU     : region(ispace(int3d), LU_struct) )
+  where
+    reads(LU), [privileges_r_func], [privileges_r_func_e], [privileges_r_der]
+  do
+    [ComputeYRHS_MND]([r_func], [r_func_e], [r_der])
+    var token = [SolveYLU]([r_der],LU)
+    token = r_der[ [r_der].ispace.bounds.lo ].[f_der]
+    return token
+  end
+  return ddy_MND
+end
+
+function make_ddz_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads,  r_func,   f_func)
+  local privileges_r_func_e = regentlib.privilege(regentlib.reads,  r_func_e, f_func)
+  
+  local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
+  local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
+  local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
+
+  local ComputeZRHS_MND  = make_stencil_MND(r_func, privileges_r_func, f_func, r_func_e, privileges_r_func_e, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 2, 1)
+  local SolveZLU         = make_SolveZLU(r_der, privileges_r_der, f_der)
+
+  local task ddz_MND( [r_func],
+                      [r_func_e],
+                      [r_der],
+                      LU     : region(ispace(int3d), LU_struct) )
+  where
+    reads(LU), [privileges_r_func], [privileges_r_func_e], [privileges_r_der]
+  do
+    [ComputeZRHS_MND]([r_func], [r_func_e], [r_der])
+    var token = [SolveZLU]([r_der],LU)
+    token = r_der[ [r_der].ispace.bounds.lo ].[f_der]
+    return token
+  end
+  return ddz_MND
+end
+

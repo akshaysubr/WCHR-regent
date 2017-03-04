@@ -107,7 +107,7 @@ task main()
   wait_for(token)
   
   write_coords(coords)
-  write_primitive(r_prim_c, "cell_primitive", 0)
+  -- write_primitive(r_prim_c, "cell_primitive", 0)
   
   var A_RK45 = array(0.0,
                      -6234157559845.0/12983515589748.0,

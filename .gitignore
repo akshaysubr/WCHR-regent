@@ -1,2 +1,3 @@
 tests/*.h5
 src/*.h5
+src/legion_prof

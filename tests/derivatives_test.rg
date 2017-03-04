@@ -48,7 +48,12 @@ local r_prim_e = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim_e
 local r_der    = regentlib.newsymbol(region(ispace(int3d), primitive), "r_der")
 
 local ddx     = make_ddx(r_prim, "rho", r_der, "rho", NX, NY, NZ, ONEBYDX, a06d1, b06d1, c06d1)
+local ddy     = make_ddy(r_prim, "rho", r_der, "rho", NX, NY, NZ, ONEBYDX, a06d1, b06d1, c06d1)
+local ddz     = make_ddz(r_prim, "rho", r_der, "rho", NX, NY, NZ, ONEBYDX, a06d1, b06d1, c06d1)
+
 local ddx_MND = make_ddx_MND(r_prim, r_prim_e, "rho", r_der, "rho", NX, NY, NZ, ONEBYDX, a06MND, b06MND, c06MND)
+local ddy_MND = make_ddy_MND(r_prim, r_prim_e, "rho", r_der, "rho", NX, NY, NZ, ONEBYDX, a06MND, b06MND, c06MND)
+local ddz_MND = make_ddz_MND(r_prim, r_prim_e, "rho", r_der, "rho", NX, NY, NZ, ONEBYDX, a06MND, b06MND, c06MND)
 -----------------------------------------------------
 
 task initialize( coords     : region(ispace(int3d), coordinates),
@@ -78,6 +83,22 @@ do
     r_prim_l_x[i].rho = cmath.sin(x_c) * cmath.cos(y_c) * cmath.cos(z_c)
   end
 
+  for i in r_prim_l_y do
+    var x_c : double = X1 + (i.x + 0.5) * dx
+    var y_c : double = Y1 + (i.y + 0.0) * dy
+    var z_c : double = Z1 + (i.z + 0.5) * dz
+
+    r_prim_l_y[i].rho = cmath.sin(x_c) * cmath.cos(y_c) * cmath.cos(z_c)
+  end
+
+  for i in r_prim_l_z do
+    var x_c : double = X1 + (i.x + 0.5) * dx
+    var y_c : double = Y1 + (i.y + 0.5) * dy
+    var z_c : double = Z1 + (i.z + 0.0) * dz
+
+    r_prim_l_z[i].rho = cmath.sin(x_c) * cmath.cos(y_c) * cmath.cos(z_c)
+  end
+
   return 1
 end
 
@@ -89,6 +110,36 @@ do
   var err : double = 0.0
   for i in coords.ispace do
     var err_t : double = cmath.fabs( r_der[i].rho - cmath.cos(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.cos(coords[i].z_c) )
+    if err_t > err then
+      err = err_t
+    end
+  end
+  return err
+end
+
+task check_ddy( coords : region(ispace(int3d), coordinates),
+                r_der  : region(ispace(int3d), primitive) )
+where
+  reads writes(coords, r_der)
+do
+  var err : double = 0.0
+  for i in coords.ispace do
+    var err_t : double = cmath.fabs( r_der[i].rho + cmath.sin(coords[i].x_c) * cmath.sin(coords[i].y_c) * cmath.cos(coords[i].z_c) )
+    if err_t > err then
+      err = err_t
+    end
+  end
+  return err
+end
+
+task check_ddz( coords : region(ispace(int3d), coordinates),
+                r_der  : region(ispace(int3d), primitive) )
+where
+  reads writes(coords, r_der)
+do
+  var err : double = 0.0
+  for i in coords.ispace do
+    var err_t : double = cmath.fabs( r_der[i].rho + cmath.sin(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.sin(coords[i].z_c) )
     if err_t > err then
       err = err_t
     end
@@ -150,12 +201,33 @@ task main()
   var token = initialize(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z, dx, dy, dz)
   wait_for(token)
 
+  var err = 0.0
+
+  fill(r_der.rho, 0.0)
   get_LU_decomposition(LU_x, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
   token += ddx(r_prim_c, r_der, LU_x)
   wait_for(token)
-  var err = check_ddx(coords, r_der)
+  err = check_ddx(coords, r_der)
   c.printf("Error in ddx     = %g\n", err)
-  -- regentlib.assert( err <= 1.e-9, "Derivative test failed for task ddx")
+  regentlib.assert( err <= 1.e-9, "Derivative test failed for task ddx")
+
+  fill(r_der.rho, 0.0)
+  get_LU_decomposition(LU_y, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
+  token += ddy(r_prim_c, r_der, LU_y)
+  wait_for(token)
+  err = check_ddy(coords, r_der)
+  c.printf("Error in ddy     = %g\n", err)
+  regentlib.assert( err <= 1.e-9, "Derivative test failed for task ddy")
+
+  fill(r_der.rho, 0.0)
+  get_LU_decomposition(LU_z, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
+  token += ddz(r_prim_c, r_der, LU_z)
+  wait_for(token)
+  err = check_ddz(coords, r_der)
+  c.printf("Error in ddz     = %g\n", err)
+  regentlib.assert( err <= 1.e-9, "Derivative test failed for task ddz")
+
+  c.printf("\n")
 
   fill(r_der.rho, 0.0)
   get_LU_decomposition(LU_x, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
@@ -163,7 +235,23 @@ task main()
   wait_for(token)
   err = check_ddx(coords, r_der)
   c.printf("Error in ddx_MND = %g\n", err)
-  -- regentlib.assert( err <= 1.e-10, "Derivative test failed for task ddx_MND")
+  regentlib.assert( err <= 1.e-10, "Derivative test failed for task ddx_MND")
+
+  fill(r_der.rho, 0.0)
+  get_LU_decomposition(LU_y, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  token += ddy_MND(r_prim_c, r_prim_l_y, r_der, LU_y)
+  wait_for(token)
+  err = check_ddy(coords, r_der)
+  c.printf("Error in ddy_MND = %g\n", err)
+  regentlib.assert( err <= 1.e-10, "Derivative test failed for task ddy_MND")
+
+  fill(r_der.rho, 0.0)
+  get_LU_decomposition(LU_z, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  token += ddz_MND(r_prim_c, r_prim_l_z, r_der, LU_z)
+  wait_for(token)
+  err = check_ddz(coords, r_der)
+  c.printf("Error in ddz_MND = %g\n", err)
+  regentlib.assert( err <= 1.e-10, "Derivative test failed for task ddz_MND")
 
   c.printf("\nAll tests passed! :)\n")
 end
