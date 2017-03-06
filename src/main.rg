@@ -10,7 +10,8 @@ require("IO")
 require("RHS")
 
 local superlu = require("superlu_util")
-local problem = require("shocktube_problem")
+local problem = require("problem")
+local Config  = require("config")
 
 local csuperlu_mapper = require("superlu_mapper")
 
@@ -31,10 +32,14 @@ task main()
   var dy : double = problem.DY
   var dz : double = problem.DZ
 
+  var config : Config
+  config:initialize_from_command(Nx, Ny, Nz)
+
   c.printf("================ Problem parameters ================\n")
   c.printf("           Nx, Ny, Nz = %d, %d, %d\n", Nx, Ny, Nz)
   c.printf("           Lx, Ly, Lz = %f, %f, %f\n", Lx, Ly, Lz)
   c.printf("           dx, dy, dz = %f, %f, %f\n", dx, dy, dz)
+  c.printf("           prow, pcol = %d, %d\n", config.prow, config.pcol)
   c.printf("====================================================\n")
 
   --------------------------------------------------------------------------------------------
@@ -60,6 +65,10 @@ task main()
 
   var r_rhs_l_x  = region(grid_e_x, primitive)  -- Store RHS for left interpolation in x
   var r_rhs_r_x  = region(grid_e_x, primitive)  -- Store RHS for right interpolation in x
+  var r_rhs_l_y  = region(grid_e_y, primitive)  -- Store RHS for left interpolation in y
+  var r_rhs_r_y  = region(grid_e_y, primitive)  -- Store RHS for right interpolation in y
+  var r_rhs_l_z  = region(grid_e_z, primitive)  -- Store RHS for left interpolation in z
+  var r_rhs_r_z  = region(grid_e_z, primitive)  -- Store RHS for right interpolation in z
 
   var r_flux_c   = region(grid_c,   conserved)  -- Flux at cell center
   var r_flux_e_x = region(grid_e_x, conserved)  -- Flux at x cell edge
@@ -94,14 +103,25 @@ task main()
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
-  -- Initialize SuperLU stuff
+  -- Initialize characteristic interpolation matrices
   matrix_l_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
   matrix_r_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
 
+  matrix_l_y[{0,0}] = superlu.initialize_matrix_char_y(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  matrix_r_y[{0,0}] = superlu.initialize_matrix_char_y(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+
+  matrix_l_z[{0,0}] = superlu.initialize_matrix_char_z(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  matrix_r_z[{0,0}] = superlu.initialize_matrix_char_z(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+
+  -- Initialize SuperLU structs
   superlu.initialize_superlu_vars( matrix_l_x[{0,0}], 5*(Nx+1)*Ny*Nz, r_rhs_l_x, r_prim_l_x, slu_x )
+  superlu.initialize_superlu_vars( matrix_l_y[{0,0}], 5*Nx*(Ny+1)*Nz, r_rhs_l_y, r_prim_l_y, slu_y )
+  superlu.initialize_superlu_vars( matrix_l_z[{0,0}], 5*Nx*Ny*(Nz+1), r_rhs_l_z, r_prim_l_z, slu_z )
   
   -- Initialize derivatives stuff
   get_LU_decomposition(LU_x, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  get_LU_decomposition(LU_y, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  get_LU_decomposition(LU_z, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
 
   var token = problem.initialize(coords, r_prim_c, dx, dy, dz)
   wait_for(token)
@@ -137,11 +157,25 @@ task main()
     var Q_t : double = 0.0
     fill(Q_rhs.{rho, rhou, rhov, rhow, rhoE}, 0.0)
     for isub = 0,5 do
-        fill(r_rhs.{rho, rhou, rhov, rhow, rhoE}, 0.0)
+        -- Set RHS to zero
+        set_rhs_zero( r_rhs )
+
+        -- Add X direction flux derivatives to RHS
         add_xflux_der_to_rhs( r_cnsr, r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x,
                               r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs,
                               LU_x, slu_x, matrix_l_x, matrix_r_x )
 
+        -- Add Y direction flux derivatives to RHS
+        add_yflux_der_to_rhs( r_cnsr, r_prim_c, r_prim_l_y, r_prim_r_y, r_rhs_l_y, r_rhs_r_y,
+                              r_flux_c, r_flux_e_y, r_fder_c_y, r_rhs,
+                              LU_y, slu_y, matrix_l_y, matrix_r_y )
+
+        -- Add Z direction flux derivatives to RHS
+        add_zflux_der_to_rhs( r_cnsr, r_prim_c, r_prim_l_z, r_prim_r_z, r_rhs_l_z, r_rhs_r_z,
+                              r_flux_c, r_flux_e_z, r_fder_c_z, r_rhs,
+                              LU_z, slu_z, matrix_l_z, matrix_r_z )
+
+        -- Update solution in this substep
         update_substep( r_cnsr, r_rhs, Q_rhs, dt, A_RK45[isub], B_RK45[isub] )
 
         -- Update simulation time as well

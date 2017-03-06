@@ -314,11 +314,21 @@ where
   reads (r_prim, r_cnsr), writes (r_flux)
 do
   for i in r_prim do
-    r_flux[i].rho  = r_cnsr[i].rhov
-    r_flux[i].rhou = r_cnsr[i].rhov * r_prim[i].u
-    r_flux[i].rhov = r_cnsr[i].rhov * r_prim[i].v + r_prim[i].p
-    r_flux[i].rhow = r_cnsr[i].rhov * r_prim[i].w
-    r_flux[i].rhoE =(r_cnsr[i].rhoE + r_prim[i].p) * r_prim[i].v
+    var flux : double[5] = get_yfluxes( r_prim[i].rho ,
+                                        r_prim[i].u   ,
+                                        r_prim[i].v   ,
+                                        r_prim[i].w   ,
+                                        r_prim[i].p   , 
+                                        r_cnsr[i].rhou,
+                                        r_cnsr[i].rhov,
+                                        r_cnsr[i].rhow,
+                                        r_cnsr[i].rhoE )
+    
+    r_flux[i].rho  = flux[0]
+    r_flux[i].rhou = flux[1]
+    r_flux[i].rhov = flux[2]
+    r_flux[i].rhow = flux[3]
+    r_flux[i].rhoE = flux[4]
   end
 end
 
@@ -329,11 +339,20 @@ where
   reads (r_prim, r_cnsr), writes (r_flux)
 do
   for i in r_prim do
-    r_flux[i].rho  = r_cnsr[i].rhow
-    r_flux[i].rhou = r_cnsr[i].rhow * r_prim[i].u
-    r_flux[i].rhov = r_cnsr[i].rhow * r_prim[i].v
-    r_flux[i].rhow = r_cnsr[i].rhow * r_prim[i].w + r_prim[i].p
-    r_flux[i].rhoE =(r_cnsr[i].rhoE + r_prim[i].p) * r_prim[i].w
+    var flux : double[5] = get_zfluxes( r_prim[i].rho ,
+                                        r_prim[i].u   ,
+                                        r_prim[i].v   ,
+                                        r_prim[i].w   ,
+                                        r_prim[i].p   , 
+                                        r_cnsr[i].rhou,
+                                        r_cnsr[i].rhov,
+                                        r_cnsr[i].rhow,
+                                        r_cnsr[i].rhoE )
+    r_flux[i].rho  = flux[0]
+    r_flux[i].rhou = flux[1]
+    r_flux[i].rhov = flux[2]
+    r_flux[i].rhow = flux[3]
+    r_flux[i].rhoE = flux[4]
   end
 end
 

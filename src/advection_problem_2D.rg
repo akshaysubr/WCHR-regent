@@ -32,7 +32,7 @@ problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
 problem.dt    = 0.2 * cmath.fmin(problem.DX, problem.DY)
-problem.tstop = 0.01
+problem.tstop = 0.05
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
@@ -47,7 +47,7 @@ do
     coords[i].y_c = problem.Y1 + (i.y + 0.5) * dy
     coords[i].z_c = problem.Z1 + (i.z + 0.5) * dz
 
-    r_prim_c[i].rho = 1.0 + 0.5*cmath.sin(PI*coords[i].x_c)
+    r_prim_c[i].rho = 1.0 + 0.5*cmath.exp(-cmath.pow((coords[i].x_c/0.2), 2) - cmath.pow((coords[i].y_c/0.2), 2))
     r_prim_c[i].u   = 1.0
     r_prim_c[i].v   = 1.0 
     r_prim_c[i].w   = 0.0
@@ -69,7 +69,13 @@ do
   for i in r_prim_c do
     var err : double
 
-    err = cmath.fabs( r_prim_c[i].rho - (1.0 + 0.5*cmath.sin(PI*(coords[i].x_c + coords[i].y_c - tsim))) )
+    var x0 : double = coords[i].x_c - tsim
+    x0 = x0 - cmath.nearbyint(x0/problem.LX)*problem.LX
+
+    var y0 : double = coords[i].y_c - tsim
+    y0 = y0 - cmath.nearbyint(y0/problem.LY)*problem.LY
+
+    err = cmath.fabs( r_prim_c[i].rho - (1.0 + 0.5*cmath.exp(-cmath.pow(( x0/0.2), 2) - cmath.pow(( y0/0.2), 2))) )
     if err > errors[0] then
       errors[0] = err
     end
