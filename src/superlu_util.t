@@ -240,22 +240,6 @@ terra superlu.initialize_matrix_char_x( alpha  : double,
   return matrix
 end
 
-task superlu.initialize_characteristic_matrix_x( matrix : region(ispace(int2d), superlu.CSR_matrix),
-                                                 alpha  : double,
-                                                 beta   : double,
-                                                 gamma  : double,
-                                                 nx     : int64,
-                                                 ny     : int64,
-                                                 nz     : int64 )
-where
-  writes(matrix)
-do
-  var pr = matrix.ispace.bounds.hi.x
-  var pc = matrix.ispace.bounds.hi.y
-  
-  matrix[{pr,pc}] = superlu.initialize_matrix_char_x(alpha, beta, gamma, nx, ny, nz)
-end
-
 terra superlu.initialize_matrix_char_y( alpha  : double,
                                         beta   : double,
                                         gamma  : double,
@@ -393,22 +377,6 @@ terra superlu.initialize_matrix_char_y( alpha  : double,
   -- c.printf("])\n\n")
 
   return matrix
-end
-
-task superlu.initialize_characteristic_matrix_y( matrix : region(ispace(int2d), superlu.CSR_matrix),
-                                                 alpha  : double,
-                                                 beta   : double,
-                                                 gamma  : double,
-                                                 nx     : int64,
-                                                 ny     : int64,
-                                                 nz     : int64 )
-where
-  writes(matrix)
-do
-  var pr = matrix.ispace.bounds.hi.x
-  var pc = matrix.ispace.bounds.hi.y
-  
-  matrix[{pr,pc}] = superlu.initialize_matrix_char_y(alpha, beta, gamma, nx, ny, nz)
 end
 
 terra superlu.initialize_matrix_char_z( alpha  : double,
@@ -552,22 +520,6 @@ terra superlu.initialize_matrix_char_z( alpha  : double,
   return matrix
 end
 
-task superlu.initialize_characteristic_matrix_z( matrix : region(ispace(int2d), superlu.CSR_matrix),
-                                                 alpha  : double,
-                                                 beta   : double,
-                                                 gamma  : double,
-                                                 nx     : int64,
-                                                 ny     : int64,
-                                                 nz     : int64 )
-where
-  writes(matrix)
-do
-  var pr = matrix.ispace.bounds.hi.x
-  var pc = matrix.ispace.bounds.hi.y
-  
-  matrix[{pr,pc}] = superlu.initialize_matrix_char_z(alpha, beta, gamma, nx, ny, nz)
-end
-
 local terra get_base_pointer_2d(pr   : c.legion_physical_region_t,
                                 fid  : c.legion_field_id_t,
                                 rect : c.legion_rect_2d_t)
@@ -594,12 +546,19 @@ local terra get_base_pointer_3d(pr   : c.legion_physical_region_t[1],
   return base_pointer
 end
 
+-- function superlu.make_superlu_initialization( r_rhs, r_sol, field )
+--   local privileges_r_rhs  = regentlib.privilege(regentlib.reads,  r_rhs,   field)
+--   
+--   local reads_r_sol       = regentlib.privilege(regentlib.reads,  r_sol, field)
+--   local writes_r_sol      = regentlib.privilege(regentlib.writes, r_sol, field)
+--   local privileges_r_sol  = terralib.newlist({reads_r_sol, writes_r_sol})
+
 __demand(__external)
-task superlu.initialize_superlu_vars_wrapper( matrix : superlu.CSR_matrix,
-                                              Nsize  : int64,
-                                              r_rhs  : region(ispace(int3d), primitive),
-                                              r_sol  : region(ispace(int3d), primitive),
-                                              slu    : region(ispace(int2d), superlu.c.superlu_vars_t) )
+task superlu.initialize_superlu_vars( matrix : superlu.CSR_matrix,
+                                      Nsize  : int64,
+                                      r_rhs  : region(ispace(int3d), primitive),
+                                      r_sol  : region(ispace(int3d), primitive),
+                                      slu    : region(ispace(int2d), superlu.c.superlu_vars_t) )
 where
   reads(r_rhs), writes(r_sol), reads writes(slu)
 do
@@ -607,21 +566,28 @@ do
   var x = get_base_pointer_3d(__physical(r_sol.rho), __fields(r_sol.rho), r_sol.bounds)
   var vars = get_base_pointer_2d(__physical(slu)[0], __fields(slu)[0], slu.bounds)
   superlu.c.initialize_superlu_vars(matrix.nzval, matrix.colind, matrix.rowptr, Nsize, matrix.nnz, b, x, vars)
-end
+  
+  -- var bnds = r_sol.ispace.bounds
+  -- var nx = bnds.hi.x + 1
+  -- var ny = bnds.hi.y + 1
+  -- var nz = bnds.hi.z + 1
+  -- c.printf("=== initialize superlu ===\n")
+  -- c.printf("%p\n", x)
+  -- for i = 0, 5*nx*ny*nz do
+  --   c.printf("%.0f ", x[i])
+  -- end
+  -- c.printf("\n==================\n")
 
-task superlu.initialize_superlu_vars( matrix : region(ispace(int2d), superlu.CSR_matrix),
-                                      Nsize  : int64,
-                                      r_rhs  : region(ispace(int3d), primitive),
-                                      r_sol  : region(ispace(int3d), primitive),
-                                      slu    : region(ispace(int2d), superlu.c.superlu_vars_t) )
-where
-  reads(r_rhs, matrix), writes(r_sol), reads writes(slu)
-do
-  var pr = matrix.ispace.bounds.hi.x
-  var pc = matrix.ispace.bounds.hi.y
-
-  superlu.initialize_superlu_vars_wrapper( matrix[{pr,pc}], Nsize, r_rhs, r_sol, slu )
 end
+--   return initialize_superlu_vars
+-- end
+
+-- function superlu.make_MatrixSolver( r_rhs, r_sol, field )
+--   local privileges_r_rhs  = regentlib.privilege(regentlib.reads,  r_rhs,   field)
+--   
+--   local reads_r_sol       = regentlib.privilege(regentlib.reads,  r_sol, field)
+--   local writes_r_sol      = regentlib.privilege(regentlib.writes, r_sol, field)
+--   local privileges_r_sol  = terralib.newlist({reads_r_sol, writes_r_sol})
 
 __demand(__external)
 task superlu.MatrixSolve( r_rhs  : region(ispace(int3d), primitive),
@@ -639,6 +605,16 @@ do
   var vars = get_base_pointer_2d(__physical(slu)[0], __fields(slu)[0], slu.bounds)
   superlu.c.MatrixSolve(b, x, matrix.nzval, nx, ny, nz, vars)
   
+  -- var bnds = r_sol.ispace.bounds
+  -- c.printf("=== MatrixSolve ===\n")
+  -- c.printf("%p\n", x)
+  -- for i = 0, 5*(nx+1)*ny*nz do
+  --   c.printf("%.0f ", x[i])
+  -- end
+  -- c.printf("\n==================\n")
+
 end
+--   return MatrixSolver
+-- end
 
 return superlu

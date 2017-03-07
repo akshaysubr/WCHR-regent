@@ -105,15 +105,6 @@ task main()
   --------------------------------------------------------------------------------------------
 
   -- Initialize characteristic interpolation matrices
-  -- superlu.initialize_characteristic_matrix_x(matrix_l_x, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  -- superlu.initialize_characteristic_matrix_x(matrix_r_x, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-
-  -- superlu.initialize_characteristic_matrix_y(matrix_l_y, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  -- superlu.initialize_characteristic_matrix_y(matrix_r_y, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-
-  -- superlu.initialize_characteristic_matrix_z(matrix_l_z, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  -- superlu.initialize_characteristic_matrix_z(matrix_r_z, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-
   matrix_l_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
   matrix_r_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
 
@@ -123,13 +114,22 @@ task main()
   matrix_l_z[{0,0}] = superlu.initialize_matrix_char_z(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
   matrix_r_z[{0,0}] = superlu.initialize_matrix_char_z(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
 
+  -- superlu.initialize_characteristic_matrix_x(matrix_l_x, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  -- superlu.initialize_characteristic_matrix_x(matrix_r_x, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+
+  -- superlu.initialize_characteristic_matrix_y(matrix_l_y, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  -- superlu.initialize_characteristic_matrix_y(matrix_r_y, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+
+  -- superlu.initialize_characteristic_matrix_z(matrix_l_z, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  -- superlu.initialize_characteristic_matrix_z(matrix_r_z, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+
   -- Initialize SuperLU structs
+  superlu.initialize_superlu_vars( matrix_l_x[{0,0}], 5*(Nx+1)*Ny*Nz, r_rhs_l_x, r_prim_l_x, slu_x )
+  superlu.initialize_superlu_vars( matrix_l_y[{0,0}], 5*Nx*(Ny+1)*Nz, r_rhs_l_y, r_prim_l_y, slu_y )
+  superlu.initialize_superlu_vars( matrix_l_z[{0,0}], 5*Nx*Ny*(Nz+1), r_rhs_l_z, r_prim_l_z, slu_z )
   -- superlu.initialize_superlu_vars( matrix_l_x, 5*(Nx+1)*Ny*Nz, r_rhs_l_x, r_prim_l_x, slu_x )
   -- superlu.initialize_superlu_vars( matrix_l_y, 5*Nx*(Ny+1)*Nz, r_rhs_l_y, r_prim_l_y, slu_y )
   -- superlu.initialize_superlu_vars( matrix_l_z, 5*Nx*Ny*(Nz+1), r_rhs_l_z, r_prim_l_z, slu_z )
-  superlu.initialize_superlu_vars_wrapper( matrix_l_x[{0,0}], 5*(Nx+1)*Ny*Nz, r_rhs_l_x, r_prim_l_x, slu_x )
-  superlu.initialize_superlu_vars_wrapper( matrix_l_y[{0,0}], 5*Nx*(Ny+1)*Nz, r_rhs_l_y, r_prim_l_y, slu_y )
-  superlu.initialize_superlu_vars_wrapper( matrix_l_z[{0,0}], 5*Nx*Ny*(Nz+1), r_rhs_l_z, r_prim_l_z, slu_z )
   
   -- Initialize derivatives stuff
   get_LU_decomposition(LU_x, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
