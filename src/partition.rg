@@ -2,6 +2,8 @@ import "regent"
 
 local c     = regentlib.c
 
+require("fields")
+
 task partitionLU( LU     : region(ispace(int3d), LU_struct),
                   pencil : ispace(int2d) )
   var coloring = c.legion_domain_point_coloring_create()
