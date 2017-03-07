@@ -6,7 +6,7 @@ do
   local superlu_include_dir = "/opt/SuperLU_5.2.1"
   -- local root_dir = arg[0]:match(".*/") or "./"
   local root_dir = "/home/akshays/Codes/WCHR-regent/src/"
-  -- local root_dir = "/home/akshays/Codes/WCHR-regent/src/"
+  -- local root_dir = "/home/manlong/Codes/WCHR-regent/src/"
   local superlu_util_cc = root_dir .. "superlu_util.c"
   superlu_util_so = os.tmpname() .. ".so"
   local cc = os.getenv('CC') or 'cc'
@@ -47,6 +47,14 @@ struct superlu.CSR_matrix {
   rowptr : &int,
   nnz    : int64,
 }
+
+terra allocate_int( size: int64 )
+  return [&int] ( c.malloc( size * sizeof(int) ) )
+end
+
+terra allocate_double( size: int64 )
+  return [&double] ( c.malloc( size * sizeof(double) ) )
+end
 
 terra superlu.initialize_matrix_x( alpha  : double,
                                    beta   : double,
@@ -104,19 +112,25 @@ terra superlu.initialize_matrix_x( alpha  : double,
   return matrix
 end
 
-terra superlu.initialize_matrix_char_x( alpha  : double,
-                                        beta   : double,
-                                        gamma  : double,
-                                        nx     : int64,
-                                        ny     : int64,
-                                        nz     : int64 )
-  var matrix : superlu.CSR_matrix
+task superlu.initialize_matrix_char_x( matrix : region(ispace(int2d), superlu.CSR_matrix),
+                                       alpha  : double,
+                                       beta   : double,
+                                       gamma  : double,
+                                       nx     : int64,
+                                       ny     : int64,
+                                       nz     : int64 )
+where
+  reads writes (matrix)
+do
+  -- var matrix : superlu.CSR_matrix
+  var pr = matrix.ispace.bounds.hi.x
+  var pc = matrix.ispace.bounds.hi.y
 
   var Nsize : int64 = 5*(nx+1)*ny*nz
-  matrix.nnz = (8*3*nx+10)*ny*nz
-  matrix.rowptr = [&int] ( c.malloc ( (Nsize+1) * sizeof(int) ) )
-  matrix.colind = [&int] ( c.malloc ( matrix.nnz * sizeof(int) ) )
-  matrix.nzval  = [&double] ( c.malloc ( matrix.nnz * sizeof(double) ) )
+  matrix[{pr,pc}].nnz = (8*3*nx+10)*ny*nz
+  matrix[{pr,pc}].rowptr = allocate_int( Nsize+1 ) -- [&int] ( c.malloc ( (Nsize+1) * sizeof(int) ) )
+  matrix[{pr,pc}].colind = allocate_int( matrix[{pr,pc}].nnz ) -- [&int] ( c.malloc ( matrix[{pr,pc}].nnz * sizeof(int) ) )
+  matrix[{pr,pc}].nzval  = allocate_double( matrix[{pr,pc}].nnz ) -- [&double] ( c.malloc ( matrix[{pr,pc}].nnz * sizeof(double) ) )
 
   var dim : int = nx+1
 
@@ -125,7 +139,7 @@ terra superlu.initialize_matrix_char_x( alpha  : double,
   Avals[1] = beta
   Avals[2] = gamma
 
-  matrix.rowptr[0] = 0
+  matrix[{pr,pc}].rowptr[0] = 0
 
   for iz = 0, nz do
     for iy = 0, ny do
@@ -139,14 +153,14 @@ terra superlu.initialize_matrix_char_x( alpha  : double,
           var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*dim + iz*5*dim*ny -- Top of the block
           var counter : int64 = bcounter + 2*j
 
-          matrix.colind[counter] = gcol+1
-          matrix.nzval [counter] = Avals[j] * (-0.5)
+          matrix[{pr,pc}].colind[counter] = gcol+1
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (-0.5)
 
-          matrix.colind[counter+1] = gcol+4
-          matrix.nzval [counter+1] = Avals[j] * (0.5)
+          matrix[{pr,pc}].colind[counter+1] = gcol+4
+          matrix[{pr,pc}].nzval [counter+1] = Avals[j] * (0.5)
         end
         bcounter = bcounter + 3*2
-        matrix.rowptr[grow+1] = bcounter
+        matrix[{pr,pc}].rowptr[grow+1] = bcounter
 
         -- u
         for j = 0, 3 do
@@ -154,14 +168,14 @@ terra superlu.initialize_matrix_char_x( alpha  : double,
           var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*dim + iz*5*dim*ny -- Top of the block
           var counter : int64 = bcounter + 2*j
 
-          matrix.colind[counter] = gcol
-          matrix.nzval [counter] = Avals[j] * (1.0)
+          matrix[{pr,pc}].colind[counter] = gcol
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (1.0)
 
-          matrix.colind[counter+1] = gcol+4
-          matrix.nzval [counter+1] = Avals[j] * (-1.0)
+          matrix[{pr,pc}].colind[counter+1] = gcol+4
+          matrix[{pr,pc}].nzval [counter+1] = Avals[j] * (-1.0)
         end
         bcounter = bcounter + 3*2
-        matrix.rowptr[grow+2] = bcounter
+        matrix[{pr,pc}].rowptr[grow+2] = bcounter
 
         -- v
         for j = 0, 3 do
@@ -169,11 +183,11 @@ terra superlu.initialize_matrix_char_x( alpha  : double,
           var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*dim + iz*5*dim*ny -- Top of the block
           var counter : int64 = bcounter + j
 
-          matrix.colind[counter] = gcol+2
-          matrix.nzval [counter] = Avals[j] * (1.0)
+          matrix[{pr,pc}].colind[counter] = gcol+2
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (1.0)
         end
         bcounter = bcounter + 3*1
-        matrix.rowptr[grow+3] = bcounter
+        matrix[{pr,pc}].rowptr[grow+3] = bcounter
 
         -- w
         for j = 0, 3 do
@@ -181,11 +195,11 @@ terra superlu.initialize_matrix_char_x( alpha  : double,
           var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*dim + iz*5*dim*ny -- Top of the block
           var counter : int64 = bcounter + j
 
-          matrix.colind[counter] = gcol+3
-          matrix.nzval [counter] = Avals[j] * (1.0)
+          matrix[{pr,pc}].colind[counter] = gcol+3
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (1.0)
         end
         bcounter = bcounter + 3*1
-        matrix.rowptr[grow+4] = bcounter
+        matrix[{pr,pc}].rowptr[grow+4] = bcounter
 
         -- p
         for j = 0, 3 do
@@ -193,14 +207,14 @@ terra superlu.initialize_matrix_char_x( alpha  : double,
           var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*dim + iz*5*dim*ny -- Top of the block
           var counter : int64 = bcounter + 2*j
 
-          matrix.colind[counter] = gcol+1
-          matrix.nzval [counter] = Avals[j] * (0.5)
+          matrix[{pr,pc}].colind[counter] = gcol+1
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (0.5)
 
-          matrix.colind[counter+1] = gcol+4
-          matrix.nzval [counter+1] = Avals[j] * (0.5)
+          matrix[{pr,pc}].colind[counter+1] = gcol+4
+          matrix[{pr,pc}].nzval [counter+1] = Avals[j] * (0.5)
         end
         bcounter = bcounter + 3*2
-        matrix.rowptr[grow+5] = bcounter
+        matrix[{pr,pc}].rowptr[grow+5] = bcounter
       end
       -- For the last point
       
@@ -208,51 +222,55 @@ terra superlu.initialize_matrix_char_x( alpha  : double,
       for pvar = 0,5 do
         var gcol : int64 = 5*nx+pvar + iy*5*dim + iz*5*dim*ny
         var counter : int64 = bcounter + 2*pvar
-        matrix.colind[counter] = gcol
-        matrix.nzval [counter] = 1.0
+        matrix[{pr,pc}].colind[counter] = gcol
+        matrix[{pr,pc}].nzval [counter] = 1.0
 
         gcol = 5*0+pvar + iy*5*dim + iz*5*dim*ny
-        matrix.colind[counter+1] = gcol
-        matrix.nzval [counter+1] = -1.0
+        matrix[{pr,pc}].colind[counter+1] = gcol
+        matrix[{pr,pc}].nzval [counter+1] = -1.0
 
         var grow : int64 = 5*nx+pvar + iy*5*dim + iz*5*dim*ny
-        matrix.rowptr[grow+1] = counter + 2
+        matrix[{pr,pc}].rowptr[grow+1] = counter + 2
       end
     end
   end
 
   -- c.printf("nzval = numpy.array([")
-  -- for i = 0,matrix.nnz do
-  --   c.printf("%g, ", matrix.nzval[i])
+  -- for i = 0,matrix[{pr,pc}].nnz do
+  --   c.printf("%g, ", matrix[{pr,pc}].nzval[i])
   -- end
   -- c.printf("])\n\n")
   -- c.printf("colind = numpy.array([")
-  -- for i = 0,matrix.nnz do
-  --   c.printf("%d, ", matrix.colind[i])
+  -- for i = 0,matrix[{pr,pc}].nnz do
+  --   c.printf("%d, ", matrix[{pr,pc}].colind[i])
   -- end
   -- c.printf("])\n\n")
   -- c.printf("rowptr = numpy.array([")
   -- for i = 0,Nsize+1 do
-  --   c.printf("%d, ", matrix.rowptr[i])
+  --   c.printf("%d, ", matrix[{pr,pc}].rowptr[i])
   -- end
   -- c.printf("])\n\n")
-
-  return matrix
 end
 
-terra superlu.initialize_matrix_char_y( alpha  : double,
-                                        beta   : double,
-                                        gamma  : double,
-                                        nx     : int64,
-                                        ny     : int64,
-                                        nz     : int64 )
-  var matrix : superlu.CSR_matrix
+task superlu.initialize_matrix_char_y( matrix : region(ispace(int2d), superlu.CSR_matrix),
+                                       alpha  : double,
+                                       beta   : double,
+                                       gamma  : double,
+                                       nx     : int64,
+                                       ny     : int64,
+                                       nz     : int64 )
+where
+  reads writes (matrix)
+do
+  -- var matrix : superlu.CSR_matrix
+  var pr = matrix.ispace.bounds.hi.x
+  var pc = matrix.ispace.bounds.hi.y
 
   var Nsize : int64 = 5*(ny+1)*nx*nz
-  matrix.nnz = (8*3*ny+10)*nx*nz
-  matrix.rowptr = [&int] ( c.malloc ( (Nsize+1) * sizeof(int) ) )
-  matrix.colind = [&int] ( c.malloc ( matrix.nnz * sizeof(int) ) )
-  matrix.nzval  = [&double] ( c.malloc ( matrix.nnz * sizeof(double) ) )
+  matrix[{pr,pc}].nnz = (8*3*ny+10)*nx*nz
+  matrix[{pr,pc}].rowptr = allocate_int( Nsize+1 ) -- [&int] ( c.malloc ( (Nsize+1) * sizeof(int) ) )
+  matrix[{pr,pc}].colind = allocate_int( matrix[{pr,pc}].nnz ) -- [&int] ( c.malloc ( matrix[{pr,pc}].nnz * sizeof(int) ) )
+  matrix[{pr,pc}].nzval  = allocate_double( matrix[{pr,pc}].nnz ) -- [&double] ( c.malloc ( matrix[{pr,pc}].nnz * sizeof(double) ) )
 
   var dim : int = ny+1
 
@@ -261,7 +279,7 @@ terra superlu.initialize_matrix_char_y( alpha  : double,
   Avals[1] = beta
   Avals[2] = gamma
 
-  matrix.rowptr[0] = 0
+  matrix[{pr,pc}].rowptr[0] = 0
 
   for iz = 0, nz do
     for iy = 0, ny do
@@ -275,14 +293,14 @@ terra superlu.initialize_matrix_char_y( alpha  : double,
           var gcol : int64 = brow*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
           var counter : int64 = bcounter + 2*j
 
-          matrix.colind[counter] = gcol+2
-          matrix.nzval [counter] = Avals[j] * (-0.5)
+          matrix[{pr,pc}].colind[counter] = gcol+2
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (-0.5)
 
-          matrix.colind[counter+1] = gcol+4
-          matrix.nzval [counter+1] = Avals[j] * (0.5)
+          matrix[{pr,pc}].colind[counter+1] = gcol+4
+          matrix[{pr,pc}].nzval [counter+1] = Avals[j] * (0.5)
         end
         bcounter = bcounter + 3*2
-        matrix.rowptr[grow+1] = bcounter
+        matrix[{pr,pc}].rowptr[grow+1] = bcounter
 
         -- u
         for j = 0, 3 do
@@ -290,11 +308,11 @@ terra superlu.initialize_matrix_char_y( alpha  : double,
           var gcol : int64 = brow*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
           var counter : int64 = bcounter + j
 
-          matrix.colind[counter] = gcol+1
-          matrix.nzval [counter] = Avals[j] * (1.0)
+          matrix[{pr,pc}].colind[counter] = gcol+1
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (1.0)
         end
         bcounter = bcounter + 3*1
-        matrix.rowptr[grow+2] = bcounter
+        matrix[{pr,pc}].rowptr[grow+2] = bcounter
 
         -- v
         for j = 0, 3 do
@@ -302,14 +320,14 @@ terra superlu.initialize_matrix_char_y( alpha  : double,
           var gcol : int64 = brow*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
           var counter : int64 = bcounter + 2*j
 
-          matrix.colind[counter] = gcol
-          matrix.nzval [counter] = Avals[j] * (1.0)
+          matrix[{pr,pc}].colind[counter] = gcol
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (1.0)
 
-          matrix.colind[counter+1] = gcol+4
-          matrix.nzval [counter+1] = Avals[j] * (-1.0)
+          matrix[{pr,pc}].colind[counter+1] = gcol+4
+          matrix[{pr,pc}].nzval [counter+1] = Avals[j] * (-1.0)
         end
         bcounter = bcounter + 3*2
-        matrix.rowptr[grow+3] = bcounter
+        matrix[{pr,pc}].rowptr[grow+3] = bcounter
 
         -- w
         for j = 0, 3 do
@@ -317,11 +335,11 @@ terra superlu.initialize_matrix_char_y( alpha  : double,
           var gcol : int64 = brow*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
           var counter : int64 = bcounter + j
 
-          matrix.colind[counter] = gcol+3
-          matrix.nzval [counter] = Avals[j] * (1.0)
+          matrix[{pr,pc}].colind[counter] = gcol+3
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (1.0)
         end
         bcounter = bcounter + 3*1
-        matrix.rowptr[grow+4] = bcounter
+        matrix[{pr,pc}].rowptr[grow+4] = bcounter
 
         -- p
         for j = 0, 3 do
@@ -329,14 +347,14 @@ terra superlu.initialize_matrix_char_y( alpha  : double,
           var gcol : int64 = brow*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
           var counter : int64 = bcounter + 2*j
 
-          matrix.colind[counter] = gcol+2
-          matrix.nzval [counter] = Avals[j] * (0.5)
+          matrix[{pr,pc}].colind[counter] = gcol+2
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (0.5)
 
-          matrix.colind[counter+1] = gcol+4
-          matrix.nzval [counter+1] = Avals[j] * (0.5)
+          matrix[{pr,pc}].colind[counter+1] = gcol+4
+          matrix[{pr,pc}].nzval [counter+1] = Avals[j] * (0.5)
         end
         bcounter = bcounter + 3*2
-        matrix.rowptr[grow+5] = bcounter
+        matrix[{pr,pc}].rowptr[grow+5] = bcounter
       end
 
     end
@@ -347,51 +365,55 @@ terra superlu.initialize_matrix_char_y( alpha  : double,
       for pvar = 0,5 do
         var gcol : int64 = pvar + brow*5 + ny*5*nx + iz*5*dim*nx
         var counter : int64 = bcounter + 2*pvar
-        matrix.colind[counter] = gcol
-        matrix.nzval [counter] = 1.0
+        matrix[{pr,pc}].colind[counter] = gcol
+        matrix[{pr,pc}].nzval [counter] = 1.0
 
         gcol = pvar + brow*5 + 0*5*nx + iz*5*dim*nx
-        matrix.colind[counter+1] = gcol
-        matrix.nzval [counter+1] = -1.0
+        matrix[{pr,pc}].colind[counter+1] = gcol
+        matrix[{pr,pc}].nzval [counter+1] = -1.0
 
         var grow : int64 = pvar + 5*brow + ny*5*nx + iz*5*dim*nx
-        matrix.rowptr[grow+1] = counter + 2
+        matrix[{pr,pc}].rowptr[grow+1] = counter + 2
       end
     end
   end
 
   -- c.printf("nzval = numpy.array([")
-  -- for i = 0,matrix.nnz do
-  --   c.printf("%g, ", matrix.nzval[i])
+  -- for i = 0,matrix[{pr,pc}].nnz do
+  --   c.printf("%g, ", matrix[{pr,pc}].nzval[i])
   -- end
   -- c.printf("])\n\n")
   -- c.printf("colind = numpy.array([")
-  -- for i = 0,matrix.nnz do
-  --   c.printf("%d, ", matrix.colind[i])
+  -- for i = 0,matrix[{pr,pc}].nnz do
+  --   c.printf("%d, ", matrix[{pr,pc}].colind[i])
   -- end
   -- c.printf("])\n\n")
   -- c.printf("rowptr = numpy.array([")
   -- for i = 0,Nsize+1 do
-  --   c.printf("%d, ", matrix.rowptr[i])
+  --   c.printf("%d, ", matrix[{pr,pc}].rowptr[i])
   -- end
   -- c.printf("])\n\n")
-
-  return matrix
 end
 
-terra superlu.initialize_matrix_char_z( alpha  : double,
-                                        beta   : double,
-                                        gamma  : double,
-                                        nx     : int64,
-                                        ny     : int64,
-                                        nz     : int64 )
-  var matrix : superlu.CSR_matrix
+task superlu.initialize_matrix_char_z( matrix : region(ispace(int2d), superlu.CSR_matrix),
+                                       alpha  : double,
+                                       beta   : double,
+                                       gamma  : double,
+                                       nx     : int64,
+                                       ny     : int64,
+                                       nz     : int64 )
+where
+  reads writes (matrix)
+do
+  -- var matrix : superlu.CSR_matrix
+  var pr = matrix.ispace.bounds.hi.x
+  var pc = matrix.ispace.bounds.hi.y
 
   var Nsize : int64 = 5*(nz+1)*nx*ny
-  matrix.nnz = (8*3*nz+10)*nx*ny
-  matrix.rowptr = [&int] ( c.malloc ( (Nsize+1) * sizeof(int) ) )
-  matrix.colind = [&int] ( c.malloc ( matrix.nnz * sizeof(int) ) )
-  matrix.nzval  = [&double] ( c.malloc ( matrix.nnz * sizeof(double) ) )
+  matrix[{pr,pc}].nnz = (8*3*nz+10)*nx*ny
+  matrix[{pr,pc}].rowptr = allocate_int( Nsize+1 ) -- [&int] ( c.malloc ( (Nsize+1) * sizeof(int) ) )
+  matrix[{pr,pc}].colind = allocate_int( matrix[{pr,pc}].nnz ) -- [&int] ( c.malloc ( matrix[{pr,pc}].nnz * sizeof(int) ) )
+  matrix[{pr,pc}].nzval  = allocate_double( matrix[{pr,pc}].nnz ) -- [&double] ( c.malloc ( matrix[{pr,pc}].nnz * sizeof(double) ) )
 
   var dim : int = nz+1
 
@@ -400,7 +422,7 @@ terra superlu.initialize_matrix_char_z( alpha  : double,
   Avals[1] = beta
   Avals[2] = gamma
 
-  matrix.rowptr[0] = 0
+  matrix[{pr,pc}].rowptr[0] = 0
 
   for iz = 0, nz do
     for iy = 0, ny do
@@ -414,14 +436,14 @@ terra superlu.initialize_matrix_char_z( alpha  : double,
           var gcol : int64 = brow*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
           var counter : int64 = bcounter + 2*j
 
-          matrix.colind[counter] = gcol+3
-          matrix.nzval [counter] = Avals[j] * (-0.5)
+          matrix[{pr,pc}].colind[counter] = gcol+3
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (-0.5)
 
-          matrix.colind[counter+1] = gcol+4
-          matrix.nzval [counter+1] = Avals[j] * (0.5)
+          matrix[{pr,pc}].colind[counter+1] = gcol+4
+          matrix[{pr,pc}].nzval [counter+1] = Avals[j] * (0.5)
         end
         bcounter = bcounter + 3*2
-        matrix.rowptr[grow+1] = bcounter
+        matrix[{pr,pc}].rowptr[grow+1] = bcounter
 
         -- u
         for j = 0, 3 do
@@ -429,11 +451,11 @@ terra superlu.initialize_matrix_char_z( alpha  : double,
           var gcol : int64 = brow*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
           var counter : int64 = bcounter + j
 
-          matrix.colind[counter] = gcol+1
-          matrix.nzval [counter] = Avals[j] * (1.0)
+          matrix[{pr,pc}].colind[counter] = gcol+1
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (1.0)
         end
         bcounter = bcounter + 3*1
-        matrix.rowptr[grow+2] = bcounter
+        matrix[{pr,pc}].rowptr[grow+2] = bcounter
 
         -- v
         for j = 0, 3 do
@@ -441,11 +463,11 @@ terra superlu.initialize_matrix_char_z( alpha  : double,
           var gcol : int64 = brow*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
           var counter : int64 = bcounter + j
 
-          matrix.colind[counter] = gcol+2
-          matrix.nzval [counter] = Avals[j] * (1.0)
+          matrix[{pr,pc}].colind[counter] = gcol+2
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (1.0)
         end
         bcounter = bcounter + 3*1
-        matrix.rowptr[grow+3] = bcounter
+        matrix[{pr,pc}].rowptr[grow+3] = bcounter
 
         -- w
         for j = 0, 3 do
@@ -453,14 +475,14 @@ terra superlu.initialize_matrix_char_z( alpha  : double,
           var gcol : int64 = brow*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
           var counter : int64 = bcounter + 2*j
 
-          matrix.colind[counter] = gcol
-          matrix.nzval [counter] = Avals[j] * (1.0)
+          matrix[{pr,pc}].colind[counter] = gcol
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (1.0)
 
-          matrix.colind[counter+1] = gcol+4
-          matrix.nzval [counter+1] = Avals[j] * (-1.0)
+          matrix[{pr,pc}].colind[counter+1] = gcol+4
+          matrix[{pr,pc}].nzval [counter+1] = Avals[j] * (-1.0)
         end
         bcounter = bcounter + 3*2
-        matrix.rowptr[grow+4] = bcounter
+        matrix[{pr,pc}].rowptr[grow+4] = bcounter
 
         -- p
         for j = 0, 3 do
@@ -468,14 +490,14 @@ terra superlu.initialize_matrix_char_z( alpha  : double,
           var gcol : int64 = brow*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
           var counter : int64 = bcounter + 2*j
 
-          matrix.colind[counter] = gcol+3
-          matrix.nzval [counter] = Avals[j] * (0.5)
+          matrix[{pr,pc}].colind[counter] = gcol+3
+          matrix[{pr,pc}].nzval [counter] = Avals[j] * (0.5)
 
-          matrix.colind[counter+1] = gcol+4
-          matrix.nzval [counter+1] = Avals[j] * (0.5)
+          matrix[{pr,pc}].colind[counter+1] = gcol+4
+          matrix[{pr,pc}].nzval [counter+1] = Avals[j] * (0.5)
         end
         bcounter = bcounter + 3*2
-        matrix.rowptr[grow+5] = bcounter
+        matrix[{pr,pc}].rowptr[grow+5] = bcounter
 
       end
     end
@@ -488,36 +510,34 @@ terra superlu.initialize_matrix_char_z( alpha  : double,
       for pvar = 0,5 do
         var gcol : int64 = pvar + brow*5 + iy*5*nx + nz*5*nx*nx
         var counter : int64 = bcounter + 2*pvar
-        matrix.colind[counter] = gcol
-        matrix.nzval [counter] = 1.0
+        matrix[{pr,pc}].colind[counter] = gcol
+        matrix[{pr,pc}].nzval [counter] = 1.0
 
         gcol = pvar + brow*5 + iy*5*nx + 0*5*nx*nx
-        matrix.colind[counter+1] = gcol
-        matrix.nzval [counter+1] = -1.0
+        matrix[{pr,pc}].colind[counter+1] = gcol
+        matrix[{pr,pc}].nzval [counter+1] = -1.0
 
         var grow : int64 = pvar + brow*5 + iy*5*nx + nz*5*nx*nx
-        matrix.rowptr[grow+1] = counter + 2
+        matrix[{pr,pc}].rowptr[grow+1] = counter + 2
       end
     end
   end
 
   -- c.printf("nzval = numpy.array([")
-  -- for i = 0,matrix.nnz do
-  --   c.printf("%g, ", matrix.nzval[i])
+  -- for i = 0,matrix[{pr,pc}].nnz do
+  --   c.printf("%g, ", matrix[{pr,pc}].nzval[i])
   -- end
   -- c.printf("])\n\n")
   -- c.printf("colind = numpy.array([")
-  -- for i = 0,matrix.nnz do
-  --   c.printf("%d, ", matrix.colind[i])
+  -- for i = 0,matrix[{pr,pc}].nnz do
+  --   c.printf("%d, ", matrix[{pr,pc}].colind[i])
   -- end
   -- c.printf("])\n\n")
   -- c.printf("rowptr = numpy.array([")
   -- for i = 0,Nsize+1 do
-  --   c.printf("%d, ", matrix.rowptr[i])
+  --   c.printf("%d, ", matrix[{pr,pc}].rowptr[i])
   -- end
   -- c.printf("])\n\n")
-
-  return matrix
 end
 
 local terra get_base_pointer_2d(pr   : c.legion_physical_region_t,
@@ -546,13 +566,6 @@ local terra get_base_pointer_3d(pr   : c.legion_physical_region_t[1],
   return base_pointer
 end
 
--- function superlu.make_superlu_initialization( r_rhs, r_sol, field )
---   local privileges_r_rhs  = regentlib.privilege(regentlib.reads,  r_rhs,   field)
---   
---   local reads_r_sol       = regentlib.privilege(regentlib.reads,  r_sol, field)
---   local writes_r_sol      = regentlib.privilege(regentlib.writes, r_sol, field)
---   local privileges_r_sol  = terralib.newlist({reads_r_sol, writes_r_sol})
-
 __demand(__external)
 task superlu.initialize_superlu_vars( matrix : superlu.CSR_matrix,
                                       Nsize  : int64,
@@ -566,28 +579,21 @@ do
   var x = get_base_pointer_3d(__physical(r_sol.rho), __fields(r_sol.rho), r_sol.bounds)
   var vars = get_base_pointer_2d(__physical(slu)[0], __fields(slu)[0], slu.bounds)
   superlu.c.initialize_superlu_vars(matrix.nzval, matrix.colind, matrix.rowptr, Nsize, matrix.nnz, b, x, vars)
-  
-  -- var bnds = r_sol.ispace.bounds
-  -- var nx = bnds.hi.x + 1
-  -- var ny = bnds.hi.y + 1
-  -- var nz = bnds.hi.z + 1
-  -- c.printf("=== initialize superlu ===\n")
-  -- c.printf("%p\n", x)
-  -- for i = 0, 5*nx*ny*nz do
-  --   c.printf("%.0f ", x[i])
-  -- end
-  -- c.printf("\n==================\n")
-
 end
---   return initialize_superlu_vars
--- end
 
--- function superlu.make_MatrixSolver( r_rhs, r_sol, field )
---   local privileges_r_rhs  = regentlib.privilege(regentlib.reads,  r_rhs,   field)
---   
---   local reads_r_sol       = regentlib.privilege(regentlib.reads,  r_sol, field)
---   local writes_r_sol      = regentlib.privilege(regentlib.writes, r_sol, field)
---   local privileges_r_sol  = terralib.newlist({reads_r_sol, writes_r_sol})
+task superlu.init_superlu_vars( matrix : region(ispace(int2d), superlu.CSR_matrix),
+                                Nsize  : int64,
+                                r_rhs  : region(ispace(int3d), primitive),
+                                r_sol  : region(ispace(int3d), primitive),
+                                slu    : region(ispace(int2d), superlu.c.superlu_vars_t) )
+where
+  reads(matrix, r_rhs), writes(r_sol), reads writes(slu)
+do
+  var pr = matrix.ispace.bounds.hi.x
+  var pc = matrix.ispace.bounds.hi.y
+
+  superlu.initialize_superlu_vars( matrix[{pr,pc}], Nsize, r_rhs, r_sol, slu )
+end
 
 __demand(__external)
 task superlu.MatrixSolve( r_rhs  : region(ispace(int3d), primitive),
@@ -604,17 +610,6 @@ do
   var x = get_base_pointer_3d(__physical(r_sol.rho), __fields(r_sol.rho), r_sol.bounds)
   var vars = get_base_pointer_2d(__physical(slu)[0], __fields(slu)[0], slu.bounds)
   superlu.c.MatrixSolve(b, x, matrix.nzval, nx, ny, nz, vars)
-  
-  -- var bnds = r_sol.ispace.bounds
-  -- c.printf("=== MatrixSolve ===\n")
-  -- c.printf("%p\n", x)
-  -- for i = 0, 5*(nx+1)*ny*nz do
-  --   c.printf("%.0f ", x[i])
-  -- end
-  -- c.printf("\n==================\n")
-
 end
---   return MatrixSolver
--- end
 
 return superlu
