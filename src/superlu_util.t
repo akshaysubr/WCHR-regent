@@ -139,6 +139,8 @@ do
   Avals[1] = beta
   Avals[2] = gamma
 
+  -- c.printf("In initialize_matrix_char_x\n")
+
   matrix[{pr,pc}].rowptr[0] = 0
 
   for iz = 0, nz do
@@ -278,6 +280,8 @@ do
   Avals[0] = alpha
   Avals[1] = beta
   Avals[2] = gamma
+
+  -- c.printf("In initialize_matrix_char_y\n")
 
   matrix[{pr,pc}].rowptr[0] = 0
 
@@ -422,6 +426,8 @@ do
   Avals[1] = beta
   Avals[2] = gamma
 
+  -- c.printf("In initialize_matrix_char_z\n")
+
   matrix[{pr,pc}].rowptr[0] = 0
 
   for iz = 0, nz do
@@ -508,16 +514,16 @@ do
       -- For the last point
       var bcounter : int64 = 10*brow + 10*iy*nx + nz*(8*3)*ny*nx
       for pvar = 0,5 do
-        var gcol : int64 = pvar + brow*5 + iy*5*nx + nz*5*nx*nx
+        var gcol : int64 = pvar + brow*5 + iy*5*nx + nz*5*nx*ny
         var counter : int64 = bcounter + 2*pvar
         matrix[{pr,pc}].colind[counter] = gcol
         matrix[{pr,pc}].nzval [counter] = 1.0
 
-        gcol = pvar + brow*5 + iy*5*nx + 0*5*nx*nx
+        gcol = pvar + brow*5 + iy*5*nx + 0*5*nx*ny
         matrix[{pr,pc}].colind[counter+1] = gcol
         matrix[{pr,pc}].nzval [counter+1] = -1.0
 
-        var grow : int64 = pvar + brow*5 + iy*5*nx + nz*5*nx*nx
+        var grow : int64 = pvar + brow*5 + iy*5*nx + nz*5*nx*ny
         matrix[{pr,pc}].rowptr[grow+1] = counter + 2
       end
     end
@@ -591,6 +597,8 @@ where
 do
   var pr = matrix.ispace.bounds.hi.x
   var pc = matrix.ispace.bounds.hi.y
+
+  -- c.printf("In init_superlu_vars\n")
 
   superlu.initialize_superlu_vars( matrix[{pr,pc}], Nsize, r_rhs, r_sol, slu )
 end

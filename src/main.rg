@@ -171,6 +171,7 @@ task main()
   if config.fileIO then
     IOtoken += write_primitive(r_prim_c, "cell_primitive", step)
   end
+  wait_for(IOtoken)
   
   wait_for(token)
   var t_start = c.legion_get_current_time_in_micros()
@@ -213,6 +214,7 @@ task main()
 
     c.printf("Simulation time: %g\n", tsim)
     c.printf("    Step: %d\n", step)
+    c.printf("    Timestep: %g\n", dt)
   
     var errors = problem.get_errors(coords, r_prim_c, tsim)
 

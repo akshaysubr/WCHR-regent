@@ -9,9 +9,9 @@ require("fields")
 local problem = {}
 
 -- Grid dimensions
-problem.NX = 1
+problem.NX = 5
 problem.NY = 200
-problem.NZ = 1
+problem.NZ = 5
 
 -- Domain size
 problem.LX = 1.0
@@ -31,7 +31,7 @@ problem.ONEBYDX = 1.0 / problem.DX
 problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
-problem.dt    = 0.001
+problem.dt    = 0.0005
 problem.tstop = 0.2
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),

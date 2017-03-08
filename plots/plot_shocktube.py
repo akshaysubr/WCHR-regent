@@ -12,32 +12,32 @@ coord_file = sys.argv[1]
 data_file  = sys.argv[2]
 
 f = h5py.File(coord_file)
-x = numpy.squeeze(f['y_c'].value)
+y = (f['y_c'].value)[0,:,0]
 f.close()
 
 f = h5py.File(data_file)
-rho = numpy.squeeze(f['rho'].value)
-u   = numpy.squeeze(f['v'].value)
-p   = numpy.squeeze(f['p'].value)
+rho = (f['rho'].value)[0,:,0]
+v   = (f['v'].value)[0,:,0]
+p   = (f['p'].value)[0,:,0]
 f.close()
 
 plt.figure()
-plt.plot(x,rho,'ok',fillstyle='none')
+plt.plot(y,rho,'ok',fillstyle='none')
 plt.xlim((-0.5,0.5))
 plt.xlabel(r'$x$', fontsize=20)
 plt.ylabel(r'$\rho$', fontsize=20)
 plt.show(block=False)
 
 plt.figure()
-plt.plot(x,u,'ok',fillstyle='none')
+plt.plot(y,v,'ok',fillstyle='none')
 plt.xlim((-0.5,0.5))
 plt.ylim((-0.1,1.0))
 plt.xlabel(r'$x$', fontsize=20)
-plt.ylabel(r'$u$', fontsize=20)
+plt.ylabel(r'$v$', fontsize=20)
 plt.show(block=False)
 
 plt.figure()
-plt.plot(x,p,'ok',fillstyle='none')
+plt.plot(y,p,'ok',fillstyle='none')
 plt.xlim((-0.5,0.5))
 plt.xlabel(r'$x$', fontsize=20)
 plt.ylabel(r'$p$', fontsize=20)
