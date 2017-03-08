@@ -81,10 +81,10 @@ task get_yfluxes( rho  : double,
 
   var flux : double[5]
 
-  flux[0] =  rhou
-  flux[1] =  rhou * u
-  flux[2] =  rhou * v + p
-  flux[3] =  rhou * w
+  flux[0] =  rhov
+  flux[1] =  rhov * u
+  flux[2] =  rhov * v + p
+  flux[3] =  rhov * w
   flux[4] = (rhoE + p) * v
 
   return flux
@@ -103,10 +103,10 @@ task get_zfluxes( rho  : double,
 
   var flux : double[5]
 
-  flux[0] =  rhou
-  flux[1] =  rhou * u
-  flux[2] =  rhou * v
-  flux[3] =  rhou * w + p
+  flux[0] =  rhow
+  flux[1] =  rhow * u
+  flux[2] =  rhow * v
+  flux[3] =  rhow * w + p
   flux[4] = (rhoE + p) * w
 
   return flux

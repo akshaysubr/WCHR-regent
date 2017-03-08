@@ -141,6 +141,7 @@ task main()
   get_LU_decomposition(LU_z, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
 
   var token = problem.initialize(coords, r_prim_c, dx, dy, dz)
+  c.printf("    Min rho : %g\n", min_rho_p(r_prim_c) )
   wait_for(token)
   
   var IOtoken = 0
@@ -209,8 +210,11 @@ task main()
         tsim += B_RK45[isub]*Q_t
 
         token += get_primitive_r(r_cnsr, r_prim_c)
+        c.printf("    Min rho : %g\n", min_rho_p(r_prim_c) )
     end
     step = step + 1
+
+    c.printf("\n")
 
     c.printf("Simulation time: %g\n", tsim)
     c.printf("    Step: %d\n", step)
@@ -223,8 +227,6 @@ task main()
     c.printf("    Error in v   = %g\n", errors[2])
     c.printf("    Error in w   = %g\n", errors[3])
     c.printf("    Error in p   = %g\n", errors[4])
-
-    c.printf("\n")
 
     wait_for([int](errors[0]))
   end

@@ -149,10 +149,16 @@ task main()
   --------------------------------------------------------------------------------------------
 
   -- Initialize SuperLU stuff
-  matrix_l_y[{0,0}] = superlu.initialize_matrix_char_y(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  matrix_r_y[{0,0}] = superlu.initialize_matrix_char_y(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  -- matrix_l_y[{0,0}] = superlu.initialize_matrix_char_y(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  -- matrix_r_y[{0,0}] = superlu.initialize_matrix_char_y(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
 
-  superlu.initialize_superlu_vars( matrix_l_y[{0,0}], 5*Nx*(Ny+1)*Nz, r_rhs_l_y, r_prim_l_y, slu_y ) 
+  -- superlu.initialize_superlu_vars( matrix_l_y[{0,0}], 5*Nx*(Ny+1)*Nz, r_rhs_l_y, r_prim_l_y, slu_y ) 
+
+  superlu.initialize_matrix_char_y(matrix_l_y, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  superlu.initialize_matrix_char_y(matrix_r_y, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+
+  fill( r_rhs_l_y.{rho,u,v,w,p}, 0.0 )
+  superlu.init_superlu_vars( matrix_l_y, 5*Nx*(Ny+1)*Nz, r_rhs_l_y, r_prim_l_y, slu_y )
 
   var token = initialize(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z, dx, dy, dz)
   wait_for(token)
@@ -165,8 +171,8 @@ task main()
 
   -- write_coords(coords)
   -- write_primitive(r_prim_c, "cell_primitive", 0)
-  write_primitive(r_prim_l_y, "edge_primitive_l_y", 0)
-  -- write_primitive(r_prim_r_y, "edge_primitive_r_y", 0)
+  -- write_primitive(r_prim_l_y, "edge_primitive_l_y", 0)
+  write_primitive(r_prim_r_y, "edge_primitive_r_y", 0)
 end
 
 regentlib.start(main, csuperlu_mapper.register_mappers)

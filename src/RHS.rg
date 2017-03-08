@@ -87,8 +87,11 @@ do
   if (nx >= 5) then
     -- c.printf("Computing x-flux derivatives\n")
     WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_x )
+    c.printf("    Min rho x : %g, %g\n", min_rho_p(r_prim_l_x), min_rho_p(r_prim_r_x) )
     HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
+    c.printf("    Min rho r_flux_e_x : %g\n", min_rho_c(r_flux_e_x) )
     get_xfluxes_r( r_prim_c, r_cnsr, r_flux_c )
+    c.printf("    Min rho r_flux_c   : %g\n", min_rho_c(r_flux_c  ) )
 
     ddx_MND_rho ( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     ddx_MND_rhou( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
@@ -130,8 +133,11 @@ do
   if (ny >= 5) then
     -- c.printf("Computing y-flux derivatives\n")
     WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y, r_rhs_l_y, r_rhs_r_y, matrix_l_y, matrix_r_y, slu_y )
+    c.printf("    Min rho y : %g, %g\n", min_rho_p(r_prim_l_y), min_rho_p(r_prim_r_y) )
     HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
+    c.printf("    Min rho r_flux_e_y : %g\n", min_rho_c(r_flux_e_y) )
     get_yfluxes_r( r_prim_c, r_cnsr, r_flux_c )
+    c.printf("    Min rho r_flux_c   : %g\n", min_rho_c(r_flux_c  ) )
 
     ddy_MND_rho ( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhou( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )

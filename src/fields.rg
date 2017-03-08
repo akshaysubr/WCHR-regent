@@ -62,3 +62,30 @@ function poff(i, x, y, z, Nx, Ny, Nz)
   return rexpr int3d { x = (i.x + x + Nx)%Nx, y = (i.y + y + Ny)%Ny, z = (i.z + z + Nz)%Nz } end
 end
 
+task min_rho_p( r_prim : region(ispace(int3d), primitive) )
+where
+  reads (r_prim)
+do
+  var minrho : double = r_prim[ r_prim.ispace.bounds.lo ].rho
+  for i in r_prim do
+    var rho : double = r_prim[i].rho
+    if ( rho < minrho ) then
+      minrho = rho
+    end
+  end
+  return minrho
+end
+
+task min_rho_c( r_prim : region(ispace(int3d), conserved) )
+where
+  reads (r_prim)
+do
+  var minrho : double = r_prim[ r_prim.ispace.bounds.lo ].rho
+  for i in r_prim do
+    var rho : double = r_prim[i].rho
+    if ( rho < minrho ) then
+      minrho = rho
+    end
+  end
+  return minrho
+end
