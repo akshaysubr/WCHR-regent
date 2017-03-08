@@ -5,6 +5,7 @@ local cmath = terralib.includec("math.h")
 
 struct Config
 {
+  fileIO          : bool,
   filename_prefix : int8[256],
   parallelism     : int,
   prow            : int,
@@ -16,9 +17,9 @@ local cstring = terralib.includec("string.h")
 terra print_usage_and_abort()
   c.printf("Usage: regent.py edge.rg [OPTIONS]\n")
   c.printf("OPTIONS\n")
-  c.printf("  -h            : Print the usage and exit.\n")
-  c.printf("  -f {prefix}   : Use {prefix} as prefix for file I/O.\n")
-  c.printf("  -p {value}    : Set the number of parallel tasks to {value}.\n")
+  c.printf("  -h               : Print the usage and exit.\n")
+  c.printf("  -prefix {prefix} : Use {prefix} as prefix for file I/O.\n")
+  c.printf("  -p {value}       : Set the number of parallel tasks to {value}.\n")
   c.abort()
 end
 
@@ -45,6 +46,7 @@ terra factorize(parallelism : int)
 end
 
 terra Config:initialize_from_command( nx : int, ny : int, nz : int )
+  self.fileIO = false
   cstring.strcpy(self.filename_prefix, "")
   self.parallelism = 4
 
@@ -53,9 +55,10 @@ terra Config:initialize_from_command( nx : int, ny : int, nz : int )
   while i < args.argc do
     if cstring.strcmp(args.argv[i], "-h") == 0 then
       print_usage_and_abort()
-    elseif cstring.strcmp(args.argv[i], "-f") == 0 then
+    elseif cstring.strcmp(args.argv[i], "-prefix") == 0 then
       i = i + 1
       cstring.strcpy(self.filename_prefix, args.argv[i])
+      self.fileIO = true
     elseif cstring.strcmp(args.argv[i], "-p") == 0 then
       i = i + 1
       self.parallelism = c.atoi(args.argv[i])

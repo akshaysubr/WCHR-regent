@@ -5,6 +5,7 @@ require("fields")
 local c  = regentlib.c
 local st = terralib.includec("string.h")
 
+-- hdf5 = terralib.includec("/usr/include/hdf5/serial/hdf5.h")
 hdf5 = terralib.includec("hdf5.h", {"-I", "/opt/hdf5-GNU-serial/include"})
 
 -- there's some funny business in hdf5.h that prevents terra from being able to
@@ -74,6 +75,7 @@ do
   detach(hdf5, tmp_prim.{rho, u, v, w, p})
 
   __delete(tmp_prim)
+  return 1
 end
 
 terra generate_hdf5_file_coords(filename : rawstring, NX : int64, NY : int64, NZ : int64)
@@ -120,4 +122,6 @@ do
   detach(hdf5, tmp_coords.{x_c, y_c, z_c})
 
   __delete(tmp_coords)
+
+  return 1
 end

@@ -16,11 +16,6 @@ local Config  = require("config")
 
 local csuperlu_mapper = require("superlu_mapper")
 
-local fileIO = false
-if os.getenv('FILEIO') == '1' then
-  fileIO = true
-end
-
 terra wait_for(x : int)
   return x
 end
@@ -46,6 +41,14 @@ task main()
   c.printf("           Lx, Ly, Lz = %f, %f, %f\n", Lx, Ly, Lz)
   c.printf("           dx, dy, dz = %f, %f, %f\n", dx, dy, dz)
   c.printf("           prow, pcol = %d, %d\n", config.prow, config.pcol)
+
+  if config.fileIO then
+    c.printf("           fileIO     = true\n")
+    c.printf("           prefix     = %s\n", config.filename_prefix)
+  else
+    c.printf("           fileIO     = false\n")
+  end
+
   c.printf("====================================================\n")
 
   --------------------------------------------------------------------------------------------
@@ -109,24 +112,28 @@ task main()
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
-  -- Initialize characteristic interpolation matrices
-  superlu.initialize_matrix_char_x(matrix_l_x, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  superlu.initialize_matrix_char_x(matrix_r_x, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+  -- Initialize characteristic interpolation matrices and SuperLU structs
+  if Nx >= 5 then
+    superlu.initialize_matrix_char_x(matrix_l_x, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+    superlu.initialize_matrix_char_x(matrix_r_x, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
 
-  superlu.initialize_matrix_char_y(matrix_l_y, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  superlu.initialize_matrix_char_y(matrix_r_y, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+    fill( r_rhs_l_x.{rho,u,v,w,p}, 0.0 )
+    superlu.init_superlu_vars( matrix_l_x, 5*(Nx+1)*Ny*Nz, r_rhs_l_x, r_prim_l_x, slu_x )
+  end
+  if Ny >= 5 then
+    superlu.initialize_matrix_char_y(matrix_l_y, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+    superlu.initialize_matrix_char_y(matrix_r_y, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
 
-  superlu.initialize_matrix_char_z(matrix_l_z, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  superlu.initialize_matrix_char_z(matrix_r_z, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+    fill( r_rhs_l_y.{rho,u,v,w,p}, 0.0 )
+    superlu.init_superlu_vars( matrix_l_y, 5*Nx*(Ny+1)*Nz, r_rhs_l_y, r_prim_l_y, slu_y )
+  end
+  if Nz >= 5 then
+    superlu.initialize_matrix_char_z(matrix_l_z, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+    superlu.initialize_matrix_char_z(matrix_r_z, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
 
-  fill( r_rhs_l_x.{rho,u,v,w,p}, 0.0 )
-  fill( r_rhs_l_y.{rho,u,v,w,p}, 0.0 )
-  fill( r_rhs_l_z.{rho,u,v,w,p}, 0.0 )
-
-  -- Initialize SuperLU structs
-  superlu.init_superlu_vars( matrix_l_x, 5*(Nx+1)*Ny*Nz, r_rhs_l_x, r_prim_l_x, slu_x )
-  superlu.init_superlu_vars( matrix_l_y, 5*Nx*(Ny+1)*Nz, r_rhs_l_y, r_prim_l_y, slu_y )
-  superlu.init_superlu_vars( matrix_l_z, 5*Nx*Ny*(Nz+1), r_rhs_l_z, r_prim_l_z, slu_z )
+    fill( r_rhs_l_z.{rho,u,v,w,p}, 0.0 )
+    superlu.init_superlu_vars( matrix_l_z, 5*Nx*Ny*(Nz+1), r_rhs_l_z, r_prim_l_z, slu_z )
+  end
   
   -- Initialize derivatives stuff
   get_LU_decomposition(LU_x, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
@@ -136,9 +143,9 @@ task main()
   var token = problem.initialize(coords, r_prim_c, dx, dy, dz)
   wait_for(token)
   
-  if fileIO then
-    write_coords(coords)
-    -- write_primitive(r_prim_c, "cell_primitive", 0)
+  var IOtoken = 0
+  if config.fileIO then
+    IOtoken += write_coords(coords)
   end
   
   var A_RK45 = array(0.0,
@@ -159,6 +166,12 @@ task main()
   var step  : int64  = 0
 
   token += get_conserved_r(r_prim_c, r_cnsr) -- Get conserved variables after initialization
+
+  wait_for(IOtoken)
+  if config.fileIO then
+    IOtoken += write_primitive(r_prim_c, "cell_primitive", step)
+  end
+  
   wait_for(token)
   var t_start = c.legion_get_current_time_in_micros()
 
@@ -219,7 +232,7 @@ task main()
 
   c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/step)
   
-  if fileIO then
+  if config.fileIO then
     write_primitive(r_prim_c, "cell_primitive", step)
   end
 

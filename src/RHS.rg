@@ -85,6 +85,7 @@ do
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
 
   if (nx >= 5) then
+    -- c.printf("Computing x-flux derivatives\n")
     WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_x )
     HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
     get_xfluxes_r( r_prim_c, r_cnsr, r_flux_c )
@@ -127,6 +128,7 @@ do
   var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
 
   if (ny >= 5) then
+    -- c.printf("Computing y-flux derivatives\n")
     WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y, r_rhs_l_y, r_rhs_r_y, matrix_l_y, matrix_r_y, slu_y )
     HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
     get_yfluxes_r( r_prim_c, r_cnsr, r_flux_c )
@@ -169,6 +171,7 @@ do
   var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
 
   if (nz >= 5) then
+    -- c.printf("Computing z-flux derivatives\n")
     WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z, r_rhs_l_z, r_rhs_r_z, matrix_l_z, matrix_r_z, slu_z )
     HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
     get_zfluxes_r( r_prim_c, r_cnsr, r_flux_c )

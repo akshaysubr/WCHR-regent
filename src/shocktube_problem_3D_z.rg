@@ -9,14 +9,14 @@ require("fields")
 local problem = {}
 
 -- Grid dimensions
-problem.NX = 200
-problem.NY = 8
-problem.NZ = 8
+problem.NX = 1
+problem.NY = 1
+problem.NZ = 200
 
 -- Domain size
-problem.LX = 2.0
+problem.LX = 1.0
 problem.LY = 1.0
-problem.LZ = 1.0
+problem.LZ = 2.0
 
 problem.X1 = -0.5
 problem.Y1 = -0.5
@@ -31,7 +31,7 @@ problem.ONEBYDX = 1.0 / problem.DX
 problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
-problem.dt    = 5.e-4
+problem.dt    = 0.001
 problem.tstop = 0.2
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
@@ -55,7 +55,7 @@ do
     coords[i].y_c = problem.Y1 + (i.y + 0.5) * dy
     coords[i].z_c = problem.Z1 + (i.z + 0.5) * dz
 
-    var tmp : double = cmath.tanh( (coords[i].x_c - 1.e-6)/(thick*dx) ) - cmath.tanh( (coords[i].x_c - (1.-1.e-6))/(thick*dx) ) - 1.
+    var tmp : double = cmath.tanh( (coords[i].z_c - 1.e-6)/(thick*dz) ) - cmath.tanh( (coords[i].z_c - (1.-1.e-6))/(thick*dz) ) - 1.
 
     r_prim_c[i].rho = 0.5*(rhoL + rhoR) - 0.5*(rhoL - rhoR)*tmp
     r_prim_c[i].u   = 0.0
