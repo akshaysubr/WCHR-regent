@@ -85,19 +85,46 @@ do
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
 
   if (nx >= 5) then
-    -- c.printf("Computing x-flux derivatives\n")
+    c.printf("Computing x-flux derivatives\n")
     WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_x )
     c.printf("    Min rho x : %g, %g\n", min_rho_p(r_prim_l_x), min_rho_p(r_prim_r_x) )
+    c.printf("    Min rho r_cnsr x   : %g\n", min_rho_c(r_cnsr  ) )
+    c.printf("    Min rhou r_cnsr x  : %g\n", min_rhou_c(r_cnsr  ) )
+    c.printf("    Min rhov r_cnsr x  : %g\n", min_rhov_c(r_cnsr  ) )
+    c.printf("    Min rhow r_cnsr x  : %g\n", min_rhow_c(r_cnsr  ) )
+    c.printf("    Min rhoE r_cnsr x  : %g\n", min_rhoE_c(r_cnsr  ) )
     HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
     c.printf("    Min rho r_flux_e_x : %g\n", min_rho_c(r_flux_e_x) )
     get_xfluxes_r( r_prim_c, r_cnsr, r_flux_c )
     c.printf("    Min rho r_flux_c   : %g\n", min_rho_c(r_flux_c  ) )
-
+   
     ddx_MND_rho ( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     ddx_MND_rhou( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     ddx_MND_rhov( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     ddx_MND_rhow( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     ddx_MND_rhoE( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
+
+    c.printf("    Min rho  r_fder_c_x x  : %g\n",  min_rho_c(r_fder_c_x  ) )
+    c.printf("    Min rhou r_fder_c_x x  : %g\n", min_rhou_c(r_fder_c_x  ) )
+    c.printf("    Min rhov r_fder_c_x x  : %g\n", min_rhov_c(r_fder_c_x  ) )
+    c.printf("    Min rhow r_fder_c_x x  : %g\n", min_rhow_c(r_fder_c_x  ) )
+    c.printf("    Min rhoE r_fder_c_x x  : %g\n", min_rhoE_c(r_fder_c_x  ) )
+
+    for i in r_fder_c_x do
+        var idxp1 = [poff(i, 1, 0, 0, problem.NX, problem.NY, problem.NZ)]
+        
+        r_fder_c_x[i].rho  = problem.ONEBYDX*(r_flux_e_x[idxp1].rho  - r_flux_e_x[i].rho)
+        r_fder_c_x[i].rhou = problem.ONEBYDX*(r_flux_e_x[idxp1].rhou - r_flux_e_x[i].rhou)
+        r_fder_c_x[i].rhov = problem.ONEBYDX*(r_flux_e_x[idxp1].rhov - r_flux_e_x[i].rhov)
+        r_fder_c_x[i].rhow = problem.ONEBYDX*(r_flux_e_x[idxp1].rhow - r_flux_e_x[i].rhow)
+        r_fder_c_x[i].rhoE = problem.ONEBYDX*(r_flux_e_x[idxp1].rhoE - r_flux_e_x[i].rhoE)
+    end
+    
+    c.printf("    Min rho  r_fder_c_x x  : %g\n",  min_rho_c(r_fder_c_x  ) )
+    c.printf("    Min rhou r_fder_c_x x  : %g\n", min_rhou_c(r_fder_c_x  ) )
+    c.printf("    Min rhov r_fder_c_x x  : %g\n", min_rhov_c(r_fder_c_x  ) )
+    c.printf("    Min rhow r_fder_c_x x  : %g\n", min_rhow_c(r_fder_c_x  ) )
+    c.printf("    Min rhoE r_fder_c_x x  : %g\n", min_rhoE_c(r_fder_c_x  ) )
 
     for i in r_rhs do
       r_rhs[i].rho  -= r_fder_c_x[i].rho
@@ -106,6 +133,13 @@ do
       r_rhs[i].rhow -= r_fder_c_x[i].rhow
       r_rhs[i].rhoE -= r_fder_c_x[i].rhoE
     end
+
+    c.printf("    Min rho  r_rhs x  : %g\n",  min_rho_c(r_rhs  ) )
+    c.printf("    Min rhou r_rhs x  : %g\n", min_rhou_c(r_rhs  ) )
+    c.printf("    Min rhov r_rhs x  : %g\n", min_rhov_c(r_rhs  ) )
+    c.printf("    Min rhow r_rhs x  : %g\n", min_rhow_c(r_rhs  ) )
+    c.printf("    Min rhoE r_rhs x  : %g\n", min_rhoE_c(r_rhs  ) )
+
   end
 end
 
@@ -131,20 +165,31 @@ do
   var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
 
   if (ny >= 5) then
-    -- c.printf("Computing y-flux derivatives\n")
+    c.printf("Computing y-flux derivatives\n")
     WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y, r_rhs_l_y, r_rhs_r_y, matrix_l_y, matrix_r_y, slu_y )
     c.printf("    Min rho y : %g, %g\n", min_rho_p(r_prim_l_y), min_rho_p(r_prim_r_y) )
+    c.printf("    Min rho  r_cnsr y  : %g\n", min_rho_c(r_cnsr  ) )
+    c.printf("    Min rhou r_cnsr y  : %g\n", min_rhou_c(r_cnsr  ) )
+    c.printf("    Min rhov r_cnsr y  : %g\n", min_rhov_c(r_cnsr  ) )
+    c.printf("    Min rhow r_cnsr y  : %g\n", min_rhow_c(r_cnsr  ) )
+    c.printf("    Min rhoE r_cnsr y  : %g\n", min_rhoE_c(r_cnsr  ) )
     HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
     c.printf("    Min rho r_flux_e_y : %g\n", min_rho_c(r_flux_e_y) )
     get_yfluxes_r( r_prim_c, r_cnsr, r_flux_c )
     c.printf("    Min rho r_flux_c   : %g\n", min_rho_c(r_flux_c  ) )
-
+    
     ddy_MND_rho ( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhou( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhov( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhow( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhoE( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
-
+    
+    c.printf("    Min rho  r_fder_c_y y  : %g\n",  min_rho_c(r_fder_c_y  ) )
+    c.printf("    Min rhou r_fder_c_y y  : %g\n", min_rhou_c(r_fder_c_y  ) )
+    c.printf("    Min rhov r_fder_c_y y  : %g\n", min_rhov_c(r_fder_c_y  ) )
+    c.printf("    Min rhow r_fder_c_y y  : %g\n", min_rhow_c(r_fder_c_y  ) )
+    c.printf("    Min rhoE r_fder_c_y y  : %g\n", min_rhoE_c(r_fder_c_y  ) )
+    
     for i in r_rhs do
       r_rhs[i].rho  -= r_fder_c_y[i].rho
       r_rhs[i].rhou -= r_fder_c_y[i].rhou
@@ -152,6 +197,13 @@ do
       r_rhs[i].rhow -= r_fder_c_y[i].rhow
       r_rhs[i].rhoE -= r_fder_c_y[i].rhoE
     end
+
+    c.printf("    Min rho  r_rhs y  : %g\n",  min_rho_c(r_rhs  ) )
+    c.printf("    Min rhou r_rhs y  : %g\n", min_rhou_c(r_rhs  ) )
+    c.printf("    Min rhov r_rhs y  : %g\n", min_rhov_c(r_rhs  ) )
+    c.printf("    Min rhow r_rhs y  : %g\n", min_rhow_c(r_rhs  ) )
+    c.printf("    Min rhoE r_rhs y  : %g\n", min_rhoE_c(r_rhs  ) )
+
   end
 end
 
@@ -177,10 +229,18 @@ do
   var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
 
   if (nz >= 5) then
-    -- c.printf("Computing z-flux derivatives\n")
+    c.printf("Computing z-flux derivatives\n")
     WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z, r_rhs_l_z, r_rhs_r_z, matrix_l_z, matrix_r_z, slu_z )
+    c.printf("    Min rho z : %g, %g\n", min_rho_p(r_prim_l_z), min_rho_p(r_prim_r_z) )
+    c.printf("    Min rho r_cnsr z   : %g\n", min_rho_c(r_cnsr  ) )
+    c.printf("    Min rhou r_cnsr z  : %g\n", min_rhou_c(r_cnsr  ) )
+    c.printf("    Min rhov r_cnsr z  : %g\n", min_rhov_c(r_cnsr  ) )
+    c.printf("    Min rhow r_cnsr z  : %g\n", min_rhow_c(r_cnsr  ) )
+    c.printf("    Min rhoE r_cnsr z  : %g\n", min_rhoE_c(r_cnsr  ) )
     HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
+    c.printf("    Min rho r_flux_e_z : %g\n", min_rho_c(r_flux_e_z) )
     get_zfluxes_r( r_prim_c, r_cnsr, r_flux_c )
+    c.printf("    Min rho r_flux_c   : %g\n", min_rho_c(r_flux_c  ) )
 
     ddz_MND_rho ( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
     ddz_MND_rhou( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
@@ -188,6 +248,12 @@ do
     ddz_MND_rhow( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
     ddz_MND_rhoE( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
 
+    c.printf("    Min rho  r_fder_c_z z  : %g\n",  min_rho_c(r_fder_c_z  ) )
+    c.printf("    Min rhou r_fder_c_z z  : %g\n", min_rhou_c(r_fder_c_z  ) )
+    c.printf("    Min rhov r_fder_c_z z  : %g\n", min_rhov_c(r_fder_c_z  ) )
+    c.printf("    Min rhow r_fder_c_z z  : %g\n", min_rhow_c(r_fder_c_z  ) )
+    c.printf("    Min rhoE r_fder_c_z z  : %g\n", min_rhoE_c(r_fder_c_z  ) )
+    
     for i in r_rhs do
       r_rhs[i].rho  -= r_fder_c_z[i].rho
       r_rhs[i].rhou -= r_fder_c_z[i].rhou
@@ -195,6 +261,12 @@ do
       r_rhs[i].rhow -= r_fder_c_z[i].rhow
       r_rhs[i].rhoE -= r_fder_c_z[i].rhoE
     end
+
+    c.printf("    Min rho  r_rhs z  : %g\n",  min_rho_c(r_rhs  ) )
+    c.printf("    Min rhou r_rhs z  : %g\n", min_rhou_c(r_rhs  ) )
+    c.printf("    Min rhov r_rhs z  : %g\n", min_rhov_c(r_rhs  ) )
+    c.printf("    Min rhow r_rhs z  : %g\n", min_rhow_c(r_rhs  ) )
+    c.printf("    Min rhoE r_rhs z  : %g\n", min_rhoE_c(r_rhs  ) )
   end
 end
 

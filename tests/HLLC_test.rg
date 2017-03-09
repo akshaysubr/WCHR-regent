@@ -14,16 +14,16 @@ where
 do
   for i in r_prim_l_x.ispace do
     r_prim_l_x[i].rho = 1.0
-    r_prim_l_x[i].u   = 0.0
+    r_prim_l_x[i].u   = 2.0
     r_prim_l_x[i].v   = 0.0
     r_prim_l_x[i].w   = 0.0
-    r_prim_l_x[i].p   = 1.0
+    r_prim_l_x[i].p   = 3.0
 
-    r_prim_r_x[i].rho = 0.125
-    r_prim_r_x[i].u   = 0.0
+    r_prim_r_x[i].rho = 4.0
+    r_prim_r_x[i].u   = 5.0
     r_prim_r_x[i].v   = 0.0
     r_prim_r_x[i].w   = 0.0
-    r_prim_r_x[i].p   = 0.1
+    r_prim_r_x[i].p   = 6.0
   end
 
   return 1
@@ -35,17 +35,17 @@ where
   reads writes(r_prim_l_y, r_prim_r_y)
 do
   for i in r_prim_l_y.ispace do
-    r_prim_l_y[i].rho = 1.0
-    r_prim_l_y[i].u   = 0.0
-    r_prim_l_y[i].v   = 0.0
-    r_prim_l_y[i].w   = 0.0
-    r_prim_l_y[i].p   = 1.0
+    r_prim_l_y[i].rho = 2.0
+    r_prim_l_y[i].u   = 3.0
+    r_prim_l_y[i].v   = 5.0
+    r_prim_l_y[i].w   = 7.0
+    r_prim_l_y[i].p   = 11.0
 
-    r_prim_r_y[i].rho = 0.125
-    r_prim_r_y[i].u   = 0.0
-    r_prim_r_y[i].v   = 0.0
-    r_prim_r_y[i].w   = 0.0
-    r_prim_r_y[i].p   = 0.1
+    r_prim_r_y[i].rho = 13.0
+    r_prim_r_y[i].u   = 17.0
+    r_prim_r_y[i].v   = 19.0
+    r_prim_r_y[i].w   = 23.0
+    r_prim_r_y[i].p   = 29.0
   end
 
   return 1
@@ -116,13 +116,13 @@ task main()
   HLLC_x(r_prim_l_x, r_prim_r_x, r_flux_e_x)
 
   c.printf("HLLC  Flux: rho = %g, rhou = %g, rhov = %g, rhow = %g, rhoE = %g\n", r_flux_e_x[{0,0,0}].rho, r_flux_e_x[{0,0,0}].rhou, r_flux_e_x[{0,0,0}].rhov, r_flux_e_x[{0,0,0}].rhow, r_flux_e_x[{0,0,0}].rhoE )
-  c.printf("Exact Flux: rho = %g, rhou = %g, rhov = %g, rhow = %g, rhoE = %g\n\n", 4.3187225579215521e-01, 4.8900185572528088e-01, 0.0, 0.0, 1.1640167368346308e+00 )
+  c.printf("Exact Flux: rho = %g, rhou = %g, rhov = %g, rhow = %g, rhoE = %g\n\n", 2.0233255455690986e+00, 6.9988479477310568e+00, 0.0, 0.0, 2.5108290870123088e+01 )
 
-  regentlib.assert( cmath.fabs(r_flux_e_x[{0,0,0}].rho  - 4.3187225579215521e-01) < 1.0e-14, "rho  flux does not match" )
-  regentlib.assert( cmath.fabs(r_flux_e_x[{0,0,0}].rhou - 4.8900185572528088e-01) < 1.0e-14, "rhou flux does not match" )
+  regentlib.assert( cmath.fabs(r_flux_e_x[{0,0,0}].rho  - 2.0233255455690986e+00) < 1.0e-14, "rho  flux does not match" )
+  regentlib.assert( cmath.fabs(r_flux_e_x[{0,0,0}].rhou - 6.9988479477310568e+00) < 1.0e-14, "rhou flux does not match" )
   regentlib.assert( cmath.fabs(r_flux_e_x[{0,0,0}].rhov - 0.0)                    < 1.0e-14, "rhov flux does not match" )
   regentlib.assert( cmath.fabs(r_flux_e_x[{0,0,0}].rhow - 0.0)                    < 1.0e-14, "rhow flux does not match" )
-  regentlib.assert( cmath.fabs(r_flux_e_x[{0,0,0}].rhoE - 1.1640167368346308e+00) < 1.0e-14, "rhoE flux does not match" )
+  regentlib.assert( cmath.fabs(r_flux_e_x[{0,0,0}].rhoE - 2.5108290870123088e+01) < 1.0e-14, "rhoE flux does not match" )
 
   c.printf("Bottom  state: rho = %g, u = %g, v = %g, w = %g, p = %g\n", r_prim_l_y[{0,0,0}].rho, r_prim_l_y[{0,0,0}].u, r_prim_l_y[{0,0,0}].v, r_prim_l_y[{0,0,0}].w, r_prim_l_y[{0,0,0}].p )
   c.printf("Top state: rho = %g, u = %g, v = %g, w = %g, p = %g\n", r_prim_r_y[{0,0,0}].rho, r_prim_r_y[{0,0,0}].u, r_prim_r_y[{0,0,0}].v, r_prim_r_y[{0,0,0}].w, r_prim_r_y[{0,0,0}].p )
@@ -130,13 +130,13 @@ task main()
   HLLC_y(r_prim_l_y, r_prim_r_y, r_flux_e_y)
 
   c.printf("HLLC  Flux: rho = %g, rhou = %g, rhov = %g, rhow = %g, rhoE = %g\n", r_flux_e_y[{0,0,0}].rho, r_flux_e_y[{0,0,0}].rhou, r_flux_e_y[{0,0,0}].rhov, r_flux_e_y[{0,0,0}].rhow, r_flux_e_y[{0,0,0}].rhoE )
-  c.printf("Exact Flux: rho = %g, rhou = %g, rhov = %g, rhow = %g, rhoE = %g\n\n", 4.3187225579215521e-01, 0.0, 4.8900185572528088e-01, 0.0, 1.1640167368346308e+00 )
+  c.printf("Exact Flux: rho = %g, rhou = %g, rhov = %g, rhow = %g, rhoE = %g\n\n", 10.0, 30.0, 61.0, 70.0, 607.5 )
 
-  regentlib.assert( cmath.fabs(r_flux_e_y[{0,0,0}].rho  - 4.3187225579215521e-01) < 1.0e-14, "rho  flux does not match" )
-  regentlib.assert( cmath.fabs(r_flux_e_y[{0,0,0}].rhou - 0.0)                    < 1.0e-14, "rhou flux does not match" )
-  regentlib.assert( cmath.fabs(r_flux_e_y[{0,0,0}].rhov - 4.8900185572528088e-01) < 1.0e-14, "rhov flux does not match" )
-  regentlib.assert( cmath.fabs(r_flux_e_y[{0,0,0}].rhow - 0.0)                    < 1.0e-14, "rhow flux does not match" )
-  regentlib.assert( cmath.fabs(r_flux_e_y[{0,0,0}].rhoE - 1.1640167368346308e+00) < 1.0e-14, "rhoE flux does not match" )
+  regentlib.assert( cmath.fabs(r_flux_e_y[{0,0,0}].rho - 10.0) < 1.0e-14, "rho  flux does not match" )
+  regentlib.assert( cmath.fabs(r_flux_e_y[{0,0,0}].rhou - 30.0)                    < 1.0e-14, "rhou flux does not match" )
+  regentlib.assert( cmath.fabs(r_flux_e_y[{0,0,0}].rhov - 61.0) < 1.0e-14, "rhov flux does not match" )
+  regentlib.assert( cmath.fabs(r_flux_e_y[{0,0,0}].rhow - 70.0)                    < 1.0e-14, "rhow flux does not match" )
+  regentlib.assert( cmath.fabs(r_flux_e_y[{0,0,0}].rhoE - 607.5) < 1.0e-14, "rhoE flux does not match" )
 
   c.printf("Back  state: rho = %g, u = %g, v = %g, w = %g, p = %g\n", r_prim_l_z[{0,0,0}].rho, r_prim_l_z[{0,0,0}].u, r_prim_l_z[{0,0,0}].v, r_prim_l_z[{0,0,0}].w, r_prim_l_z[{0,0,0}].p )
   c.printf("Front state: rho = %g, u = %g, v = %g, w = %g, p = %g\n", r_prim_r_z[{0,0,0}].rho, r_prim_r_z[{0,0,0}].u, r_prim_r_z[{0,0,0}].v, r_prim_r_z[{0,0,0}].w, r_prim_r_z[{0,0,0}].p )

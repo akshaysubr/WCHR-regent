@@ -141,7 +141,7 @@ task main()
   get_LU_decomposition(LU_z, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
 
   var token = problem.initialize(coords, r_prim_c, dx, dy, dz)
-  c.printf("    Min rho : %g\n", min_rho_p(r_prim_c) )
+  c.printf("    Min rho r_prim_c (main.rg) : %g\n", min_rho_p(r_prim_c) )
   wait_for(token)
   
   var IOtoken = 0
@@ -186,7 +186,14 @@ task main()
     for isub = 0,5 do
         -- Set RHS to zero
         set_rhs_zero( r_rhs )
-
+        
+        
+        c.printf("    Min rho  r_rhs x (main.rg) : %g\n",  min_rho_c(r_rhs  ) )
+        c.printf("    Min rhou r_rhs x (main.rg) : %g\n", min_rhou_c(r_rhs  ) )
+        c.printf("    Min rhov r_rhs x (main.rg) : %g\n", min_rhov_c(r_rhs  ) )
+        c.printf("    Min rhow r_rhs x (main.rg) : %g\n", min_rhow_c(r_rhs  ) )
+        c.printf("    Min rhoE r_rhs x (main.rg) : %g\n", min_rhoE_c(r_rhs  ) )
+        
         -- Add X direction flux derivatives to RHS
         add_xflux_der_to_rhs( r_cnsr, r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x,
                               r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs,
@@ -210,7 +217,8 @@ task main()
         tsim += B_RK45[isub]*Q_t
 
         token += get_primitive_r(r_cnsr, r_prim_c)
-        c.printf("    Min rho : %g\n", min_rho_p(r_prim_c) )
+        c.printf("    Min rho r_cnsr   (main.rg) : %g\n", min_rho_c(r_cnsr) )
+        c.printf("    Min rho r_prim_c (main.rg) : %g\n", min_rho_p(r_prim_c) )
     end
     step = step + 1
 
