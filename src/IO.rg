@@ -5,8 +5,10 @@ require("fields")
 local c  = regentlib.c
 local st = terralib.includec("string.h")
 
-hdf5 = terralib.includec("/usr/include/hdf5/serial/hdf5.h")
--- hdf5 = terralib.includec("hdf5.h", {"-I", "/opt/hdf5-GNU-serial/include"})
+local hdf5_path = os.getenv('HDF_ROOT')
+local hdf5_include = hdf5_path .. "/include"
+
+hdf5 = terralib.includec("hdf5.h", {"-I", hdf5_include})
 
 -- there's some funny business in hdf5.h that prevents terra from being able to
 --  see some of the #define's, so we fix it here, and hope the HDF5 folks don't

@@ -11,7 +11,7 @@ This code implements the WCHR scheme (see `docs/` for documentation about the sc
 - HDF5 for file I/O. Make sure Regent is also installed with HDF5 support. In `IO.rg`, change the location to the HDF5 library.
 
 ## Running the code
-To run the code, first navigate to the `/src/` directory. Ensure that the `problem.rg` symlink is linked to the right problem file. In the problem file, you can set the number of grid points in each direction and set the initial conditions.
+To run the code, first navigate to the `/src/` directory. Ensure that the `problem.rg` symlink is linked to the right problem file. In the problem file, you can set the number of grid points in each direction and set the initial conditions. Also set the `HDF_ROOT` environment variable to the path of your HDF5 library installation to use the file I/O features.
 
 Run the code using `<path/to/regent.py> main.rg`.
 

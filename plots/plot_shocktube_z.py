@@ -33,7 +33,7 @@ plt.plot(z,w,'ok',fillstyle='none')
 plt.xlim((-0.5,0.5))
 plt.ylim((-0.1,1.0))
 plt.xlabel(r'$x$', fontsize=20)
-plt.ylabel(r'$v$', fontsize=20)
+plt.ylabel(r'$w$', fontsize=20)
 plt.show(block=False)
 
 plt.figure()
