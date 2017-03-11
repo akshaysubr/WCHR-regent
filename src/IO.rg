@@ -64,8 +64,12 @@ do
 
   var vizstr : &int8 = [&int8] ( c.malloc(7*8) )
   c.sprintf(vizstr, "%04d.h5", vizcount)
-  var filename = st.strcat(fileprefix, vizstr)
+  var filename : &int8 = [&int8] ( c.malloc(256*8) )
+  st.strcpy(filename, fileprefix)
+  st.strcat(filename, vizstr)
   c.free(vizstr)
+
+  c.printf("\nWriting visualization file %s\n", filename)
 
   generate_hdf5_file(filename, Nx, Ny, Nz)
 
@@ -76,6 +80,7 @@ do
   copy(r_prim.{rho, u, v, w, p}, tmp_prim.{rho, u, v, w, p})
   detach(hdf5, tmp_prim.{rho, u, v, w, p})
 
+  c.free(filename)
   __delete(tmp_prim)
   return 1
 end
@@ -105,14 +110,17 @@ terra generate_hdf5_file_coords(filename : rawstring, NX : int64, NY : int64, NZ
   hdf5.H5Fclose(fid)
 end
 
-task write_coords( r_coords : region(ispace(int3d), coordinates) )
+task write_coords( r_coords   : region(ispace(int3d), coordinates),
+                   fileprefix : rawstring )
 where
   reads( r_coords )
 do
   var Nx = r_coords.ispace.bounds.hi.x - r_coords.ispace.bounds.lo.x + 1
   var Ny = r_coords.ispace.bounds.hi.y - r_coords.ispace.bounds.lo.y + 1
   var Nz = r_coords.ispace.bounds.hi.z - r_coords.ispace.bounds.lo.z + 1
-  var filename = "cell_coords.h5"
+  var filename : &int8 = [&int8] ( c.malloc(256*8) )
+  st.strcpy(filename, fileprefix)
+  st.strcat(filename, "coords.h5")
 
   generate_hdf5_file_coords(filename, Nx, Ny, Nz)
 
@@ -123,6 +131,7 @@ do
   copy(r_coords.{x_c, y_c, z_c}, tmp_coords.{x_c, y_c, z_c})
   detach(hdf5, tmp_coords.{x_c, y_c, z_c})
 
+  c.free(filename)
   __delete(tmp_coords)
 
   return 1

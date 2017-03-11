@@ -127,8 +127,8 @@ task main()
   var token = initialize(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z, dx, dy, dz)
   wait_for(token)
 
-  write_coords(coords)
-  write_primitive(r_prim_c, "cell_primitive", 0)
+  write_coords(coords, "cell_")
+  write_primitive(r_prim_c, "cell_", 0)
   -- write_primitive(r_prim_l_x, "cell_primitive_l_x", 0)
 
 end

@@ -10,6 +10,7 @@ struct Config
   parallelism     : int,
   prow            : int,
   pcol            : int,
+  nstats          : int,
 }
 
 local cstring = terralib.includec("string.h")
@@ -19,6 +20,7 @@ terra print_usage_and_abort()
   c.printf("OPTIONS\n")
   c.printf("  -h               : Print the usage and exit.\n")
   c.printf("  -prefix {prefix} : Use {prefix} as prefix for file I/O.\n")
+  c.printf("  -stats {nstats}  : Print stats only every {nstats} steps.\n")
   c.printf("  -p {value}       : Set the number of parallel tasks to {value}.\n")
   c.abort()
 end
@@ -49,6 +51,7 @@ terra Config:initialize_from_command( nx : int, ny : int, nz : int )
   self.fileIO = false
   cstring.strcpy(self.filename_prefix, "")
   self.parallelism = 4
+  self.nstats = 1
 
   var args = c.legion_runtime_get_input_args()
   var i = 1
@@ -59,6 +62,9 @@ terra Config:initialize_from_command( nx : int, ny : int, nz : int )
       i = i + 1
       cstring.strcpy(self.filename_prefix, args.argv[i])
       self.fileIO = true
+    elseif cstring.strcmp(args.argv[i], "-stats") == 0 then
+      i = i + 1
+      self.nstats = c.atoi(args.argv[i])
     elseif cstring.strcmp(args.argv[i], "-p") == 0 then
       i = i + 1
       self.parallelism = c.atoi(args.argv[i])
