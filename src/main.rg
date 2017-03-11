@@ -182,39 +182,55 @@ task main()
 
   -- Initialize characteristic interpolation matrices and SuperLU structs
   if Nx >= 8 then
-    superlu.initialize_matrix_char_x(matrix_l_x, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-    superlu.initialize_matrix_char_x(matrix_r_x, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+    -- __demand(__parallel)
+    for i in pencil do
+      superlu.initialize_matrix_char_x(p_matrix_l_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+      superlu.initialize_matrix_char_x(p_matrix_r_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
 
-    fill( r_rhs_l_x.{rho,u,v,w,p}, 0.0 )
-    superlu.init_superlu_vars( matrix_l_x, 5*(Nx+1)*Ny*Nz, r_rhs_l_x, r_prim_l_x, slu_x )
+      set_rhs_zero_p( p_rhs_l_x[i] )
+      superlu.init_superlu_vars( p_matrix_l_x[i], 5*(Nx+1)*Ny*Nz, p_rhs_l_x[i], p_prim_l_x[i], p_slu_x[i] )
+    end
   end
   if Ny >= 8 then
-    superlu.initialize_matrix_char_y(matrix_l_y, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-    superlu.initialize_matrix_char_y(matrix_r_y, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+    -- __demand(__parallel)
+    for i in pencil do
+      superlu.initialize_matrix_char_y(p_matrix_l_y[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+      superlu.initialize_matrix_char_y(p_matrix_r_y[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
 
-    fill( r_rhs_l_y.{rho,u,v,w,p}, 0.0 )
-    superlu.init_superlu_vars( matrix_l_y, 5*Nx*(Ny+1)*Nz, r_rhs_l_y, r_prim_l_y, slu_y )
+      set_rhs_zero_p( p_rhs_l_y[i] )
+      superlu.init_superlu_vars( p_matrix_l_y[i], 5*Nx*(Ny+1)*Nz, p_rhs_l_y[i], p_prim_l_y[i], p_slu_y[i] )
+    end
   end
   if Nz >= 8 then
-    superlu.initialize_matrix_char_z(matrix_l_z, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-    superlu.initialize_matrix_char_z(matrix_r_z, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+    -- __demand(__parallel)
+    for i in pencil do
+      superlu.initialize_matrix_char_z(p_matrix_l_z[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+      superlu.initialize_matrix_char_z(p_matrix_r_z[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
 
-    fill( r_rhs_l_z.{rho,u,v,w,p}, 0.0 )
-    superlu.init_superlu_vars( matrix_l_z, 5*Nx*Ny*(Nz+1), r_rhs_l_z, r_prim_l_z, slu_z )
+      set_rhs_zero_p( p_rhs_l_z[i] )
+      superlu.init_superlu_vars( p_matrix_l_z[i], 5*Nx*Ny*(Nz+1), p_rhs_l_z[i], p_prim_l_z[i], p_slu_z[i] )
+    end
   end
   
   -- Initialize derivatives stuff
-  get_LU_decomposition(LU_x, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
-  get_LU_decomposition(LU_y, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
-  get_LU_decomposition(LU_z, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  -- __demand(__parallel)
+  for i in pencil do
+    get_LU_decomposition(p_LU_x[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+    get_LU_decomposition(p_LU_y[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+    get_LU_decomposition(p_LU_z[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  end
 
-  var token = problem.initialize(coords, r_prim_c, dx, dy, dz)
+  var token : int = 0
+  -- __demand(__parallel)
+  for i in pencil do
+    token += problem.initialize(p_coords_y[i], p_prim_c_y[i], dx, dy, dz)
+  end
   wait_for(token)
   
-  var IOtoken = 0
-  if config.fileIO then
-    IOtoken += write_coords(coords, config.filename_prefix)
-  end
+  -- var IOtoken = 0
+  -- if config.fileIO then
+  --   IOtoken += write_coords(coords, config.filename_prefix)
+  -- end
   
   var A_RK45 = array(0.0,
                      -6234157559845.0/12983515589748.0,
@@ -236,73 +252,99 @@ task main()
   var vizcount : int    = 0
   var vizcond  : bool   = true
 
-  token += get_conserved_r(r_prim_c, r_cnsr) -- Get conserved variables after initialization
-
-  if config.fileIO then
-    if vizcond then
-      wait_for(IOtoken)
-      IOtoken += write_primitive(r_prim_c, config.filename_prefix, vizcount)
-      vizcount = vizcount + 1
-      vizcond = false
-      dt = problem.dt
-    end
-    if tsim + dt >= tviz*vizcount then
-      dt = tviz * vizcount - tsim
-      vizcond = true
-    end
+  -- __demand(__parallel)
+  for i in pencil do
+    token += get_conserved_r(r_prim_c, r_cnsr) -- Get conserved variables after initialization
   end
+
+  -- if config.fileIO then
+  --   if vizcond then
+  --     wait_for(IOtoken)
+  --     IOtoken += write_primitive(r_prim_c, config.filename_prefix, vizcount)
+  --     vizcount = vizcount + 1
+  --     vizcond = false
+  --     dt = problem.dt
+  --   end
+  --   if tsim + dt >= tviz*vizcount then
+  --     dt = tviz * vizcount - tsim
+  --     vizcond = true
+  --   end
+  -- end
   
   wait_for(token)
   var t_start = c.legion_get_current_time_in_micros()
 
-  __demand(__spmd)
+  -- __demand(__spmd)
   while tsim < tstop*(1.0 - 1.0e-16) do
 
     var Q_t : double = 0.0
-    fill(r_qrhs.{rho, rhou, rhov, rhow, rhoE}, 0.0)
+
+    -- __demand(__parallel)
+    for i in pencil do
+      set_rhs_zero( p_qrhs_y[i] )
+    end
+
     for isub = 0,5 do
-        -- Set RHS to zero
-        set_rhs_zero( r_rhs )
+        -- -- Set RHS to zero
+        -- __demand(__parallel)
+        for i in pencil do
+          set_rhs_zero( p_rhs_y[i] )
+        end
         
         -- Add X direction flux derivatives to RHS
-        add_xflux_der_to_rhs( r_cnsr, r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x,
-                              r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs,
-                              LU_x, slu_x, matrix_l_x, matrix_r_x )
+        -- __demand(__parallel)
+        for i in pencil do
+          add_xflux_der_to_rhs( p_cnsr_x[i], p_prim_c_x[i], p_prim_l_x[i], p_prim_r_x[i], p_rhs_l_x[i], p_rhs_r_x[i],
+                                p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
+                                p_LU_x[i], p_slu_x[i], p_matrix_l_x[i], p_matrix_r_x[i] )
+        end
 
         -- Add Y direction flux derivatives to RHS
-        add_yflux_der_to_rhs( r_cnsr, r_prim_c, r_prim_l_y, r_prim_r_y, r_rhs_l_y, r_rhs_r_y,
-                              r_flux_c, r_flux_e_y, r_fder_c_y, r_rhs,
-                              LU_y, slu_y, matrix_l_y, matrix_r_y )
+        -- __demand(__parallel)
+        for i in pencil do
+          add_yflux_der_to_rhs( p_cnsr_y[i], p_prim_c_y[i], p_prim_l_y[i], p_prim_r_y[i], p_rhs_l_y[i], p_rhs_r_y[i],
+                                p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
+                                p_LU_y[i], p_slu_y[i], p_matrix_l_y[i], p_matrix_r_y[i] )
+        end
 
         -- Add Z direction flux derivatives to RHS
-        add_zflux_der_to_rhs( r_cnsr, r_prim_c, r_prim_l_z, r_prim_r_z, r_rhs_l_z, r_rhs_r_z,
-                              r_flux_c, r_flux_e_z, r_fder_c_z, r_rhs,
-                              LU_z, slu_z, matrix_l_z, matrix_r_z )
+        -- __demand(__parallel)
+        for i in pencil do
+          add_zflux_der_to_rhs( p_cnsr_z[i], p_prim_c_z[i], p_prim_l_z[i], p_prim_r_z[i], p_rhs_l_z[i], p_rhs_r_z[i],
+                                p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
+                                p_LU_z[i], p_slu_z[i], p_matrix_l_z[i], p_matrix_r_z[i] )
+        end
 
         -- Update solution in this substep
-        update_substep( r_cnsr, r_rhs, r_qrhs, dt, A_RK45[isub], B_RK45[isub] )
+        -- __demand(__parallel)
+        for i in pencil do
+          update_substep( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK45[isub], B_RK45[isub] )
+        end
 
         -- Update simulation time as well
         Q_t = dt + A_RK45[isub]*Q_t
         tsim += B_RK45[isub]*Q_t
 
-        token += get_primitive_r(r_cnsr, r_prim_c)
+        -- __demand(__parallel)
+        for i in pencil do
+          token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
+        end
     end
     step = step + 1
 
-    if config.fileIO then
-      if vizcond then
-        wait_for(IOtoken)
-        IOtoken += write_primitive(r_prim_c, config.filename_prefix, vizcount)
-        vizcount = vizcount + 1
-        vizcond = false
-        dt = problem.dt
-      end
-      if tsim + dt >= tviz*vizcount then
-        dt = tviz * vizcount - tsim
-        vizcond = true
-      end
-    end
+    -- if config.fileIO then
+    --   if vizcond then
+    --     wait_for(IOtoken)
+    --     IOtoken += write_primitive(r_prim_c, config.filename_prefix, vizcount)
+    --     vizcount = vizcount + 1
+    --     vizcond = false
+    --     dt = problem.dt
+    --   end
+    --   if tsim + dt >= tviz*vizcount then
+    --     dt = tviz * vizcount - tsim
+    --     vizcond = true
+    --   end
+    -- end
   
     if (step-1)%(config.nstats*50) == 0 then
       c.printf("\n")
@@ -311,14 +353,26 @@ task main()
     end
 
     if (step-1)%config.nstats == 0 then
-      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, min_rho_p(r_prim_c), max_rho_p(r_prim_c), min_p_p(r_prim_c), max_p_p(r_prim_c))
+      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, 0.0, 0.0, 0.0, 0.0)
+      -- c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, min_rho_p(r_prim_c), max_rho_p(r_prim_c), min_p_p(r_prim_c), max_p_p(r_prim_c))
     end
   end
   
   wait_for(token)
   var t_simulation = c.legion_get_current_time_in_micros() - t_start
 
-  var errors = problem.get_errors(coords, r_prim_c, tsim)
+  var errors : double[5]
+  for ierr = 0,5 do
+    errors[ierr] = 0.0
+  end
+  for i in pencil do
+    var perrors = problem.get_errors(p_coords_y[i], p_prim_c_y[i], tsim)
+    for ierr = 0,5 do
+      if perrors[ierr] > errors[ierr] then
+        errors[ierr] = perrors[ierr]
+      end
+    end
+  end
 
   c.printf("\n")
   c.printf("Error in rho = %g\n", errors[0])

@@ -50,7 +50,7 @@ end
 terra Config:initialize_from_command( nx : int, ny : int, nz : int )
   self.fileIO = false
   cstring.strcpy(self.filename_prefix, "")
-  self.parallelism = 4
+  self.parallelism = 1
   self.nstats = 1
 
   var args = c.legion_runtime_get_input_args()
