@@ -23,6 +23,7 @@ To change the problem you want to run, simply link the `problem.rg` symlink to a
 - Parallelization
 - Explicit-Compact interpolation
 - Implement CFL time step condition
+- Different Runge-Kutta time stepping schemes
 
 ### Authors
 - Akshay Subramaniam (akshays@stanford.edu)
