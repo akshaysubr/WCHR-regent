@@ -184,31 +184,40 @@ task main()
   if Nx >= 8 then
     -- __demand(__parallel)
     for i in pencil do
-      superlu.initialize_matrix_char_x(p_matrix_l_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-      superlu.initialize_matrix_char_x(p_matrix_r_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+      var nx = p_prim_c_x[i].ispace.bounds.hi.x - p_prim_c_x[i].ispace.bounds.lo.x + 1
+      var ny = p_prim_c_x[i].ispace.bounds.hi.y - p_prim_c_x[i].ispace.bounds.lo.y + 1
+      var nz = p_prim_c_x[i].ispace.bounds.hi.z - p_prim_c_x[i].ispace.bounds.lo.z + 1
+      superlu.initialize_matrix_char_x(p_matrix_l_x[i], alpha06CI, beta06CI, gamma06CI, nx, ny, nz)
+      superlu.initialize_matrix_char_x(p_matrix_r_x[i], alpha06CI, beta06CI, gamma06CI, nx, ny, nz)
 
       set_rhs_zero_p( p_rhs_l_x[i] )
-      superlu.init_superlu_vars( p_matrix_l_x[i], 5*(Nx+1)*Ny*Nz, p_rhs_l_x[i], p_prim_l_x[i], p_slu_x[i] )
+      superlu.init_superlu_vars( p_matrix_l_x[i], 5*(nx+1)*ny*nz, p_rhs_l_x[i], p_prim_l_x[i], p_slu_x[i] )
     end
   end
   if Ny >= 8 then
     -- __demand(__parallel)
     for i in pencil do
-      superlu.initialize_matrix_char_y(p_matrix_l_y[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-      superlu.initialize_matrix_char_y(p_matrix_r_y[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+      var nx = p_prim_c_y[i].ispace.bounds.hi.x - p_prim_c_y[i].ispace.bounds.lo.x + 1
+      var ny = p_prim_c_y[i].ispace.bounds.hi.y - p_prim_c_y[i].ispace.bounds.lo.y + 1
+      var nz = p_prim_c_y[i].ispace.bounds.hi.z - p_prim_c_y[i].ispace.bounds.lo.z + 1
+      superlu.initialize_matrix_char_y(p_matrix_l_y[i], alpha06CI, beta06CI, gamma06CI, nx, ny, nz)
+      superlu.initialize_matrix_char_y(p_matrix_r_y[i], alpha06CI, beta06CI, gamma06CI, nx, ny, nz)
 
       set_rhs_zero_p( p_rhs_l_y[i] )
-      superlu.init_superlu_vars( p_matrix_l_y[i], 5*Nx*(Ny+1)*Nz, p_rhs_l_y[i], p_prim_l_y[i], p_slu_y[i] )
+      superlu.init_superlu_vars( p_matrix_l_y[i], 5*nx*(ny+1)*nz, p_rhs_l_y[i], p_prim_l_y[i], p_slu_y[i] )
     end
   end
   if Nz >= 8 then
     -- __demand(__parallel)
     for i in pencil do
-      superlu.initialize_matrix_char_z(p_matrix_l_z[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-      superlu.initialize_matrix_char_z(p_matrix_r_z[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
+      var nx = p_prim_c_z[i].ispace.bounds.hi.x - p_prim_c_z[i].ispace.bounds.lo.x + 1
+      var ny = p_prim_c_z[i].ispace.bounds.hi.y - p_prim_c_z[i].ispace.bounds.lo.y + 1
+      var nz = p_prim_c_z[i].ispace.bounds.hi.z - p_prim_c_z[i].ispace.bounds.lo.z + 1
+      superlu.initialize_matrix_char_z(p_matrix_l_z[i], alpha06CI, beta06CI, gamma06CI, nx, ny, nz)
+      superlu.initialize_matrix_char_z(p_matrix_r_z[i], alpha06CI, beta06CI, gamma06CI, nx, ny, nz)
 
       set_rhs_zero_p( p_rhs_l_z[i] )
-      superlu.init_superlu_vars( p_matrix_l_z[i], 5*Nx*Ny*(Nz+1), p_rhs_l_z[i], p_prim_l_z[i], p_slu_z[i] )
+      superlu.init_superlu_vars( p_matrix_l_z[i], 5*nx*ny*(nz+1), p_rhs_l_z[i], p_prim_l_z[i], p_slu_z[i] )
     end
   end
   
