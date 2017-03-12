@@ -157,9 +157,9 @@ task main()
   var p_rhs_y    = partition_ypencil_cnsr(r_rhs,      pencil)
   var p_rhs_z    = partition_zpencil_cnsr(r_rhs,      pencil)
 
-  var p_qrhs_x   = partition_xpencil_cnsr(r_rhs,      pencil)
-  var p_qrhs_y   = partition_ypencil_cnsr(r_rhs,      pencil)
-  var p_qrhs_z   = partition_zpencil_cnsr(r_rhs,      pencil)
+  var p_qrhs_x   = partition_xpencil_cnsr(r_qrhs,     pencil)
+  var p_qrhs_y   = partition_ypencil_cnsr(r_qrhs,     pencil)
+  var p_qrhs_z   = partition_zpencil_cnsr(r_qrhs,     pencil)
 
   var p_LU_x       = partition_LU(LU_x, pencil)
   var p_LU_y       = partition_LU(LU_y, pencil)
@@ -232,6 +232,7 @@ task main()
   var token : int = 0
   -- __demand(__parallel)
   for i in pencil do
+    -- Initialize everything in y decomposition
     token += problem.initialize(p_coords_y[i], p_prim_c_y[i], dx, dy, dz)
   end
   wait_for(token)
