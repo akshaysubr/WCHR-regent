@@ -32,7 +32,7 @@ problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
 problem.dt    = 0.0025
-problem.tstop = 0.025
+problem.tstop = 5.0
 problem.tviz  = 1.0
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),

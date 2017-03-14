@@ -217,7 +217,7 @@ task get_coefficients( nlweights : double[4][5] )
   return coeffs
 end
 
-__demand(__inline)
+-- __demand(__inline)
 task WCHR_interpolation_x( r_prim_c : region(ispace(int3d), primitive),
                            r_prim_l : region(ispace(int3d), primitive),
                            r_prim_r : region(ispace(int3d), primitive),
@@ -399,7 +399,7 @@ do
  return 1
 end
 
-__demand(__inline)
+-- __demand(__inline)
 task WCHR_interpolation_y( r_prim_c : region(ispace(int3d), primitive),
                            r_prim_l : region(ispace(int3d), primitive),
                            r_prim_r : region(ispace(int3d), primitive),
@@ -581,7 +581,7 @@ do
  return 1
 end
 
-__demand(__inline)
+-- __demand(__inline)
 task WCHR_interpolation_z( r_prim_c : region(ispace(int3d), primitive),
                            r_prim_l : region(ispace(int3d), primitive),
                            r_prim_r : region(ispace(int3d), primitive),

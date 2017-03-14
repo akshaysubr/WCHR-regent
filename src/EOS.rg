@@ -5,7 +5,8 @@ require("fields")
 local c     = regentlib.c
 local cmath = terralib.includec("math.h")
 
-local gamma = 1.4
+-- local gamma = 1.4
+local gamma = 5.0/3.0
 local gamma_m1 = gamma - 1.0
 local onebygm1 = 1.0 / gamma_m1
 
@@ -283,7 +284,7 @@ do
   return char_values
 end
 
-__demand(__inline)
+-- __demand(__inline)
 task get_xfluxes_r( r_prim : region(ispace(int3d), primitive),
                     r_cnsr : region(ispace(int3d), conserved),
                     r_flux : region(ispace(int3d), conserved) )
@@ -308,7 +309,7 @@ do
   end
 end
 
-__demand(__inline)
+-- __demand(__inline)
 task get_yfluxes_r( r_prim : region(ispace(int3d), primitive),
                     r_cnsr : region(ispace(int3d), conserved),
                     r_flux : region(ispace(int3d), conserved) )
@@ -334,7 +335,7 @@ do
   end
 end
 
-__demand(__inline)
+-- __demand(__inline)
 task get_zfluxes_r( r_prim : region(ispace(int3d), primitive),
                     r_cnsr : region(ispace(int3d), conserved),
                     r_flux : region(ispace(int3d), conserved) )
@@ -363,7 +364,7 @@ terra sign(x : double)
   return 2*([int](x >= 0)) - 1
 end
 
-__demand(__inline)
+-- __demand(__inline)
 task HLLC_x( r_prim_l_x : region(ispace(int3d), primitive),
              r_prim_r_x : region(ispace(int3d), primitive),
              r_flux_e_x : region(ispace(int3d), conserved) )
@@ -422,7 +423,7 @@ do
   end
 end
 
-__demand(__inline)
+-- __demand(__inline)
 task HLLC_y( r_prim_l_y : region(ispace(int3d), primitive),
              r_prim_r_y : region(ispace(int3d), primitive),
              r_flux_e_y : region(ispace(int3d), conserved) )
@@ -481,7 +482,7 @@ do
   end
 end
 
-__demand(__inline)
+-- __demand(__inline)
 task HLLC_z( r_prim_l_z : region(ispace(int3d), primitive),
              r_prim_r_z : region(ispace(int3d), primitive),
              r_flux_e_z : region(ispace(int3d), conserved) )
