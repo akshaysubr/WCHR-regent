@@ -182,61 +182,104 @@ task main()
 
   -- Initialize characteristic interpolation matrices and SuperLU structs
   if Nx >= 8 then
-    -- __demand(__parallel)
+    __demand(__parallel)
     for i in pencil do
-      var nx = p_prim_c_x[i].ispace.bounds.hi.x - p_prim_c_x[i].ispace.bounds.lo.x + 1
-      var ny = p_prim_c_x[i].ispace.bounds.hi.y - p_prim_c_x[i].ispace.bounds.lo.y + 1
-      var nz = p_prim_c_x[i].ispace.bounds.hi.z - p_prim_c_x[i].ispace.bounds.lo.z + 1
-      superlu.initialize_matrix_char_x(p_matrix_l_x[i], alpha06CI, beta06CI, gamma06CI, nx, ny, nz)
-      superlu.initialize_matrix_char_x(p_matrix_r_x[i], alpha06CI, beta06CI, gamma06CI, nx, ny, nz)
+      superlu.initialize_matrix_char_x(p_matrix_l_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny/config.prow, Nz/config.pcol)
+    end
 
+    __demand(__parallel)
+    for i in pencil do
+      superlu.initialize_matrix_char_x(p_matrix_r_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny/config.prow, Nz/config.pcol)
+    end
+
+    __demand(__parallel)
+    for i in pencil do
       set_rhs_zero_p( p_rhs_l_x[i] )
-      superlu.init_superlu_vars( p_matrix_l_x[i], 5*(nx+1)*ny*nz, p_rhs_l_x[i], p_prim_l_x[i], p_slu_x[i] )
+    end
+
+    __demand(__parallel)
+    for i in pencil do
+      superlu.init_superlu_vars( p_matrix_l_x[i], 5*(Nx+1)*Ny/config.prow*Nz/config.pcol, p_rhs_l_x[i], p_prim_l_x[i], p_slu_x[i] )
     end
   end
+  c.printf("Finished X matrices initialization\n")
+
   if Ny >= 8 then
-    -- __demand(__parallel)
+    __demand(__parallel)
     for i in pencil do
-      var nx = p_prim_c_y[i].ispace.bounds.hi.x - p_prim_c_y[i].ispace.bounds.lo.x + 1
-      var ny = p_prim_c_y[i].ispace.bounds.hi.y - p_prim_c_y[i].ispace.bounds.lo.y + 1
-      var nz = p_prim_c_y[i].ispace.bounds.hi.z - p_prim_c_y[i].ispace.bounds.lo.z + 1
-      superlu.initialize_matrix_char_y(p_matrix_l_y[i], alpha06CI, beta06CI, gamma06CI, nx, ny, nz)
-      superlu.initialize_matrix_char_y(p_matrix_r_y[i], alpha06CI, beta06CI, gamma06CI, nx, ny, nz)
+      superlu.initialize_matrix_char_y(p_matrix_l_y[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny, Nz/config.pcol)
+    end
 
+    __demand(__parallel)
+    for i in pencil do
+      superlu.initialize_matrix_char_y(p_matrix_r_y[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny, Nz/config.pcol)
+    end
+
+    __demand(__parallel)
+    for i in pencil do
       set_rhs_zero_p( p_rhs_l_y[i] )
-      superlu.init_superlu_vars( p_matrix_l_y[i], 5*nx*(ny+1)*nz, p_rhs_l_y[i], p_prim_l_y[i], p_slu_y[i] )
     end
-  end
-  if Nz >= 8 then
-    -- __demand(__parallel)
-    for i in pencil do
-      var nx = p_prim_c_z[i].ispace.bounds.hi.x - p_prim_c_z[i].ispace.bounds.lo.x + 1
-      var ny = p_prim_c_z[i].ispace.bounds.hi.y - p_prim_c_z[i].ispace.bounds.lo.y + 1
-      var nz = p_prim_c_z[i].ispace.bounds.hi.z - p_prim_c_z[i].ispace.bounds.lo.z + 1
-      superlu.initialize_matrix_char_z(p_matrix_l_z[i], alpha06CI, beta06CI, gamma06CI, nx, ny, nz)
-      superlu.initialize_matrix_char_z(p_matrix_r_z[i], alpha06CI, beta06CI, gamma06CI, nx, ny, nz)
 
-      set_rhs_zero_p( p_rhs_l_z[i] )
-      superlu.init_superlu_vars( p_matrix_l_z[i], 5*nx*ny*(nz+1), p_rhs_l_z[i], p_prim_l_z[i], p_slu_z[i] )
+    __demand(__parallel)
+    for i in pencil do
+      superlu.init_superlu_vars( p_matrix_l_y[i], 5*Nx/config.prow*(Ny+1)*Nz/config.pcol, p_rhs_l_y[i], p_prim_l_y[i], p_slu_y[i] )
     end
   end
+  c.printf("Finished Y matrices initialization\n")
+
+  if Nz >= 8 then
+    __demand(__parallel)
+    for i in pencil do
+      superlu.initialize_matrix_char_z(p_matrix_l_z[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny/config.pcol, Nz)
+    end
+
+    __demand(__parallel)
+    for i in pencil do
+      superlu.initialize_matrix_char_z(p_matrix_r_z[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny/config.pcol, Nz)
+    end
+
+    __demand(__parallel)
+    for i in pencil do
+      set_rhs_zero_p( p_rhs_l_z[i] )
+    end
+
+    __demand(__parallel)
+    for i in pencil do
+      superlu.init_superlu_vars( p_matrix_l_z[i], 5*Nx/config.prow*Ny/config.pcol*(Nz+1), p_rhs_l_z[i], p_prim_l_z[i], p_slu_z[i] )
+    end
+  end
+  c.printf("Finished Z matrices initialization\n")
   
   -- Initialize derivatives stuff
-  -- __demand(__parallel)
+  __demand(__parallel)
   for i in pencil do
     get_LU_decomposition(p_LU_x[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  end
+  __demand(__parallel)
+  for i in pencil do
     get_LU_decomposition(p_LU_y[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  end
+  __demand(__parallel)
+  for i in pencil do
     get_LU_decomposition(p_LU_z[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
   end
+  c.printf("Finished LU initialization\n")
 
   var token : int = 0
-  -- __demand(__parallel)
+  __demand(__parallel)
   for i in pencil do
     -- Initialize everything in y decomposition
     token += problem.initialize(p_coords_y[i], p_prim_c_y[i], dx, dy, dz)
   end
   wait_for(token)
+  c.printf("Finished initialization\n")
   
+  var TKE0 : double = 0.0
+  __demand(__parallel)
+  for i in pencil do
+    TKE0 += problem.TKE(p_prim_c_y[i])
+  end
+
   -- var IOtoken = 0
   -- if config.fileIO then
   --   IOtoken += write_coords(coords, config.filename_prefix)
@@ -262,9 +305,9 @@ task main()
   var vizcount : int    = 0
   var vizcond  : bool   = true
 
-  -- __demand(__parallel)
+  __demand(__parallel)
   for i in pencil do
-    token += get_conserved_r(r_prim_c, r_cnsr) -- Get conserved variables after initialization
+    token += get_conserved_r(p_prim_c_y[i], p_cnsr_y[i]) -- Get conserved variables after initialization
   end
 
   -- if config.fileIO then
@@ -284,49 +327,52 @@ task main()
   wait_for(token)
   var t_start = c.legion_get_current_time_in_micros()
 
-  -- __demand(__spmd)
+  __demand(__spmd)
   while tsim < tstop*(1.0 - 1.0e-16) do
 
     var Q_t : double = 0.0
 
-    -- __demand(__parallel)
+    __demand(__parallel)
     for i in pencil do
       set_rhs_zero( p_qrhs_y[i] )
     end
 
     for isub = 0,5 do
         -- -- Set RHS to zero
-        -- __demand(__parallel)
+        __demand(__parallel)
         for i in pencil do
           set_rhs_zero( p_rhs_y[i] )
         end
         
         -- Add X direction flux derivatives to RHS
-        -- __demand(__parallel)
+        __demand(__parallel)
         for i in pencil do
           add_xflux_der_to_rhs( p_cnsr_x[i], p_prim_c_x[i], p_prim_l_x[i], p_prim_r_x[i], p_rhs_l_x[i], p_rhs_r_x[i],
                                 p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
-                                p_LU_x[i], p_slu_x[i], p_matrix_l_x[i], p_matrix_r_x[i] )
+                                p_LU_x[i], p_slu_x[i], p_matrix_l_x[i], p_matrix_r_x[i],
+                                Nx, Ny, Nz )
         end
 
         -- Add Y direction flux derivatives to RHS
-        -- __demand(__parallel)
+        __demand(__parallel)
         for i in pencil do
           add_yflux_der_to_rhs( p_cnsr_y[i], p_prim_c_y[i], p_prim_l_y[i], p_prim_r_y[i], p_rhs_l_y[i], p_rhs_r_y[i],
                                 p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
-                                p_LU_y[i], p_slu_y[i], p_matrix_l_y[i], p_matrix_r_y[i] )
+                                p_LU_y[i], p_slu_y[i], p_matrix_l_y[i], p_matrix_r_y[i],
+                                Nx, Ny, Nz )
         end
 
         -- Add Z direction flux derivatives to RHS
-        -- __demand(__parallel)
+        __demand(__parallel)
         for i in pencil do
           add_zflux_der_to_rhs( p_cnsr_z[i], p_prim_c_z[i], p_prim_l_z[i], p_prim_r_z[i], p_rhs_l_z[i], p_rhs_r_z[i],
                                 p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
-                                p_LU_z[i], p_slu_z[i], p_matrix_l_z[i], p_matrix_r_z[i] )
+                                p_LU_z[i], p_slu_z[i], p_matrix_l_z[i], p_matrix_r_z[i],
+                                Nx, Ny, Nz )
         end
 
         -- Update solution in this substep
-        -- __demand(__parallel)
+        __demand(__parallel)
         for i in pencil do
           update_substep( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK45[isub], B_RK45[isub] )
         end
@@ -335,7 +381,7 @@ task main()
         Q_t = dt + A_RK45[isub]*Q_t
         tsim += B_RK45[isub]*Q_t
 
-        -- __demand(__parallel)
+        __demand(__parallel)
         for i in pencil do
           token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
         end
@@ -355,7 +401,13 @@ task main()
     --     vizcond = true
     --   end
     -- end
-  
+
+    var TKE : double = 0.0
+    __demand(__parallel)
+    for i in pencil do
+      TKE += problem.TKE(p_prim_c_y[i])
+    end
+
     if (step-1)%(config.nstats*50) == 0 then
       c.printf("\n")
       c.printf("%6.6s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s\n", "Step","Time","Timestep","Min rho","Max rho","Min p","Max p")
@@ -363,14 +415,14 @@ task main()
     end
 
     if (step-1)%config.nstats == 0 then
-      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, 0.0, 0.0, 0.0, 0.0)
+      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, 0.0, 0.0, 0.0, TKE/TKE0)
       -- c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, min_rho_p(r_prim_c), max_rho_p(r_prim_c), min_p_p(r_prim_c), max_p_p(r_prim_c))
     end
   end
   
   wait_for(token)
   var t_simulation = c.legion_get_current_time_in_micros() - t_start
-
+  
   var errors : double[5]
   for ierr = 0,5 do
     errors[ierr] = 0.0

@@ -217,6 +217,7 @@ task get_coefficients( nlweights : double[4][5] )
   return coeffs
 end
 
+__demand(__inline)
 task WCHR_interpolation_x( r_prim_c : region(ispace(int3d), primitive),
                            r_prim_l : region(ispace(int3d), primitive),
                            r_prim_r : region(ispace(int3d), primitive),
@@ -224,7 +225,10 @@ task WCHR_interpolation_x( r_prim_c : region(ispace(int3d), primitive),
                            r_rhs_r  : region(ispace(int3d), primitive),
                            matrix_l : region(ispace(int2d), superlu.CSR_matrix),
                            matrix_r : region(ispace(int2d), superlu.CSR_matrix),
-                           slu      : region(ispace(int2d), superlu.c.superlu_vars_t) )
+                           slu      : region(ispace(int2d), superlu.c.superlu_vars_t),
+                           Nx       : int64,
+                           Ny       : int64,
+                           Nz       : int64 )
 where
   reads(r_prim_c), reads writes(r_prim_l, r_prim_r), reads writes(r_rhs_l, r_rhs_r, matrix_l, matrix_r, slu)
 do
@@ -246,8 +250,8 @@ do
   regentlib.assert(bounds_x.lo.x == 0, "Can only perform X interpolation in the X pencil")
 
   for i in r_prim_c do
-    var rhosos_avg : double[2] = get_rho_sos_avg_x( r_prim_c, i, nx, ny, nz )
-    var char_values : double[6][5] = get_char_values_x(r_prim_c, rhosos_avg[0], rhosos_avg[1], i, nx, ny, nz)
+    var rhosos_avg : double[2] = get_rho_sos_avg_x( r_prim_c, i, Nx, Ny, Nz )
+    var char_values : double[6][5] = get_char_values_x(r_prim_c, rhosos_avg[0], rhosos_avg[1], i, Nx, Ny, Nz)
 
     var nlweights_l = get_nonlinear_weights_LD_l(char_values)
     var coeffs_l = get_coefficients(nlweights_l)
@@ -296,13 +300,16 @@ do
                    + coeffs_r[4][5] * char_values[4][3]
                    + coeffs_r[4][6] * char_values[4][4]
 
-    var grow : int64 = 5*i.x + i.y*5*dim + i.z*5*dim*ny
-    var bcounter : int64 = 8*3*i.x + i.y*(8*3*nx+10) + i.z*(8*3*nx+10)*ny
+    var iy = i.y - bounds_c.lo.y
+    var iz = i.z - bounds_c.lo.z
+
+    var grow : int64 = 5*i.x + iy*5*dim + iz*5*dim*ny
+    var bcounter : int64 = 8*3*i.x + iy*(8*3*nx+10) + iz*(8*3*nx+10)*ny
 
     -- rho
     for j = 0, 3 do
       var bcol : int64 = i.x + j - 1
-      var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*dim + i.z*5*dim*ny -- Top of the block
+      var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*dim + iz*5*dim*ny -- Top of the block
       var counter : int64 = bcounter + 2*j
 
       -- matrix_l.colind[counter] = gcol+1
@@ -319,7 +326,7 @@ do
     -- u
     for j = 0, 3 do
       var bcol : int64 = i.x + j - 1
-      var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*dim + i.z*5*dim*ny -- Top of the block
+      var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*dim + iz*5*dim*ny -- Top of the block
       var counter : int64 = bcounter + 2*j
 
       -- matrix_l.colind[counter] = gcol
@@ -336,7 +343,7 @@ do
     -- v
     for j = 0, 3 do
       var bcol : int64 = i.x + j - 1
-      var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*dim + i.z*5*dim*ny -- Top of the block
+      var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*dim + iz*5*dim*ny -- Top of the block
       var counter : int64 = bcounter + j
 
       -- matrix_l.colind[counter] = gcol+2
@@ -349,7 +356,7 @@ do
     -- w
     for j = 0, 3 do
       var bcol : int64 = i.x + j - 1
-      var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*dim + i.z*5*dim*ny -- Top of the block
+      var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*dim + iz*5*dim*ny -- Top of the block
       var counter : int64 = bcounter + j
 
       -- matrix_l.colind[counter] = gcol+3
@@ -362,7 +369,7 @@ do
     -- p
     for j = 0, 3 do
       var bcol : int64 = i.x + j - 1
-      var gcol : int64 = ((bcol + nx)%nx)*5 + i.y*5*dim + i.z*5*dim*ny -- Top of the block
+      var gcol : int64 = ((bcol + nx)%nx)*5 + iy*5*dim + iz*5*dim*ny -- Top of the block
       var counter : int64 = bcounter + 2*j
 
       -- matrix_l.colind[counter] = gcol+1
@@ -392,6 +399,7 @@ do
  return 1
 end
 
+__demand(__inline)
 task WCHR_interpolation_y( r_prim_c : region(ispace(int3d), primitive),
                            r_prim_l : region(ispace(int3d), primitive),
                            r_prim_r : region(ispace(int3d), primitive),
@@ -399,7 +407,10 @@ task WCHR_interpolation_y( r_prim_c : region(ispace(int3d), primitive),
                            r_rhs_r  : region(ispace(int3d), primitive),
                            matrix_l : region(ispace(int2d), superlu.CSR_matrix),
                            matrix_r : region(ispace(int2d), superlu.CSR_matrix),
-                           slu      : region(ispace(int2d), superlu.c.superlu_vars_t) )
+                           slu      : region(ispace(int2d), superlu.c.superlu_vars_t),
+                           Nx       : int64,
+                           Ny       : int64,
+                           Nz       : int64 )
 where
   reads(r_prim_c), reads writes(r_prim_l, r_prim_r), reads writes(r_rhs_l, r_rhs_r, matrix_l, matrix_r, slu)
 do
@@ -421,8 +432,8 @@ do
   regentlib.assert(bounds_y.lo.y == 0, "Can only perform Y interpolation in the Y pencil")
 
   for i in r_prim_c do
-    var rhosos_avg : double[2] = get_rho_sos_avg_y( r_prim_c, i, nx, ny, nz )
-    var char_values : double[6][5] = get_char_values_y(r_prim_c, rhosos_avg[0], rhosos_avg[1], i, nx, ny, nz)
+    var rhosos_avg : double[2] = get_rho_sos_avg_y( r_prim_c, i, Nx, Ny, Nz )
+    var char_values : double[6][5] = get_char_values_y(r_prim_c, rhosos_avg[0], rhosos_avg[1], i, Nx, Ny, Nz)
 
     var nlweights_l = get_nonlinear_weights_LD_l(char_values)
     var coeffs_l = get_coefficients(nlweights_l)
@@ -471,13 +482,16 @@ do
                    + coeffs_r[4][5] * char_values[4][3]
                    + coeffs_r[4][6] * char_values[4][4]
 
-    var grow : int64 = 5*i.x + i.y*5*nx + i.z*5*dim*nx
-    var bcounter : int64 = 8*3*i.x + i.y*(8*3)*nx + i.z*(8*3*ny+10)*nx
+    var ix = i.x - bounds_c.lo.x
+    var iz = i.z - bounds_c.lo.z
+
+    var grow : int64 = 5*ix + i.y*5*nx + iz*5*dim*nx
+    var bcounter : int64 = 8*3*ix + i.y*(8*3)*nx + iz*(8*3*ny+10)*nx
 
     -- rho
     for j = 0, 3 do
       var bcol : int64 = i.y + j - 1
-      var gcol : int64 = i.x*5 + ((bcol+ny)%ny)*5*nx + i.z*5*dim*nx -- Top of the block
+      var gcol : int64 = ix*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
       var counter : int64 = bcounter + 2*j
 
       -- matrix[{pr,pc}].colind[counter] = gcol+2
@@ -494,7 +508,7 @@ do
     -- u
     for j = 0, 3 do
       var bcol : int64 = i.y + j - 1
-      var gcol : int64 = i.x*5 + ((bcol+ny)%ny)*5*nx + i.z*5*dim*nx -- Top of the block
+      var gcol : int64 = ix*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
       var counter : int64 = bcounter + j
 
       -- matrix[{pr,pc}].colind[counter] = gcol+1
@@ -507,7 +521,7 @@ do
     -- v
     for j = 0, 3 do
       var bcol : int64 = i.y + j - 1
-      var gcol : int64 = i.x*5 + ((bcol+ny)%ny)*5*nx + i.z*5*dim*nx -- Top of the block
+      var gcol : int64 = ix*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
       var counter : int64 = bcounter + 2*j
 
       -- matrix[{pr,pc}].colind[counter] = gcol
@@ -524,7 +538,7 @@ do
     -- w
     for j = 0, 3 do
       var bcol : int64 = i.y + j - 1
-      var gcol : int64 = i.x*5 + ((bcol+ny)%ny)*5*nx + i.z*5*dim*nx -- Top of the block
+      var gcol : int64 = ix*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
       var counter : int64 = bcounter + j
 
       -- matrix[{pr,pc}].colind[counter] = gcol+3
@@ -537,7 +551,7 @@ do
     -- p
     for j = 0, 3 do
       var bcol : int64 = i.y + j - 1
-      var gcol : int64 = i.x*5 + ((bcol+ny)%ny)*5*nx + i.z*5*dim*nx -- Top of the block
+      var gcol : int64 = ix*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
       var counter : int64 = bcounter + 2*j
 
       -- matrix[{pr,pc}].colind[counter] = gcol+2
@@ -567,6 +581,7 @@ do
  return 1
 end
 
+__demand(__inline)
 task WCHR_interpolation_z( r_prim_c : region(ispace(int3d), primitive),
                            r_prim_l : region(ispace(int3d), primitive),
                            r_prim_r : region(ispace(int3d), primitive),
@@ -574,7 +589,10 @@ task WCHR_interpolation_z( r_prim_c : region(ispace(int3d), primitive),
                            r_rhs_r  : region(ispace(int3d), primitive),
                            matrix_l : region(ispace(int2d), superlu.CSR_matrix),
                            matrix_r : region(ispace(int2d), superlu.CSR_matrix),
-                           slu      : region(ispace(int2d), superlu.c.superlu_vars_t) )
+                           slu      : region(ispace(int2d), superlu.c.superlu_vars_t),
+                           Nx       : int64,
+                           Ny       : int64,
+                           Nz       : int64 )
 where
   reads(r_prim_c), reads writes(r_prim_l, r_prim_r), reads writes(r_rhs_l, r_rhs_r, matrix_l, matrix_r, slu)
 do
@@ -596,8 +614,8 @@ do
   regentlib.assert(bounds_z.lo.z == 0, "Can only perform Z interpolation in the Z pencil")
 
   for i in r_prim_c do
-    var rhosos_avg : double[2] = get_rho_sos_avg_z( r_prim_c, i, nx, ny, nz )
-    var char_values : double[6][5] = get_char_values_z(r_prim_c, rhosos_avg[0], rhosos_avg[1], i, nx, ny, nz)
+    var rhosos_avg : double[2] = get_rho_sos_avg_z( r_prim_c, i, Nx, Ny, Nz )
+    var char_values : double[6][5] = get_char_values_z(r_prim_c, rhosos_avg[0], rhosos_avg[1], i, Nx, Ny, Nz)
 
     var nlweights_l = get_nonlinear_weights_LD_l(char_values)
     var coeffs_l = get_coefficients(nlweights_l)
@@ -646,13 +664,16 @@ do
                    + coeffs_r[4][5] * char_values[4][3]
                    + coeffs_r[4][6] * char_values[4][4]
 
-    var grow : int64 = 5*i.x + i.y*5*nx + i.z*5*nx*ny
-    var bcounter : int64 = 8*3*i.x + i.y*(8*3)*nx + i.z*(8*3)*ny*nx
+    var ix = i.x - bounds_c.lo.x
+    var iy = i.y - bounds_c.lo.y
+
+    var grow : int64 = 5*ix + iy*5*nx + i.z*5*nx*ny
+    var bcounter : int64 = 8*3*ix + iy*(8*3)*nx + i.z*(8*3)*ny*nx
 
     -- rho
     for j = 0, 3 do
       var bcol : int64 = i.z + j - 1
-      var gcol : int64 = i.x*5 + i.y*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+      var gcol : int64 = ix*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
       var counter : int64 = bcounter + 2*j
 
       -- matrix.colind[counter] = gcol+3
@@ -669,7 +690,7 @@ do
     -- u
     for j = 0, 3 do
       var bcol : int64 = i.z + j - 1
-      var gcol : int64 = i.x*5 + i.y*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+      var gcol : int64 = ix*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
       var counter : int64 = bcounter + j
 
       -- matrix.colind[counter] = gcol+1
@@ -682,7 +703,7 @@ do
     -- v
     for j = 0, 3 do
       var bcol : int64 = i.z + j - 1
-      var gcol : int64 = i.x*5 + i.y*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+      var gcol : int64 = ix*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
       var counter : int64 = bcounter + j
 
       -- matrix.colind[counter] = gcol+2
@@ -695,7 +716,7 @@ do
     -- w
     for j = 0, 3 do
       var bcol : int64 = i.z + j - 1
-      var gcol : int64 = i.x*5 + i.y*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+      var gcol : int64 = ix*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
       var counter : int64 = bcounter + 2*j
 
       -- matrix.colind[counter] = gcol
@@ -712,7 +733,7 @@ do
     -- p
     for j = 0, 3 do
       var bcol : int64 = i.z + j - 1
-      var gcol : int64 = i.x*5 + i.y*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
+      var gcol : int64 = ix*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
       var counter : int64 = bcounter + 2*j
 
       -- matrix.colind[counter] = gcol+3

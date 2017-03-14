@@ -76,7 +76,10 @@ task add_xflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
                            LU_x       : region(ispace(int3d), LU_struct),
                            slu_x      : region(ispace(int2d), superlu.c.superlu_vars_t),
                            matrix_l_x : region(ispace(int2d), superlu.CSR_matrix),
-                           matrix_r_x : region(ispace(int2d), superlu.CSR_matrix) )
+                           matrix_r_x : region(ispace(int2d), superlu.CSR_matrix),
+                           Nx         : int64,
+                           Ny         : int64,
+                           Nz         : int64 )
 where
   reads(r_cnsr, r_prim_c, LU_x),
   reads writes(r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs, slu_x, matrix_l_x, matrix_r_x)
@@ -85,7 +88,7 @@ do
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
 
   if (nx >= 8) then
-    WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_x )
+    WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_x, Nx, Ny, Nz )
     HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
     get_xfluxes_r( r_prim_c, r_cnsr, r_flux_c )
    
@@ -118,7 +121,10 @@ task add_yflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
                            LU_y       : region(ispace(int3d), LU_struct),
                            slu_y      : region(ispace(int2d), superlu.c.superlu_vars_t),
                            matrix_l_y : region(ispace(int2d), superlu.CSR_matrix),
-                           matrix_r_y : region(ispace(int2d), superlu.CSR_matrix) )
+                           matrix_r_y : region(ispace(int2d), superlu.CSR_matrix),
+                           Nx         : int64,
+                           Ny         : int64,
+                           Nz         : int64 )
 where
   reads(r_cnsr, r_prim_c, LU_y),
   reads writes(r_prim_l_y, r_prim_r_y, r_rhs_l_y, r_rhs_r_y, r_flux_c, r_flux_e_y, r_fder_c_y, r_rhs, slu_y, matrix_l_y, matrix_r_y)
@@ -127,7 +133,7 @@ do
   var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
 
   if (ny >= 8) then
-    WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y, r_rhs_l_y, r_rhs_r_y, matrix_l_y, matrix_r_y, slu_y )
+    WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y, r_rhs_l_y, r_rhs_r_y, matrix_l_y, matrix_r_y, slu_y, Nx, Ny, Nz )
     HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
     get_yfluxes_r( r_prim_c, r_cnsr, r_flux_c )
     
@@ -160,7 +166,10 @@ task add_zflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
                            LU_z       : region(ispace(int3d), LU_struct),
                            slu_z      : region(ispace(int2d), superlu.c.superlu_vars_t),
                            matrix_l_z : region(ispace(int2d), superlu.CSR_matrix),
-                           matrix_r_z : region(ispace(int2d), superlu.CSR_matrix) )
+                           matrix_r_z : region(ispace(int2d), superlu.CSR_matrix),
+                           Nx         : int64,
+                           Ny         : int64,
+                           Nz         : int64 )
 where
   reads(r_cnsr, r_prim_c, LU_z),
   reads writes(r_prim_l_z, r_prim_r_z, r_rhs_l_z, r_rhs_r_z, r_flux_c, r_flux_e_z, r_fder_c_z, r_rhs, slu_z, matrix_l_z, matrix_r_z)
@@ -169,7 +178,7 @@ do
   var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
 
   if (nz >= 8) then
-    WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z, r_rhs_l_z, r_rhs_r_z, matrix_l_z, matrix_r_z, slu_z )
+    WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z, r_rhs_l_z, r_rhs_r_z, matrix_l_z, matrix_r_z, slu_z, Nx, Ny, Nz )
     HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
     get_zfluxes_r( r_prim_c, r_cnsr, r_flux_c )
 

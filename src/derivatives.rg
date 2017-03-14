@@ -421,10 +421,10 @@ function make_ddx_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYD
   local ComputeXRHS_MND  = make_stencil_MND(r_func, privileges_r_func, f_func, r_func_e, privileges_r_func_e, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 0, 1)
   local SolveXLU         = make_SolveXLU(r_der, privileges_r_der, f_der)
 
-  local task ddx_MND( [r_func],
-                      [r_func_e],
-                      [r_der],
-                      LU     : region(ispace(int3d), LU_struct) )
+  local ddx_MND __demand(__inline) task ddx_MND( [r_func],
+                                                 [r_func_e],
+                                                 [r_der],
+                                                 LU     : region(ispace(int3d), LU_struct) )
   where
     reads(LU), [privileges_r_func], [privileges_r_func_e], [privileges_r_der]
   do
@@ -447,10 +447,10 @@ function make_ddy_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYD
   local ComputeYRHS_MND  = make_stencil_MND(r_func, privileges_r_func, f_func, r_func_e, privileges_r_func_e, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 1, 1)
   local SolveYLU         = make_SolveYLU(r_der, privileges_r_der, f_der)
 
-  local task ddy_MND( [r_func],
-                      [r_func_e],
-                      [r_der],
-                      LU     : region(ispace(int3d), LU_struct) )
+  local ddy_MND __demand(__inline) task ddy_MND( [r_func],
+                                                 [r_func_e],
+                                                 [r_der],
+                                                 LU     : region(ispace(int3d), LU_struct) )
   where
     reads(LU), [privileges_r_func], [privileges_r_func_e], [privileges_r_der]
   do
@@ -473,10 +473,10 @@ function make_ddz_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYD
   local ComputeZRHS_MND  = make_stencil_MND(r_func, privileges_r_func, f_func, r_func_e, privileges_r_func_e, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 2, 1)
   local SolveZLU         = make_SolveZLU(r_der, privileges_r_der, f_der)
 
-  local task ddz_MND( [r_func],
-                      [r_func_e],
-                      [r_der],
-                      LU     : region(ispace(int3d), LU_struct) )
+  local ddz_MND __demand(__inline) task ddz_MND( [r_func],
+                                                 [r_func_e],
+                                                 [r_der],
+                                                 LU     : region(ispace(int3d), LU_struct) )
   where
     reads(LU), [privileges_r_func], [privileges_r_func_e], [privileges_r_der]
   do
