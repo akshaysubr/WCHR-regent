@@ -8,7 +8,11 @@ do
   local superlu_include_dir = superlu_root
   local root_dir = arg[0]:match(".*/") or "./"
   local superlu_util_cc = root_dir .. "superlu_util.c"
-  superlu_util_so = os.tmpname() .. ".so"
+  if os.getenv('SAVEOBJ') == '1' then
+    superlu_util_so = root_dir .. "libsuperlu_util.so"
+  else
+    superlu_util_so = os.tmpname() .. ".so"
+  end
   local cc = os.getenv('CC') or 'cc'
   local cc_flags = "-O3 -Wall -Werror -std=c99"
   cc_flags = cc_flags .. " -I" .. superlu_include_dir

@@ -448,4 +448,11 @@ task main()
   
 end
 
-regentlib.start(main, csuperlu_mapper.register_mappers)
+if os.getenv('SAVEOBJ') == '1' then
+  local root_dir = arg[0]:match(".*/") or "./"
+  local superlu_root = os.getenv('SUPERLU_PATH') or "/opt/SuperLU_5.2.1"
+  local link_flags = {"-L" .. root_dir, "-L" .. superlu_root, "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
+  regentlib.saveobj(main, "wchr", "executable", csuperlu_mapper.register_mappers, link_flags)
+else
+  regentlib.start(main, csuperlu_mapper.register_mappers)
+end
