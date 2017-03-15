@@ -6,7 +6,7 @@ local PI    = cmath.M_PI
 
 require("fields")
 require("derivatives")
-require("IO")
+--require("IO")
 require("RHS")
 require("partition")
 
@@ -327,25 +327,40 @@ task main()
   wait_for(token)
   var t_start = c.legion_get_current_time_in_micros()
 
+  var isub = 0
+  var TKE : double = 0.0
+  var Q_t : double = 0.0
+  var A_RK : double = 0.0
+  var B_RK : double = 0.0
+
   __demand(__spmd)
   while tsim < tstop*(1.0 - 1.0e-16) do
 
-    var Q_t : double = 0.0
+    Q_t = 0.0
 
-    __demand(__parallel)
     for i in pencil do
       set_rhs_zero( p_qrhs_y[i] )
     end
 
-    for isub = 0,5 do
+    isub = 0
+    while isub < 5 do
+        A_RK = [int](isub == 0) * 0.0 +
+               [int](isub == 1) * ((0.0 - 6234157559845.0)/12983515589748.0) +
+               [int](isub == 2) * ((0.0 - 6194124222391.0)/4410992767914.0) +
+               [int](isub == 3) * ((0.0 - 31623096876824.0)/15682348800105.0) +
+               [int](isub == 4) * ((0.0 - 12251185447671.0)/11596622555746.0)
+        B_RK = [int](isub == 0) * (494393426753.0/4806282396855.0) +
+               [int](isub == 1) * (4047970641027.0/5463924506627.0) +
+               [int](isub == 2) * (9795748752853.0/13190207949281.0) +
+               [int](isub == 3) * (4009051133189.0/8539092990294.0) +
+               [int](isub == 4) * (1348533437543.0/7166442652324.0)
+
         -- -- Set RHS to zero
-        __demand(__parallel)
         for i in pencil do
           set_rhs_zero( p_rhs_y[i] )
         end
         
         -- Add X direction flux derivatives to RHS
-        __demand(__parallel)
         for i in pencil do
           add_xflux_der_to_rhs( p_cnsr_x[i], p_prim_c_x[i], p_prim_l_x[i], p_prim_r_x[i], p_rhs_l_x[i], p_rhs_r_x[i],
                                 p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
@@ -354,7 +369,6 @@ task main()
         end
 
         -- Add Y direction flux derivatives to RHS
-        __demand(__parallel)
         for i in pencil do
           add_yflux_der_to_rhs( p_cnsr_y[i], p_prim_c_y[i], p_prim_l_y[i], p_prim_r_y[i], p_rhs_l_y[i], p_rhs_r_y[i],
                                 p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
@@ -363,7 +377,6 @@ task main()
         end
 
         -- Add Z direction flux derivatives to RHS
-        __demand(__parallel)
         for i in pencil do
           add_zflux_der_to_rhs( p_cnsr_z[i], p_prim_c_z[i], p_prim_l_z[i], p_prim_r_z[i], p_rhs_l_z[i], p_rhs_r_z[i],
                                 p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
@@ -372,21 +385,20 @@ task main()
         end
 
         -- Update solution in this substep
-        __demand(__parallel)
         for i in pencil do
-          update_substep( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK45[isub], B_RK45[isub] )
+          update_substep( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK, B_RK)
         end
 
         -- Update simulation time as well
-        Q_t = dt + A_RK45[isub]*Q_t
-        tsim += B_RK45[isub]*Q_t
+        Q_t = dt + A_RK*Q_t
+        tsim += B_RK*Q_t
 
-        __demand(__parallel)
         for i in pencil do
           token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
         end
+        isub = isub + 1
     end
-    step = step + 1
+    --step = step + 1
 
     -- if config.fileIO then
     --   if vizcond then
@@ -402,22 +414,21 @@ task main()
     --   end
     -- end
 
-    var TKE : double = 0.0
-    __demand(__parallel)
+    TKE = 0.0
     for i in pencil do
       TKE += problem.TKE(p_prim_c_y[i])
     end
 
-    if (step-1)%(config.nstats*50) == 0 then
-      c.printf("\n")
-      c.printf("%6.6s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s\n", "Step","Time","Timestep","Min rho","Max rho","Min p","Max p")
-      c.printf("-------|-------------|-------------|-------------|-------------|-------------|------------\n")
-    end
+    --if (step-1)%(config.nstats*50) == 0 then
+    --  c.printf("\n")
+    --  c.printf("%6.6s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s\n", "Step","Time","Timestep","Min rho","Max rho","Min p","Max p")
+    --  c.printf("-------|-------------|-------------|-------------|-------------|-------------|------------\n")
+    --end
 
-    if (step-1)%config.nstats == 0 then
-      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, 0.0, 0.0, 0.0, TKE/TKE0)
-      -- c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, min_rho_p(r_prim_c), max_rho_p(r_prim_c), min_p_p(r_prim_c), max_p_p(r_prim_c))
-    end
+    --if (step-1)%config.nstats == 0 then
+    --  c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, 0.0, 0.0, 0.0, TKE/TKE0)
+    --  -- c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, min_rho_p(r_prim_c), max_rho_p(r_prim_c), min_p_p(r_prim_c), max_p_p(r_prim_c))
+    --end
   end
   
   wait_for(token)

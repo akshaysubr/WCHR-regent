@@ -4,7 +4,7 @@ local c     = regentlib.c
 local cmath = terralib.includec("math.h")
 
 require("fields")
-require("IO")
+--require("IO")
 require("EOS")
 local superlu = require("superlu_util")
 
