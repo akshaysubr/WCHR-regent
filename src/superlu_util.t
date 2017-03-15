@@ -2,13 +2,15 @@ import "regent"
 
 local superlu = {}
 do
-  local superlu_library = "-lsuperlu"
-  local superlu_include_dir = "/opt/SuperLU_5.2.1"
+  local superlu_root = os.getenv('SUPERLU_PATH') or "/opt/SuperLU_5.2.1"
+  --local superlu_library = "-lsuperlu"
+  local superlu_library = "-L" .. superlu_root .. " -lsuperlu"
+  local superlu_include_dir = superlu_root
   local root_dir = arg[0]:match(".*/") or "./"
   local superlu_util_cc = root_dir .. "superlu_util.c"
   superlu_util_so = os.tmpname() .. ".so"
   local cc = os.getenv('CC') or 'cc'
-  local cc_flags = "-g -O0 -Wall -Werror -std=c99"
+  local cc_flags = "-O3 -Wall -Werror -std=c99"
   cc_flags = cc_flags .. " -I" .. superlu_include_dir
   local is_darwin = os.execute('test "$(uname)" = Darwin') == 0
   if is_darwin then
