@@ -1,5 +1,8 @@
 import "regent"
 
+local use_io = os.getenv('USE_IO') == '1' or false
+if not use_io then return end
+
 require("fields")
 
 local c  = regentlib.c
