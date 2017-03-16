@@ -554,7 +554,7 @@ local terra get_base_pointer_2d(pr   : c.legion_physical_region_t,
                                 fid  : c.legion_field_id_t,
                                 rect : c.legion_rect_2d_t)
   var subrect : c.legion_rect_2d_t
-  var offsets : c.legion_byte_offset_t[1]
+  var offsets : c.legion_byte_offset_t[2]
   var accessor = c.legion_physical_region_get_field_accessor_generic(pr, fid)
   var base_pointer =
     [&superlu.c.superlu_vars_t](c.legion_accessor_generic_raw_rect_ptr_2d(

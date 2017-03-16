@@ -225,12 +225,13 @@ task WCHR_interpolation_x( r_prim_c : region(ispace(int3d), primitive),
                            r_rhs_r  : region(ispace(int3d), primitive),
                            matrix_l : region(ispace(int2d), superlu.CSR_matrix),
                            matrix_r : region(ispace(int2d), superlu.CSR_matrix),
-                           slu      : region(ispace(int2d), superlu.c.superlu_vars_t),
+                           slu_l    : region(ispace(int2d), superlu.c.superlu_vars_t),
+                           slu_r    : region(ispace(int2d), superlu.c.superlu_vars_t),
                            Nx       : int64,
                            Ny       : int64,
                            Nz       : int64 )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r), reads writes(r_rhs_l, r_rhs_r, matrix_l, matrix_r, slu)
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r), reads writes(r_rhs_l, r_rhs_r, matrix_l, matrix_r, slu_l, slu_r)
 do
 
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
@@ -393,8 +394,8 @@ do
     end
   end
 
-  superlu.MatrixSolve( r_rhs_l, r_prim_l, matrix_l[{pr,pc}], nx, ny, nz, slu )
-  superlu.MatrixSolve( r_rhs_r, r_prim_r, matrix_r[{pr,pc}], nx, ny, nz, slu )
+  superlu.MatrixSolve( r_rhs_l, r_prim_l, matrix_l[{pr,pc}], nx, ny, nz, slu_l )
+  superlu.MatrixSolve( r_rhs_r, r_prim_r, matrix_r[{pr,pc}], nx, ny, nz, slu_r )
 
  return 1
 end
@@ -407,12 +408,13 @@ task WCHR_interpolation_y( r_prim_c : region(ispace(int3d), primitive),
                            r_rhs_r  : region(ispace(int3d), primitive),
                            matrix_l : region(ispace(int2d), superlu.CSR_matrix),
                            matrix_r : region(ispace(int2d), superlu.CSR_matrix),
-                           slu      : region(ispace(int2d), superlu.c.superlu_vars_t),
+                           slu_l    : region(ispace(int2d), superlu.c.superlu_vars_t),
+                           slu_r    : region(ispace(int2d), superlu.c.superlu_vars_t),
                            Nx       : int64,
                            Ny       : int64,
                            Nz       : int64 )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r), reads writes(r_rhs_l, r_rhs_r, matrix_l, matrix_r, slu)
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r), reads writes(r_rhs_l, r_rhs_r, matrix_l, matrix_r, slu_l, slu_r)
 do
 
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
@@ -575,8 +577,8 @@ do
     end
   end
 
-  superlu.MatrixSolve( r_rhs_l, r_prim_l, matrix_l[{pr,pc}], nx, ny, nz, slu )
-  superlu.MatrixSolve( r_rhs_r, r_prim_r, matrix_r[{pr,pc}], nx, ny, nz, slu )
+  superlu.MatrixSolve( r_rhs_l, r_prim_l, matrix_l[{pr,pc}], nx, ny, nz, slu_l )
+  superlu.MatrixSolve( r_rhs_r, r_prim_r, matrix_r[{pr,pc}], nx, ny, nz, slu_r )
 
  return 1
 end
@@ -589,12 +591,13 @@ task WCHR_interpolation_z( r_prim_c : region(ispace(int3d), primitive),
                            r_rhs_r  : region(ispace(int3d), primitive),
                            matrix_l : region(ispace(int2d), superlu.CSR_matrix),
                            matrix_r : region(ispace(int2d), superlu.CSR_matrix),
-                           slu      : region(ispace(int2d), superlu.c.superlu_vars_t),
+                           slu_l    : region(ispace(int2d), superlu.c.superlu_vars_t),
+                           slu_r    : region(ispace(int2d), superlu.c.superlu_vars_t),
                            Nx       : int64,
                            Ny       : int64,
                            Nz       : int64 )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r), reads writes(r_rhs_l, r_rhs_r, matrix_l, matrix_r, slu)
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r), reads writes(r_rhs_l, r_rhs_r, matrix_l, matrix_r, slu_l, slu_r)
 do
 
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
@@ -756,8 +759,8 @@ do
     end
   end
 
-  superlu.MatrixSolve( r_rhs_l, r_prim_l, matrix_l[{pr,pc}], nx, ny, nz, slu )
-  superlu.MatrixSolve( r_rhs_r, r_prim_r, matrix_r[{pr,pc}], nx, ny, nz, slu )
+  superlu.MatrixSolve( r_rhs_l, r_prim_l, matrix_l[{pr,pc}], nx, ny, nz, slu_l )
+  superlu.MatrixSolve( r_rhs_r, r_prim_r, matrix_r[{pr,pc}], nx, ny, nz, slu_r )
 
  return 1
 end

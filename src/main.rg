@@ -97,9 +97,12 @@ task main()
 
   var pencil = ispace(int2d, int2d {config.prow, config.pcol})
 
-  var slu_x      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for x interpolation
-  var slu_y      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for y interpolation
-  var slu_z      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for z interpolation
+  var slu_l_x      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for x interpolation
+  var slu_r_x      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for x interpolation
+  var slu_l_y      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for y interpolation
+  var slu_r_y      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for y interpolation
+  var slu_l_z      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for z interpolation
+  var slu_r_z      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for z interpolation
 
   var matrix_l_x = region(pencil, superlu.CSR_matrix) -- matrix data structure for x left interpolation
   var matrix_r_x = region(pencil, superlu.CSR_matrix) -- matrix data structure for x right interpolation
@@ -165,9 +168,12 @@ task main()
   var p_LU_y       = partition_LU(LU_y, pencil)
   var p_LU_z       = partition_LU(LU_z, pencil)
 
-  var p_slu_x      = partition_slu(slu_x, pencil)
-  var p_slu_y      = partition_slu(slu_y, pencil)
-  var p_slu_z      = partition_slu(slu_z, pencil)
+  var p_slu_l_x      = partition_slu(slu_l_x, pencil)
+  var p_slu_r_x      = partition_slu(slu_r_x, pencil)
+  var p_slu_l_y      = partition_slu(slu_l_y, pencil)
+  var p_slu_r_y      = partition_slu(slu_r_y, pencil)
+  var p_slu_l_z      = partition_slu(slu_l_z, pencil)
+  var p_slu_r_z      = partition_slu(slu_r_z, pencil)
 
   var p_matrix_l_x = partition_matrix(matrix_l_x, pencil)
   var p_matrix_l_y = partition_matrix(matrix_l_y, pencil)
@@ -199,7 +205,17 @@ task main()
 
     __demand(__parallel)
     for i in pencil do
-      superlu.init_superlu_vars( p_matrix_l_x[i], 5*(Nx+1)*Ny/config.prow*Nz/config.pcol, p_rhs_l_x[i], p_prim_l_x[i], p_slu_x[i] )
+      superlu.init_superlu_vars( p_matrix_l_x[i], 5*(Nx+1)*Ny/config.prow*Nz/config.pcol, p_rhs_l_x[i], p_prim_l_x[i], p_slu_l_x[i] )
+    end
+
+    __demand(__parallel)
+    for i in pencil do
+      set_rhs_zero_p( p_rhs_r_x[i] )
+    end
+
+    __demand(__parallel)
+    for i in pencil do
+      superlu.init_superlu_vars( p_matrix_r_x[i], 5*(Nx+1)*Ny/config.prow*Nz/config.pcol, p_rhs_r_x[i], p_prim_r_x[i], p_slu_r_x[i] )
     end
   end
   c.printf("Finished X matrices initialization\n")
@@ -222,7 +238,17 @@ task main()
 
     __demand(__parallel)
     for i in pencil do
-      superlu.init_superlu_vars( p_matrix_l_y[i], 5*Nx/config.prow*(Ny+1)*Nz/config.pcol, p_rhs_l_y[i], p_prim_l_y[i], p_slu_y[i] )
+      superlu.init_superlu_vars( p_matrix_l_y[i], 5*Nx/config.prow*(Ny+1)*Nz/config.pcol, p_rhs_l_y[i], p_prim_l_y[i], p_slu_l_y[i] )
+    end
+
+    __demand(__parallel)
+    for i in pencil do
+      set_rhs_zero_p( p_rhs_r_y[i] )
+    end
+
+    __demand(__parallel)
+    for i in pencil do
+      superlu.init_superlu_vars( p_matrix_r_y[i], 5*Nx/config.prow*(Ny+1)*Nz/config.pcol, p_rhs_r_y[i], p_prim_r_y[i], p_slu_r_y[i] )
     end
   end
   c.printf("Finished Y matrices initialization\n")
@@ -245,7 +271,17 @@ task main()
 
     __demand(__parallel)
     for i in pencil do
-      superlu.init_superlu_vars( p_matrix_l_z[i], 5*Nx/config.prow*Ny/config.pcol*(Nz+1), p_rhs_l_z[i], p_prim_l_z[i], p_slu_z[i] )
+      superlu.init_superlu_vars( p_matrix_l_z[i], 5*Nx/config.prow*Ny/config.pcol*(Nz+1), p_rhs_l_z[i], p_prim_l_z[i], p_slu_l_z[i] )
+    end
+
+    __demand(__parallel)
+    for i in pencil do
+      set_rhs_zero_p( p_rhs_r_z[i] )
+    end
+
+    __demand(__parallel)
+    for i in pencil do
+      superlu.init_superlu_vars( p_matrix_r_z[i], 5*Nx/config.prow*Ny/config.pcol*(Nz+1), p_rhs_r_z[i], p_prim_r_z[i], p_slu_r_z[i] )
     end
   end
   c.printf("Finished Z matrices initialization\n")
@@ -349,7 +385,7 @@ task main()
         for i in pencil do
           add_xflux_der_to_rhs( p_cnsr_x[i], p_prim_c_x[i], p_prim_l_x[i], p_prim_r_x[i], p_rhs_l_x[i], p_rhs_r_x[i],
                                 p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
-                                p_LU_x[i], p_slu_x[i], p_matrix_l_x[i], p_matrix_r_x[i],
+                                p_LU_x[i], p_slu_l_x[i], p_slu_r_x[i], p_matrix_l_x[i], p_matrix_r_x[i],
                                 Nx, Ny, Nz )
         end
 
@@ -358,7 +394,7 @@ task main()
         for i in pencil do
           add_yflux_der_to_rhs( p_cnsr_y[i], p_prim_c_y[i], p_prim_l_y[i], p_prim_r_y[i], p_rhs_l_y[i], p_rhs_r_y[i],
                                 p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
-                                p_LU_y[i], p_slu_y[i], p_matrix_l_y[i], p_matrix_r_y[i],
+                                p_LU_y[i], p_slu_l_y[i], p_slu_r_y[i], p_matrix_l_y[i], p_matrix_r_y[i],
                                 Nx, Ny, Nz )
         end
 
@@ -367,7 +403,7 @@ task main()
         for i in pencil do
           add_zflux_der_to_rhs( p_cnsr_z[i], p_prim_c_z[i], p_prim_l_z[i], p_prim_r_z[i], p_rhs_l_z[i], p_rhs_r_z[i],
                                 p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
-                                p_LU_z[i], p_slu_z[i], p_matrix_l_z[i], p_matrix_r_z[i],
+                                p_LU_z[i], p_slu_l_z[i], p_slu_r_z[i], p_matrix_l_z[i], p_matrix_r_z[i],
                                 Nx, Ny, Nz )
         end
 
@@ -450,7 +486,11 @@ task main()
   if Nx >= 8 then
     __demand(__parallel)
     for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_x[i] )
+      superlu.destroy_superlu_vars( p_slu_l_x[i] )
+    end
+    __demand(__parallel)
+    for i in pencil do
+      superlu.destroy_superlu_vars( p_slu_r_x[i] )
     end
   end
   c.printf("Destroyed X SuperLU struct\n")
@@ -458,7 +498,11 @@ task main()
   if Ny >= 8 then
     __demand(__parallel)
     for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_y[i] )
+      superlu.destroy_superlu_vars( p_slu_l_y[i] )
+    end
+    __demand(__parallel)
+    for i in pencil do
+      superlu.destroy_superlu_vars( p_slu_r_y[i] )
     end
   end
   c.printf("Destroyed Y SuperLU struct\n")
@@ -466,7 +510,11 @@ task main()
   if Nz >= 8 then
     __demand(__parallel)
     for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_z[i] )
+      superlu.destroy_superlu_vars( p_slu_l_z[i] )
+    end
+    __demand(__parallel)
+    for i in pencil do
+      superlu.destroy_superlu_vars( p_slu_r_z[i] )
     end
   end
   c.printf("Destroyed Z SuperLU struct\n")
