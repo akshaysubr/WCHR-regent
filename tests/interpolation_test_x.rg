@@ -164,20 +164,22 @@ task main()
   wait_for(token)
 
   var t_start = c.legion_get_current_time_in_micros()
-  token += WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_x )
+  token += WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_x, Nx, Ny, Nz )
   wait_for(token)
   var t_WCHR = c.legion_get_current_time_in_micros() - t_start
   c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_WCHR)*1e-6)
 
-  var IOtoken = 0
-  IOtoken += write_coords(coords)
-  wait_for(IOtoken)
-  IOtoken += write_primitive(r_prim_c, "cell_primitive", 0)
-  wait_for(IOtoken)
-  IOtoken += write_primitive(r_prim_l_x, "edge_primitive_l_x", 0)
-  wait_for(IOtoken)
-  IOtoken += write_primitive(r_prim_r_x, "edge_primitive_r_x", 0)
-  wait_for(IOtoken)
+  superlu.destroy_superlu_vars( slu_x )
+
+  -- var IOtoken = 0
+  -- IOtoken += write_coords(coords)
+  -- wait_for(IOtoken)
+  -- IOtoken += write_primitive(r_prim_c, "cell_primitive", 0)
+  -- wait_for(IOtoken)
+  -- IOtoken += write_primitive(r_prim_l_x, "edge_primitive_l_x", 0)
+  -- wait_for(IOtoken)
+  -- IOtoken += write_primitive(r_prim_r_x, "edge_primitive_r_x", 0)
+  -- wait_for(IOtoken)
 end
 
 regentlib.start(main, csuperlu_mapper.register_mappers)

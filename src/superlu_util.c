@@ -25,25 +25,41 @@ void MatrixSolve(double * restrict dX, double * restrict df, double * restrict n
 
 void destroy_superlu_vars(superlu_vars_t *vars)
 {
+    printf("vars: %p\n", (void *)vars);
     // Destroy_CompCol_Matrix(&(vars->A));
+    printf("0\n");
     Destroy_CompRow_Matrix(&(vars->A));
+    printf("1\n");
     Destroy_SuperMatrix_Store(&(vars->B));
+    printf("2\n");
     Destroy_SuperMatrix_Store(&(vars->X));
+    printf("3\n");
     Destroy_SuperNode_Matrix(&(vars->L));
+    printf("4\n");
     Destroy_CompCol_Matrix(&(vars->U));
+    printf("5\n");
     StatFree(&(vars->stat));
+    printf("6\n");
 
     SUPERLU_FREE(vars->perm_c);
+    printf("7\n");
     SUPERLU_FREE(vars->perm_r);
+    printf("8\n");
     SUPERLU_FREE(vars->etree);
+    printf("9\n");
 
     SUPERLU_FREE(vars->R);
+    printf("10\n");
     SUPERLU_FREE(vars->C);
+    printf("11\n");
     SUPERLU_FREE(vars->ferr);
+    printf("12\n");
     SUPERLU_FREE(vars->berr);
+    printf("13\n");
 
     if ( (vars->lwork) != 0 )
         SUPERLU_FREE(vars->work);
+    printf("14\n");
 }
 
 
@@ -85,4 +101,6 @@ void initialize_superlu_vars(double *nzval, int* rowind, int *colptr, long int N
 
     vars->options.Fact = SamePattern_SameRowPerm;
     // vars->options.Fact = FACTORED;
+
+    printf("vars: %p\n", (void *)vars);
 }

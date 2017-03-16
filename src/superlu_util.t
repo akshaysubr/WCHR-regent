@@ -14,7 +14,7 @@ do
     superlu_util_so = os.tmpname() .. ".so"
   end
   local cc = os.getenv('CC') or 'cc'
-  local cc_flags = "-O3 -Wall -Werror -std=c99"
+  local cc_flags = "-g -O0 -Wall -Werror -std=c99"
   cc_flags = cc_flags .. " -I" .. superlu_include_dir
   local is_darwin = os.execute('test "$(uname)" = Darwin') == 0
   if is_darwin then
@@ -631,6 +631,7 @@ where
 do
   var vars = get_base_pointer_2d(__physical(slu)[0], __fields(slu)[0], slu.bounds)
   superlu.c.destroy_superlu_vars( vars )
+  c.printf("Destroyed superlu vars\n")
 end
 
 return superlu
