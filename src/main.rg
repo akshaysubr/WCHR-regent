@@ -446,6 +446,30 @@ task main()
   c.printf("\n")
   c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/step)
   
+  -- Destroy SuperLU structs
+  if Nx >= 8 then
+    __demand(__parallel)
+    for i in pencil do
+      superlu.destroy_superlu_vars( p_slu_x[i] )
+    end
+  end
+  c.printf("Destroyed X SuperLU struct\n")
+
+  if Ny >= 8 then
+    __demand(__parallel)
+    for i in pencil do
+      superlu.destroy_superlu_vars( p_slu_y[i] )
+    end
+  end
+  c.printf("Destroyed Y SuperLU struct\n")
+
+  if Nz >= 8 then
+    __demand(__parallel)
+    for i in pencil do
+      superlu.destroy_superlu_vars( p_slu_z[i] )
+    end
+  end
+  c.printf("Destroyed Z SuperLU struct\n")
 end
 
 regentlib.start(main, csuperlu_mapper.register_mappers)

@@ -618,4 +618,13 @@ do
   superlu.c.MatrixSolve(b, x, matrix.nzval, nx, ny, nz, vars)
 end
 
+__demand(__external)
+task superlu.destroy_superlu_vars( slu : region(ispace(int2d), superlu.c.superlu_vars_t) )
+where
+  reads writes (slu)
+do
+  var vars = get_base_pointer_2d(__physical(slu)[0], __fields(slu)[0], slu.bounds)
+  superlu.c.destroy_superlu_vars( vars )
+end
+
 return superlu
