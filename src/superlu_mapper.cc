@@ -63,7 +63,7 @@ void ExternalTestMapper::map_task(const MapperContext  ctx,
 {
   const char* task_name = task.get_task_name();
 
-  if (strcmp(task_name, "superlu.initialize_superlu_vars") == 0 || strcmp(task_name, "superlu.MatrixSolve") == 0) {
+  if (strcmp(task_name, "superlu.initialize_superlu_vars") == 0 || strcmp(task_name, "superlu.MatrixSolve") == 0 || strcmp(task_name, "superlu.destroy_superlu_vars") == 0) {
 
     Processor::Kind target_kind = task.target_proc.kind();
     VariantInfo chosen = default_find_preferred_variant(task, ctx,
