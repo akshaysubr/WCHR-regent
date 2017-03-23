@@ -3,3 +3,4 @@ src/*.h5
 src/legion_prof
 src/*.prof
 src/*.log
+profiles

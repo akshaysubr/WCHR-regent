@@ -48,7 +48,8 @@ do
     coords[i].y_c = problem.Y1 + (i.y + 0.5) * dy
     coords[i].z_c = problem.Z1 + (i.z + 0.5) * dz
 
-    r_prim_c[i].rho = 1.0 + 0.5*cmath.exp(-cmath.pow((coords[i].x_c/0.2), 2) - cmath.pow((coords[i].y_c/0.2), 2) - cmath.pow((coords[i].z_c/0.2), 2))
+    -- r_prim_c[i].rho = 1.0 + 0.5*cmath.exp(-cmath.pow((coords[i].x_c/0.2), 2) - cmath.pow((coords[i].y_c/0.2), 2) - cmath.pow((coords[i].z_c/0.2), 2))
+    r_prim_c[i].rho = 1.0 + 0.5*( cmath.sin( PI*coords[i].x_c ) * cmath.sin( PI*coords[i].y_c ) * cmath.sin( PI*coords[i].z_c ) )
     r_prim_c[i].u   = 1.0
     r_prim_c[i].v   = 1.0 
     r_prim_c[i].w   = 1.0
@@ -79,7 +80,8 @@ do
     var z0 : double = coords[i].z_c - tsim
     z0 = z0 - cmath.nearbyint(z0/problem.LZ)*problem.LZ
 
-    err = cmath.fabs( r_prim_c[i].rho - (1.0 + 0.5*cmath.exp( -cmath.pow(( x0/0.2), 2) - cmath.pow(( y0/0.2), 2) - cmath.pow(( z0/0.2), 2) )) )
+    -- err = cmath.fabs( r_prim_c[i].rho - (1.0 + 0.5*cmath.exp( -cmath.pow(( x0/0.2), 2) - cmath.pow(( y0/0.2), 2) - cmath.pow(( z0/0.2), 2) )) )
+    err = cmath.fabs( r_prim_c[i].rho - (1.0 + 0.5*( cmath.sin( PI*x0 ) * cmath.sin( PI*y0 ) * cmath.sin( PI*z0 )) ) )
     if err > errors[0] then
       errors[0] = err
     end

@@ -11,6 +11,9 @@ if len(sys.argv) != 3:
 data_file  = sys.argv[1]
 linetype   = sys.argv[2]
 
+t_JS, TKE_JS = numpy.loadtxt('WCNS5-JS_KE.txt', unpack=True)
+t_LD, TKE_LD = numpy.loadtxt('WCNS6-LD_KE.txt', unpack=True)
+
 t   = []
 TKE = []
 
@@ -29,5 +32,9 @@ TKE = numpy.array(TKE)
 
 plt.figure(1)
 plt.plot(t,TKE,linetype,fillstyle='none')
+plt.plot(t_JS,TKE_JS/TKE_JS[0],'b--',fillstyle='none')
+plt.plot(t_LD,TKE_LD/TKE_LD[0],'r-.',fillstyle='none')
+
+
 plt.xlabel(r'$t$', fontsize=20)
 plt.ylabel(r'$TKE$', fontsize=20)
