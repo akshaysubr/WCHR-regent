@@ -493,7 +493,6 @@ task main()
       superlu.destroy_superlu_vars( p_slu_r_x[i] )
     end
   end
-  c.printf("Destroyed X SuperLU struct\n")
 
   if Ny >= 8 then
     __demand(__parallel)
@@ -505,7 +504,6 @@ task main()
       superlu.destroy_superlu_vars( p_slu_r_y[i] )
     end
   end
-  c.printf("Destroyed Y SuperLU struct\n")
 
   if Nz >= 8 then
     __demand(__parallel)
@@ -517,7 +515,6 @@ task main()
       superlu.destroy_superlu_vars( p_slu_r_z[i] )
     end
   end
-  c.printf("Destroyed Z SuperLU struct\n")
 end
 
 if os.getenv('SAVEOBJ') == '1' then

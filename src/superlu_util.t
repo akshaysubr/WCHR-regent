@@ -631,7 +631,6 @@ where
 do
   var vars = get_base_pointer_2d(__physical(slu)[0], __fields(slu)[0], slu.bounds)
   superlu.c.destroy_superlu_vars( vars )
-  c.printf("Destroyed superlu vars\n")
 end
 
 return superlu
