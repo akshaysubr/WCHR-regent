@@ -12,8 +12,8 @@ alpha06CI = 3.0/16.0
 beta06CI  = 5.0/8.0
 gamma06CI = 3.0/16.0
 
--- local xi = 2.0/3.0
-local xi = 1.0
+local xi = 2.0/3.0
+-- local xi = 1.0
   
 local function v_index(i,is_left)
   if is_left then
@@ -176,7 +176,9 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
         var omega_upwind : double[4]
         sum = 0.0
         for i = 0, 4 do
-          omega_upwind[i] = d_upwind[i]*( 1.0 + (tau_5/(beta[i] + epsilon))*(tau_5/(beta[i] + epsilon)) )
+          var dummy : double = (tau_5/(beta[i] + epsilon))
+          -- dummy = dummy*dummy
+          omega_upwind[i] = d_upwind[i]*( 1.0 + dummy )
           sum = sum + omega_upwind[i]
         end
         for i = 0, 4 do

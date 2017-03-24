@@ -37,11 +37,19 @@ local a06d1 = ( 14.0/ 9.0)/2.0
 local b06d1 = (  1.0/ 9.0)/4.0
 local c06d1 = (  0.0/100.0)/6.0
 
+-- Compact MND finite difference
 local alpha06MND = -1.0/12.0
 local beta06MND  = 0.0
 local a06MND = 16.0/9.0
 local b06MND = (-17.0/18.0)/2.0
 local c06MND = (0.0)/3.0
+
+-- Compact staggered finite difference
+-- local alpha06MND = 9.0/62.0
+-- local beta06MND  = 0.0
+-- local a06MND = 63.0/62.0
+-- local b06MND = (0.0/18.0)/2.0
+-- local c06MND = (17.0/62.0)/3.0
 
 local r_prim   = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim")
 local r_prim_e = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim_e")
@@ -235,7 +243,7 @@ task main()
   wait_for(token)
   err = check_ddx(coords, r_der)
   c.printf("Error in ddx_MND = %g\n", err)
-  regentlib.assert( err <= 1.e-10, "Derivative test failed for task ddx_MND")
+  regentlib.assert( err <= 1.e-09, "Derivative test failed for task ddx_MND")
 
   fill(r_der.rho, 0.0)
   get_LU_decomposition(LU_y, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
@@ -243,7 +251,7 @@ task main()
   wait_for(token)
   err = check_ddy(coords, r_der)
   c.printf("Error in ddy_MND = %g\n", err)
-  regentlib.assert( err <= 1.e-10, "Derivative test failed for task ddy_MND")
+  regentlib.assert( err <= 1.e-09, "Derivative test failed for task ddy_MND")
 
   fill(r_der.rho, 0.0)
   get_LU_decomposition(LU_z, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
@@ -251,7 +259,7 @@ task main()
   wait_for(token)
   err = check_ddz(coords, r_der)
   c.printf("Error in ddz_MND = %g\n", err)
-  regentlib.assert( err <= 1.e-10, "Derivative test failed for task ddz_MND")
+  regentlib.assert( err <= 1.e-09, "Derivative test failed for task ddz_MND")
 
   c.printf("\nAll tests passed! :)\n")
 end
