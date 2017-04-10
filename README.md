@@ -22,7 +22,7 @@ After the code is compiled, run the code using `./wchr -p <number of partitions>
 To change the problem you want to run, simply link the `problem.rg` symlink to a new problem file using `ln -s <path/to/new/problem.rg> problem.rg`.
 
 ## TODO
-- Add non-periodic boundary conditions (possibility with ghost cells)
+- Add non-periodic boundary conditions (possibly with ghost cells)
 - Implement different Runge-Kutta time stepping schemes, especially TVD-RK3
 - Add more general EOS
 
