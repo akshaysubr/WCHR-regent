@@ -7,11 +7,13 @@ local PI    = cmath.M_PI
 require("fields")
 require("derivatives")
 require("IO")
+require("EOS")
 require("RHS")
 require("partition")
 
 local superlu = require("superlu_util")
 local problem = require("problem")
+local EOS = require("EOS")
 local Config  = require("config")
 
 local csuperlu_mapper = require("superlu_mapper")
@@ -54,126 +56,134 @@ task main()
   --------------------------------------------------------------------------------------------
   --                       DATA STUCTURES
   --------------------------------------------------------------------------------------------
-  var grid_c     = ispace(int3d, {x = Nx,   y = Ny,   z = Nz  })  -- Cell center index space
+  
+  var grid_c     = ispace(int3d, {x = Nx,   y = Ny,   z = Nz  })  -- cell center index space
 
   var grid_e_x   = ispace(int3d, {x = Nx+1, y = Ny,   z = Nz  })  -- x cell edge index space
   var grid_e_y   = ispace(int3d, {x = Nx,   y = Ny+1, z = Nz  })  -- y cell edge index space
   var grid_e_z   = ispace(int3d, {x = Nx,   y = Ny,   z = Nz+1})  -- z cell edge index space
 
-  var coords     = region(grid_c, coordinates)  -- Coordinates of cell center
+  var coords     = region(grid_c, coordinates)  -- coordinates of cell center
 
-  var r_cnsr     = region(grid_c,   conserved)  -- Conserved variables at cell center
+  var r_cnsr     = region(grid_c,   conserved)  -- conserved variables at cell center
 
-  var r_prim_c   = region(grid_c,   primitive)  -- Primitive variables at cell center
-  var r_prim_l_x = region(grid_e_x, primitive)  -- Primitive variables at left x cell edge
-  var r_prim_l_y = region(grid_e_y, primitive)  -- Primitive variables at left y cell edge
-  var r_prim_l_z = region(grid_e_z, primitive)  -- Primitive variables at left z cell edge
-  var r_prim_r_x = region(grid_e_x, primitive)  -- Primitive variables at right x cell edge
-  var r_prim_r_y = region(grid_e_y, primitive)  -- Primitive variables at right y cell edge
-  var r_prim_r_z = region(grid_e_z, primitive)  -- Primitive variables at right z cell edge
+  var r_prim_c   = region(grid_c,   primitive)  -- primitive variables at cell center
+  var r_prim_l_x = region(grid_e_x, primitive)  -- primitive variables at left x cell edge
+  var r_prim_l_y = region(grid_e_y, primitive)  -- primitive variables at left y cell edge
+  var r_prim_l_z = region(grid_e_z, primitive)  -- primitive variables at left z cell edge
+  var r_prim_r_x = region(grid_e_x, primitive)  -- primitive variables at right x cell edge
+  var r_prim_r_y = region(grid_e_y, primitive)  -- primitive variables at right y cell edge
+  var r_prim_r_z = region(grid_e_z, primitive)  -- primitive variables at right z cell edge
 
-  var r_rhs_l_x  = region(grid_e_x, primitive)  -- Store RHS for left interpolation in x
-  var r_rhs_r_x  = region(grid_e_x, primitive)  -- Store RHS for right interpolation in x
-  var r_rhs_l_y  = region(grid_e_y, primitive)  -- Store RHS for left interpolation in y
-  var r_rhs_r_y  = region(grid_e_y, primitive)  -- Store RHS for right interpolation in y
-  var r_rhs_l_z  = region(grid_e_z, primitive)  -- Store RHS for left interpolation in z
-  var r_rhs_r_z  = region(grid_e_z, primitive)  -- Store RHS for right interpolation in z
+  var r_rhs_l_x  = region(grid_e_x, primitive)  -- store RHS for left interpolation in x
+  var r_rhs_r_x  = region(grid_e_x, primitive)  -- store RHS for right interpolation in x
+  var r_rhs_l_y  = region(grid_e_y, primitive)  -- store RHS for left interpolation in y
+  var r_rhs_r_y  = region(grid_e_y, primitive)  -- store RHS for right interpolation in y
+  var r_rhs_l_z  = region(grid_e_z, primitive)  -- store RHS for left interpolation in z
+  var r_rhs_r_z  = region(grid_e_z, primitive)  -- store RHS for right interpolation in z
 
-  var r_flux_c   = region(grid_c,   conserved)  -- Flux at cell center
-  var r_flux_e_x = region(grid_e_x, conserved)  -- Flux at x cell edge
-  var r_flux_e_y = region(grid_e_y, conserved)  -- Flux at y cell edge
-  var r_flux_e_z = region(grid_e_z, conserved)  -- Flux at z cell edge
+  var r_flux_c   = region(grid_c,   conserved)  -- flux at cell center
+  var r_flux_e_x = region(grid_e_x, conserved)  -- flux at x cell edge
+  var r_flux_e_y = region(grid_e_y, conserved)  -- flux at y cell edge
+  var r_flux_e_z = region(grid_e_z, conserved)  -- flux at z cell edge
   
-  var r_fder_c_x = region(grid_c,   conserved)     -- x flux derivative
-  var r_fder_c_y = region(grid_c,   conserved)     -- y flux derivative
-  var r_fder_c_z = region(grid_c,   conserved)     -- z flux derivative
+  var r_fder_c_x = region(grid_c,   conserved)  -- x flux derivative
+  var r_fder_c_y = region(grid_c,   conserved)  -- y flux derivative
+  var r_fder_c_z = region(grid_c,   conserved)  -- z flux derivative
   
   var r_rhs      = region(grid_c,   conserved)  -- RHS for time stepping at cell center
-  var r_qrhs     = region(grid_c,   conserved)  -- Buffer for RK45 time stepping
+  var r_qrhs     = region(grid_c,   conserved)  -- buffer for RK45 time stepping
 
-  var LU_x       = region(ispace(int3d, {x = Nx, y = config.prow, z = config.pcol}), LU_struct) -- Data structure to hold x derivative LU decomposition
-  var LU_y       = region(ispace(int3d, {x = Ny, y = config.prow, z = config.pcol}), LU_struct) -- Data structure to hold y derivative LU decomposition
-  var LU_z       = region(ispace(int3d, {x = Nz, y = config.prow, z = config.pcol}), LU_struct) -- Data structure to hold z derivative LU decomposition
+  -- data structure to hold x derivative LU decomposition
+  var LU_x       = region(ispace(int3d, {x = Nx, y = config.prow, z = config.pcol}), LU_struct)
+  
+  -- data structure to hold y derivative LU decomposition
+  var LU_y       = region(ispace(int3d, {x = Ny, y = config.prow, z = config.pcol}), LU_struct)
+
+  -- data structure to hold z derivative LU decomposition
+  var LU_z       = region(ispace(int3d, {x = Nz, y = config.prow, z = config.pcol}), LU_struct)
 
   var pencil = ispace(int2d, int2d {config.prow, config.pcol})
 
-  var slu_l_x      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for x interpolation
-  var slu_r_x      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for x interpolation
-  var slu_l_y      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for y interpolation
-  var slu_r_y      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for y interpolation
-  var slu_l_z      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for z interpolation
-  var slu_r_z      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for z interpolation
+  var slu_l_x    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for x interpolation
+  var slu_r_x    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for x interpolation
+  var slu_l_y    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for y interpolation
+  var slu_r_y    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for y interpolation
+  var slu_l_z    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for z interpolation
+  var slu_r_z    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for z interpolation
 
-  var matrix_l_x = region(pencil, superlu.CSR_matrix) -- matrix data structure for x left interpolation
-  var matrix_r_x = region(pencil, superlu.CSR_matrix) -- matrix data structure for x right interpolation
-  var matrix_l_y = region(pencil, superlu.CSR_matrix) -- matrix data structure for y left interpolation
-  var matrix_r_y = region(pencil, superlu.CSR_matrix) -- matrix data structure for y right interpolation
-  var matrix_l_z = region(pencil, superlu.CSR_matrix) -- matrix data structure for z left interpolation
-  var matrix_r_z = region(pencil, superlu.CSR_matrix) -- matrix data structure for z right interpolation
+  var matrix_l_x = region(pencil, superlu.CSR_matrix)  -- matrix data structure for x left interpolation
+  var matrix_r_x = region(pencil, superlu.CSR_matrix)  -- matrix data structure for x right interpolation
+  var matrix_l_y = region(pencil, superlu.CSR_matrix)  -- matrix data structure for y left interpolation
+  var matrix_r_y = region(pencil, superlu.CSR_matrix)  -- matrix data structure for y right interpolation
+  var matrix_l_z = region(pencil, superlu.CSR_matrix)  -- matrix data structure for z left interpolation
+  var matrix_r_z = region(pencil, superlu.CSR_matrix)  -- matrix data structure for z right interpolation
+  
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
   --------------------------------------------------------------------------------------------
   --                       PARTITIONING
   --------------------------------------------------------------------------------------------
-  var p_coords_x = partition_xpencil_coords(coords,   pencil)
-  var p_coords_y = partition_ypencil_coords(coords,   pencil)
-  var p_coords_z = partition_zpencil_coords(coords,   pencil)
+  
+  var p_coords_x   = partition_xpencil_coords(coords,   pencil)
+  var p_coords_y   = partition_ypencil_coords(coords,   pencil)
+  var p_coords_z   = partition_zpencil_coords(coords,   pencil)
 
-  var p_cnsr_x   = partition_xpencil_cnsr(r_cnsr,     pencil)
-  var p_cnsr_y   = partition_ypencil_cnsr(r_cnsr,     pencil)
-  var p_cnsr_z   = partition_zpencil_cnsr(r_cnsr,     pencil)
+  var p_cnsr_x     = partition_xpencil_cnsr(r_cnsr,     pencil)
+  var p_cnsr_y     = partition_ypencil_cnsr(r_cnsr,     pencil)
+  var p_cnsr_z     = partition_zpencil_cnsr(r_cnsr,     pencil)
 
-  var p_prim_c_x = partition_xpencil_prim(r_prim_c,   pencil)
-  var p_prim_c_y = partition_ypencil_prim(r_prim_c,   pencil)
-  var p_prim_c_z = partition_zpencil_prim(r_prim_c,   pencil)
+  var p_prim_c_x   = partition_xpencil_prim(r_prim_c,   pencil)
+  var p_prim_c_y   = partition_ypencil_prim(r_prim_c,   pencil)
+  var p_prim_c_z   = partition_zpencil_prim(r_prim_c,   pencil)
 
-  var p_prim_l_x = partition_xpencil_prim(r_prim_l_x, pencil)
-  var p_prim_l_y = partition_ypencil_prim(r_prim_l_y, pencil)
-  var p_prim_l_z = partition_zpencil_prim(r_prim_l_z, pencil)
+  var p_prim_l_x   = partition_xpencil_prim(r_prim_l_x, pencil)
+  var p_prim_l_y   = partition_ypencil_prim(r_prim_l_y, pencil)
+  var p_prim_l_z   = partition_zpencil_prim(r_prim_l_z, pencil)
 
-  var p_prim_r_x = partition_xpencil_prim(r_prim_r_x, pencil)
-  var p_prim_r_y = partition_ypencil_prim(r_prim_r_y, pencil)
-  var p_prim_r_z = partition_zpencil_prim(r_prim_r_z, pencil)
+  var p_prim_r_x   = partition_xpencil_prim(r_prim_r_x, pencil)
+  var p_prim_r_y   = partition_ypencil_prim(r_prim_r_y, pencil)
+  var p_prim_r_z   = partition_zpencil_prim(r_prim_r_z, pencil)
 
-  var p_rhs_l_x  = partition_xpencil_prim(r_rhs_l_x,  pencil)
-  var p_rhs_l_y  = partition_ypencil_prim(r_rhs_l_y,  pencil)
-  var p_rhs_l_z  = partition_zpencil_prim(r_rhs_l_z,  pencil)
+  var p_rhs_l_x    = partition_xpencil_prim(r_rhs_l_x,  pencil)
+  var p_rhs_l_y    = partition_ypencil_prim(r_rhs_l_y,  pencil)
+  var p_rhs_l_z    = partition_zpencil_prim(r_rhs_l_z,  pencil)
 
-  var p_rhs_r_x  = partition_xpencil_prim(r_rhs_r_x,  pencil)
-  var p_rhs_r_y  = partition_ypencil_prim(r_rhs_r_y,  pencil)
-  var p_rhs_r_z  = partition_zpencil_prim(r_rhs_r_z,  pencil)
+  var p_rhs_r_x    = partition_xpencil_prim(r_rhs_r_x,  pencil)
+  var p_rhs_r_y    = partition_ypencil_prim(r_rhs_r_y,  pencil)
+  var p_rhs_r_z    = partition_zpencil_prim(r_rhs_r_z,  pencil)
 
-  var p_flux_c_x = partition_xpencil_cnsr(r_flux_c,   pencil)
-  var p_flux_c_y = partition_ypencil_cnsr(r_flux_c,   pencil)
-  var p_flux_c_z = partition_zpencil_cnsr(r_flux_c,   pencil)
+  var p_flux_c_x   = partition_xpencil_cnsr(r_flux_c,   pencil)
+  var p_flux_c_y   = partition_ypencil_cnsr(r_flux_c,   pencil)
+  var p_flux_c_z   = partition_zpencil_cnsr(r_flux_c,   pencil)
 
-  var p_flux_e_x = partition_xpencil_cnsr(r_flux_e_x, pencil)
-  var p_flux_e_y = partition_ypencil_cnsr(r_flux_e_y, pencil)
-  var p_flux_e_z = partition_zpencil_cnsr(r_flux_e_z, pencil)
+  var p_flux_e_x   = partition_xpencil_cnsr(r_flux_e_x, pencil)
+  var p_flux_e_y   = partition_ypencil_cnsr(r_flux_e_y, pencil)
+  var p_flux_e_z   = partition_zpencil_cnsr(r_flux_e_z, pencil)
 
-  var p_fder_c_x = partition_xpencil_cnsr(r_fder_c_x, pencil)
-  var p_fder_c_y = partition_ypencil_cnsr(r_fder_c_y, pencil)
-  var p_fder_c_z = partition_zpencil_cnsr(r_fder_c_z, pencil)
+  var p_fder_c_x   = partition_xpencil_cnsr(r_fder_c_x, pencil)
+  var p_fder_c_y   = partition_ypencil_cnsr(r_fder_c_y, pencil)
+  var p_fder_c_z   = partition_zpencil_cnsr(r_fder_c_z, pencil)
 
-  var p_rhs_x    = partition_xpencil_cnsr(r_rhs,      pencil)
-  var p_rhs_y    = partition_ypencil_cnsr(r_rhs,      pencil)
-  var p_rhs_z    = partition_zpencil_cnsr(r_rhs,      pencil)
+  var p_rhs_x      = partition_xpencil_cnsr(r_rhs,      pencil)
+  var p_rhs_y      = partition_ypencil_cnsr(r_rhs,      pencil)
+  var p_rhs_z      = partition_zpencil_cnsr(r_rhs,      pencil)
 
-  var p_qrhs_x   = partition_xpencil_cnsr(r_qrhs,     pencil)
-  var p_qrhs_y   = partition_ypencil_cnsr(r_qrhs,     pencil)
-  var p_qrhs_z   = partition_zpencil_cnsr(r_qrhs,     pencil)
+  var p_qrhs_x     = partition_xpencil_cnsr(r_qrhs,     pencil)
+  var p_qrhs_y     = partition_ypencil_cnsr(r_qrhs,     pencil)
+  var p_qrhs_z     = partition_zpencil_cnsr(r_qrhs,     pencil)
 
   var p_LU_x       = partition_LU(LU_x, pencil)
   var p_LU_y       = partition_LU(LU_y, pencil)
   var p_LU_z       = partition_LU(LU_z, pencil)
 
-  var p_slu_l_x      = partition_slu(slu_l_x, pencil)
-  var p_slu_r_x      = partition_slu(slu_r_x, pencil)
-  var p_slu_l_y      = partition_slu(slu_l_y, pencil)
-  var p_slu_r_y      = partition_slu(slu_r_y, pencil)
-  var p_slu_l_z      = partition_slu(slu_l_z, pencil)
-  var p_slu_r_z      = partition_slu(slu_r_z, pencil)
+  var p_slu_l_x    = partition_slu(slu_l_x, pencil)
+  var p_slu_r_x    = partition_slu(slu_r_x, pencil)
+  var p_slu_l_y    = partition_slu(slu_l_y, pencil)
+  var p_slu_r_y    = partition_slu(slu_r_y, pencil)
+  var p_slu_l_z    = partition_slu(slu_l_z, pencil)
+  var p_slu_r_z    = partition_slu(slu_r_z, pencil)
 
   var p_matrix_l_x = partition_matrix(matrix_l_x, pencil)
   var p_matrix_l_y = partition_matrix(matrix_l_y, pencil)
@@ -186,7 +196,7 @@ task main()
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
-  -- Initialize characteristic interpolation matrices and SuperLU structs
+  -- Initialize characteristic interpolation matrices and SuperLU structs.
   if Nx >= 8 then
     __demand(__parallel)
     for i in pencil do
@@ -286,7 +296,7 @@ task main()
   end
   c.printf("Finished Z matrices initialization\n")
   
-  -- Initialize derivatives stuff
+  -- Initialize derivatives stuff.
   __demand(__parallel)
   for i in pencil do
     get_LU_decomposition(p_LU_x[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
@@ -304,7 +314,7 @@ task main()
   var token : int = 0
   __demand(__parallel)
   for i in pencil do
-    -- Initialize everything in y decomposition
+    -- Initialize everything in y decomposition.
     token += problem.initialize(p_coords_y[i], p_prim_c_y[i], dx, dy, dz)
   end
   wait_for(token)
@@ -335,15 +345,17 @@ task main()
 
   var tstop    : double = problem.tstop
   var dt       : double = problem.dt
+  var CFL_num  : double = problem.CFL_num
   var tsim     : double = 0.0
   var step     : int64  = 0
   var tviz     : double = problem.tviz
   var vizcount : int    = 0
   var vizcond  : bool   = true
 
+  -- Get conserved variables after initialization.
   __demand(__parallel)
   for i in pencil do
-    token += get_conserved_r(p_prim_c_y[i], p_cnsr_y[i]) -- Get conserved variables after initialization
+    token += get_conserved_r(p_prim_c_y[i], p_cnsr_y[i])
   end
 
   -- if config.fileIO then
@@ -366,6 +378,22 @@ task main()
   __demand(__spmd)
   while tsim < tstop*(1.0 - 1.0e-16) do
 
+    -- Get stable dt.
+    dt = dt/0.0
+    if Nz >= 8 then
+      for i in pencil do
+        dt = CFL_num*cmath.fmin(dt, get_max_stable_dt_3d(p_prim_c_y[i], dx, dy, dz))
+      end
+    elseif Ny >= 8 then
+      for i in pencil do
+        dt = CFL_num*cmath.fmin(dt, get_max_stable_dt_2d(p_prim_c_y[i], dx, dy))
+      end
+    else
+      for i in pencil do
+        dt = CFL_num*cmath.fmin(dt, get_max_stable_dt_1d(p_prim_c_y[i], dx))
+      end
+    end
+
     var Q_t : double = 0.0
 
     __demand(__parallel)
@@ -374,13 +402,13 @@ task main()
     end
 
     for isub = 0,5 do
-        -- -- Set RHS to zero
+        -- Set RHS to zero.
         __demand(__parallel)
         for i in pencil do
           set_rhs_zero( p_rhs_y[i] )
         end
         
-        -- Add X direction flux derivatives to RHS
+        -- Add x-direction flux derivative to RHS.
         __demand(__parallel)
         for i in pencil do
           add_xflux_der_to_rhs( p_cnsr_x[i], p_prim_c_x[i], p_prim_l_x[i], p_prim_r_x[i], p_rhs_l_x[i], p_rhs_r_x[i],
@@ -389,7 +417,7 @@ task main()
                                 Nx, Ny, Nz )
         end
 
-        -- Add Y direction flux derivatives to RHS
+        -- Add y-direction flux derivative to RHS.
         __demand(__parallel)
         for i in pencil do
           add_yflux_der_to_rhs( p_cnsr_y[i], p_prim_c_y[i], p_prim_l_y[i], p_prim_r_y[i], p_rhs_l_y[i], p_rhs_r_y[i],
@@ -398,7 +426,7 @@ task main()
                                 Nx, Ny, Nz )
         end
 
-        -- Add Z direction flux derivatives to RHS
+        -- Add z-direction flux derivative to RHS.
         __demand(__parallel)
         for i in pencil do
           add_zflux_der_to_rhs( p_cnsr_z[i], p_prim_c_z[i], p_prim_l_z[i], p_prim_r_z[i], p_rhs_l_z[i], p_rhs_r_z[i],
@@ -407,16 +435,17 @@ task main()
                                 Nx, Ny, Nz )
         end
 
-        -- Update solution in this substep
+        -- Update solution in this substep.
         __demand(__parallel)
         for i in pencil do
           update_substep( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK45[isub], B_RK45[isub] )
         end
 
-        -- Update simulation time as well
+        -- Update simulation time as well.
         Q_t = dt + A_RK45[isub]*Q_t
         tsim += B_RK45[isub]*Q_t
 
+        -- Update the primitive variables.
         __demand(__parallel)
         for i in pencil do
           token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
@@ -482,7 +511,7 @@ task main()
   c.printf("\n")
   c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/step)
   
-  -- Destroy SuperLU structs
+  -- Destroy SuperLU structs.
   if Nx >= 8 then
     __demand(__parallel)
     for i in pencil do

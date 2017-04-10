@@ -172,6 +172,67 @@ do
   return rhosos
 end
 
+task get_max_stable_dt_1d( r_prim_c : region(ispace(int3d), primitive),
+                           dx       : double)
+where
+  reads(r_prim_c)
+do
+  var max_spectral_radius : double = 0.0
+
+  for i in r_prim_c do
+    var sos = get_sos(r_prim_c[i].rho, r_prim_c[i].p)
+    var local_spectral_radius_x = (sos + cmath.fabs(r_prim_c[i].u))/dx
+
+    max_spectral_radius = cmath.fmax(max_spectral_radius, local_spectral_radius_x)
+  end
+
+  return 1.0/max_spectral_radius
+end
+
+task get_max_stable_dt_2d( r_prim_c : region(ispace(int3d), primitive),
+                           dx       : double,
+                           dy       : double)
+where
+  reads(r_prim_c)
+do
+  var max_spectral_radius : double = 0.0
+
+  for i in r_prim_c do
+    var sos = get_sos(r_prim_c[i].rho, r_prim_c[i].p)
+    var local_spectral_radius_x = (sos + cmath.fabs(r_prim_c[i].u))/dx
+    var local_spectral_radius_y = (sos + cmath.fabs(r_prim_c[i].v))/dy
+    
+    var local_spectral_radius = local_spectral_radius_x + local_spectral_radius_y
+
+    max_spectral_radius = cmath.fmax(max_spectral_radius, local_spectral_radius)
+  end
+
+  return 1.0/max_spectral_radius
+end
+
+task get_max_stable_dt_3d( r_prim_c : region(ispace(int3d), primitive),
+                           dx       : double,
+                           dy       : double,
+                           dz       : double)
+where
+  reads(r_prim_c)
+do
+  var max_spectral_radius : double = 0.0
+
+  for i in r_prim_c do
+    var sos = get_sos(r_prim_c[i].rho, r_prim_c[i].p)
+    var local_spectral_radius_x = (sos + cmath.fabs(r_prim_c[i].u))/dx
+    var local_spectral_radius_y = (sos + cmath.fabs(r_prim_c[i].v))/dy
+    var local_spectral_radius_z = (sos + cmath.fabs(r_prim_c[i].w))/dz
+    
+    var local_spectral_radius = local_spectral_radius_x + local_spectral_radius_y + local_spectral_radius_z
+
+    max_spectral_radius = cmath.fmax(max_spectral_radius, local_spectral_radius)
+  end
+ 
+  return 1.0/max_spectral_radius
+end
+
 task get_primitive_r( r_cnsr : region(ispace(int3d), conserved),
                       r_prim : region(ispace(int3d), primitive) )
 where
