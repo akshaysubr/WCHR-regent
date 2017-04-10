@@ -31,10 +31,10 @@ problem.ONEBYDX = 1.0 / problem.DX
 problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
-problem.dt      = 0.0025
-problem.CFL_num = 0.6
-problem.tstop   = 10.0
-problem.tviz    = 1.0
+problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
+problem.dt_or_CFL_num        = 0.6
+problem.tstop                = 10.0
+problem.tviz                 = 1.0
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),

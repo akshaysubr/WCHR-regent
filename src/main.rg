@@ -1,8 +1,9 @@
 import "regent"
 
-local c     = regentlib.c
-local cmath = terralib.includec("math.h")
-local PI    = cmath.M_PI
+local c       = regentlib.c
+local cmath   = terralib.includec("math.h")
+local PI      = cmath.M_PI
+local cstring = terralib.includec("string.h")
 
 require("fields")
 require("derivatives")
@@ -13,7 +14,6 @@ require("partition")
 
 local superlu = require("superlu_util")
 local problem = require("problem")
-local EOS = require("EOS")
 local Config  = require("config")
 
 local csuperlu_mapper = require("superlu_mapper")
@@ -34,24 +34,54 @@ task main()
   var dx : double = problem.DX
   var dy : double = problem.DY
   var dz : double = problem.DZ
+  
+  -- Get time settings.
+  var timestepping_setting = problem.timestepping_setting
+  
+  var dt      : double = 0.0
+  var CFL_num : double = 0.0
+
+  if cstring.strcmp(timestepping_setting, "CONSTANT_TIME_STEPPING") == 0 then
+    dt = problem.dt_or_CFL_num
+  elseif cstring.strcmp(timestepping_setting, "CONSTANT_CFL_NUM") == 0 then
+    CFL_num = problem.dt_or_CFL_num
+  else
+    regentlib.assert( false, "Unknown time stepping setting! Choose between \"CONSTANT_TIME_STEPPING\" or \"CONSTANT_CFL_NUM\"!" )
+  end
+
+
+  var tstop    : double = problem.tstop
+  var tsim     : double = 0.0
+  var step     : int64  = 0
+  var tviz     : double = problem.tviz
+  var vizcount : int    = 0
+  var vizcond  : bool   = true
 
   var config : Config
   config:initialize_from_command(Nx, Ny, Nz)
 
-  c.printf("================ Problem parameters ================\n")
-  c.printf("           Nx, Ny, Nz = %d, %d, %d\n", Nx, Ny, Nz)
-  c.printf("           Lx, Ly, Lz = %f, %f, %f\n", Lx, Ly, Lz)
-  c.printf("           dx, dy, dz = %f, %f, %f\n", dx, dy, dz)
-  c.printf("           prow, pcol = %d, %d\n", config.prow, config.pcol)
-
+  c.printf("======================= Problem parameters ======================\n")
+  c.printf("           Nx, Ny, Nz           = %d, %d, %d\n", Nx, Ny, Nz)
+  c.printf("           Lx, Ly, Lz           = %f, %f, %f\n", Lx, Ly, Lz)
+  c.printf("           dx, dy, dz           = %f, %f, %f\n", dx, dy, dz)
+  c.printf("           Time stepping method = ")
+  c.printf(timestepping_setting)
+  c.printf("\n")
+  if cstring.strcmp(timestepping_setting, "CONSTANT_TIME_STEPPING") == 0 then
+    c.printf("           dt                   = %f\n", dt)
+  elseif cstring.strcmp(timestepping_setting, "CONSTANT_CFL_NUM") == 0 then
+    c.printf("           CFL_num              = %f\n", CFL_num)
+  end
+  
+  c.printf("           prow, pcol           = %d, %d\n", config.prow, config.pcol)
   if config.fileIO then
-    c.printf("           fileIO     = true\n")
-    c.printf("           prefix     = %s\n", config.filename_prefix)
+    c.printf("           fileIO               = true\n")
+    c.printf("           prefix               = %s\n", config.filename_prefix)
   else
-    c.printf("           fileIO     = false\n")
+    c.printf("           fileIO               = false\n")
   end
 
-  c.printf("====================================================\n")
+  c.printf("================================================================\n")
 
   --------------------------------------------------------------------------------------------
   --                       DATA STUCTURES
@@ -342,16 +372,7 @@ task main()
                       9795748752853.0/13190207949281.0,
                       4009051133189.0/8539092990294.0,
                       1348533437543.0/7166442652324.0 )
-
-  var tstop    : double = problem.tstop
-  var dt       : double = problem.dt
-  var CFL_num  : double = problem.CFL_num
-  var tsim     : double = 0.0
-  var step     : int64  = 0
-  var tviz     : double = problem.tviz
-  var vizcount : int    = 0
-  var vizcond  : bool   = true
-
+  
   -- Get conserved variables after initialization.
   __demand(__parallel)
   for i in pencil do
@@ -377,20 +398,21 @@ task main()
 
   __demand(__spmd)
   while tsim < tstop*(1.0 - 1.0e-16) do
-
-    -- Get stable dt.
-    dt = dt/0.0
-    if Nz >= 8 then
-      for i in pencil do
-        dt = CFL_num*cmath.fmin(dt, get_max_stable_dt_3d(p_prim_c_y[i], dx, dy, dz))
-      end
-    elseif Ny >= 8 then
-      for i in pencil do
-        dt = CFL_num*cmath.fmin(dt, get_max_stable_dt_2d(p_prim_c_y[i], dx, dy))
-      end
-    else
-      for i in pencil do
-        dt = CFL_num*cmath.fmin(dt, get_max_stable_dt_1d(p_prim_c_y[i], dx))
+    if cstring.strcmp(timestepping_setting, "CONSTANT_CFL_NUM") == 0 then
+      -- Get stable dt.
+      dt = dt/0.0
+      if Nz >= 8 then
+        for i in pencil do
+          dt = CFL_num*cmath.fmin(dt, get_max_stable_dt_3d(p_prim_c_y[i], dx, dy, dz))
+        end
+      elseif Ny >= 8 then
+        for i in pencil do
+          dt = CFL_num*cmath.fmin(dt, get_max_stable_dt_2d(p_prim_c_y[i], dx, dy))
+        end
+      else
+        for i in pencil do
+          dt = CFL_num*cmath.fmin(dt, get_max_stable_dt_1d(p_prim_c_y[i], dx))
+        end
       end
     end
 
