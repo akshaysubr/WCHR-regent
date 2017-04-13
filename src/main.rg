@@ -8,7 +8,7 @@ local cstring = terralib.includec("string.h")
 require("fields")
 require("derivatives")
 require("IO")
-require("EOS")
+require("SOE")
 require("RHS")
 require("partition")
 

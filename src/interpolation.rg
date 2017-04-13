@@ -5,7 +5,7 @@ local cmath = terralib.includec("math.h")
 
 require("fields")
 require("IO")
-require("EOS")
+require("SOE")
 local superlu = require("superlu_util")
 
 alpha06CI = 3.0/16.0

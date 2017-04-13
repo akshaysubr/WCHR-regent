@@ -3,7 +3,7 @@ import "regent"
 require("fields")
 require("derivatives")
 require("interpolation")
-require("EOS")
+require("SOE")
 
 local superlu = require("superlu_util")
 local problem = require("problem")
