@@ -97,6 +97,7 @@ do
     LU[{i,pr,pc}].g = 1.0/LU[{i,pr,pc}].g
   end
 
+  return 1
 end
 
 local function make_stencil_pattern(points, f, index, a, b, c, Nx, Ny, Nz, onebydx, dir, der)

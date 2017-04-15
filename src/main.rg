@@ -4,6 +4,7 @@ local c       = regentlib.c
 local cmath   = terralib.includec("math.h")
 local PI      = cmath.M_PI
 local cstring = terralib.includec("string.h")
+local min     = regentlib.fmin
 
 require("fields")
 require("derivatives")
@@ -226,122 +227,126 @@ task main()
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
+  var token : int = 0
   -- Initialize characteristic interpolation matrices and SuperLU structs.
   if Nx >= 8 then
     __demand(__parallel)
     for i in pencil do
-      superlu.initialize_matrix_char_x(p_matrix_l_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny/config.prow, Nz/config.pcol)
+      token += superlu.initialize_matrix_char_x(p_matrix_l_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny/config.prow, Nz/config.pcol)
     end
 
     __demand(__parallel)
     for i in pencil do
-      superlu.initialize_matrix_char_x(p_matrix_r_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny/config.prow, Nz/config.pcol)
+      token += superlu.initialize_matrix_char_x(p_matrix_r_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny/config.prow, Nz/config.pcol)
     end
 
     __demand(__parallel)
     for i in pencil do
-      set_rhs_zero_p( p_rhs_l_x[i] )
+      token += set_rhs_zero_p( p_rhs_l_x[i] )
     end
 
     __demand(__parallel)
     for i in pencil do
-      superlu.init_superlu_vars( p_matrix_l_x[i], 5*(Nx+1)*Ny/config.prow*Nz/config.pcol, p_rhs_l_x[i], p_prim_l_x[i], p_slu_l_x[i] )
+      token += superlu.init_superlu_vars( p_matrix_l_x[i], 5*(Nx+1)*Ny/config.prow*Nz/config.pcol, p_rhs_l_x[i], p_prim_l_x[i], p_slu_l_x[i] )
     end
 
     __demand(__parallel)
     for i in pencil do
-      set_rhs_zero_p( p_rhs_r_x[i] )
+      token += set_rhs_zero_p( p_rhs_r_x[i] )
     end
 
     __demand(__parallel)
     for i in pencil do
-      superlu.init_superlu_vars( p_matrix_r_x[i], 5*(Nx+1)*Ny/config.prow*Nz/config.pcol, p_rhs_r_x[i], p_prim_r_x[i], p_slu_r_x[i] )
+      token += superlu.init_superlu_vars( p_matrix_r_x[i], 5*(Nx+1)*Ny/config.prow*Nz/config.pcol, p_rhs_r_x[i], p_prim_r_x[i], p_slu_r_x[i] )
     end
   end
+  wait_for(token)
   c.printf("Finished X matrices initialization\n")
 
   if Ny >= 8 then
     __demand(__parallel)
     for i in pencil do
-      superlu.initialize_matrix_char_y(p_matrix_l_y[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny, Nz/config.pcol)
+      token += superlu.initialize_matrix_char_y(p_matrix_l_y[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny, Nz/config.pcol)
     end
 
     __demand(__parallel)
     for i in pencil do
-      superlu.initialize_matrix_char_y(p_matrix_r_y[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny, Nz/config.pcol)
+      token += superlu.initialize_matrix_char_y(p_matrix_r_y[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny, Nz/config.pcol)
     end
 
     __demand(__parallel)
     for i in pencil do
-      set_rhs_zero_p( p_rhs_l_y[i] )
+      token += set_rhs_zero_p( p_rhs_l_y[i] )
     end
 
     __demand(__parallel)
     for i in pencil do
-      superlu.init_superlu_vars( p_matrix_l_y[i], 5*Nx/config.prow*(Ny+1)*Nz/config.pcol, p_rhs_l_y[i], p_prim_l_y[i], p_slu_l_y[i] )
+      token += superlu.init_superlu_vars( p_matrix_l_y[i], 5*Nx/config.prow*(Ny+1)*Nz/config.pcol, p_rhs_l_y[i], p_prim_l_y[i], p_slu_l_y[i] )
     end
 
     __demand(__parallel)
     for i in pencil do
-      set_rhs_zero_p( p_rhs_r_y[i] )
+      token += set_rhs_zero_p( p_rhs_r_y[i] )
     end
 
     __demand(__parallel)
     for i in pencil do
-      superlu.init_superlu_vars( p_matrix_r_y[i], 5*Nx/config.prow*(Ny+1)*Nz/config.pcol, p_rhs_r_y[i], p_prim_r_y[i], p_slu_r_y[i] )
+      token += superlu.init_superlu_vars( p_matrix_r_y[i], 5*Nx/config.prow*(Ny+1)*Nz/config.pcol, p_rhs_r_y[i], p_prim_r_y[i], p_slu_r_y[i] )
     end
   end
+  wait_for(token)
   c.printf("Finished Y matrices initialization\n")
 
   if Nz >= 8 then
     __demand(__parallel)
     for i in pencil do
-      superlu.initialize_matrix_char_z(p_matrix_l_z[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny/config.pcol, Nz)
+      token += superlu.initialize_matrix_char_z(p_matrix_l_z[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny/config.pcol, Nz)
     end
 
     __demand(__parallel)
     for i in pencil do
-      superlu.initialize_matrix_char_z(p_matrix_r_z[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny/config.pcol, Nz)
+      token += superlu.initialize_matrix_char_z(p_matrix_r_z[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny/config.pcol, Nz)
     end
 
     __demand(__parallel)
     for i in pencil do
-      set_rhs_zero_p( p_rhs_l_z[i] )
+      token += set_rhs_zero_p( p_rhs_l_z[i] )
     end
 
     __demand(__parallel)
     for i in pencil do
-      superlu.init_superlu_vars( p_matrix_l_z[i], 5*Nx/config.prow*Ny/config.pcol*(Nz+1), p_rhs_l_z[i], p_prim_l_z[i], p_slu_l_z[i] )
+      token += superlu.init_superlu_vars( p_matrix_l_z[i], 5*Nx/config.prow*Ny/config.pcol*(Nz+1), p_rhs_l_z[i], p_prim_l_z[i], p_slu_l_z[i] )
     end
 
     __demand(__parallel)
     for i in pencil do
-      set_rhs_zero_p( p_rhs_r_z[i] )
+      token += set_rhs_zero_p( p_rhs_r_z[i] )
     end
 
     __demand(__parallel)
     for i in pencil do
-      superlu.init_superlu_vars( p_matrix_r_z[i], 5*Nx/config.prow*Ny/config.pcol*(Nz+1), p_rhs_r_z[i], p_prim_r_z[i], p_slu_r_z[i] )
+      token += superlu.init_superlu_vars( p_matrix_r_z[i], 5*Nx/config.prow*Ny/config.pcol*(Nz+1), p_rhs_r_z[i], p_prim_r_z[i], p_slu_r_z[i] )
     end
   end
+  wait_for(token)
   c.printf("Finished Z matrices initialization\n")
   
   -- Initialize derivatives stuff.
   __demand(__parallel)
   for i in pencil do
-    get_LU_decomposition(p_LU_x[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+    token += get_LU_decomposition(p_LU_x[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
   end
   __demand(__parallel)
   for i in pencil do
-    get_LU_decomposition(p_LU_y[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+    token += get_LU_decomposition(p_LU_y[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
   end
   __demand(__parallel)
   for i in pencil do
-    get_LU_decomposition(p_LU_z[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+    token += get_LU_decomposition(p_LU_z[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
   end
+  wait_for(token)
   c.printf("Finished LU initialization\n")
 
-  var token : int = 0
   __demand(__parallel)
   for i in pencil do
     -- Initialize everything in y decomposition.
@@ -402,19 +407,24 @@ task main()
       -- Get stable dt.
       dt = dt/0.0
       if Nz >= 8 then
+        __demand(__parallel)
         for i in pencil do
-          dt = CFL_num*cmath.fmin(dt, get_max_stable_dt_3d(p_prim_c_y[i], dx, dy, dz))
+          dt min= get_max_stable_dt_3d(p_prim_c_y[i], dx, dy, dz)
         end
       elseif Ny >= 8 then
+        __demand(__parallel)
         for i in pencil do
-          dt = CFL_num*cmath.fmin(dt, get_max_stable_dt_2d(p_prim_c_y[i], dx, dy))
+          dt min= get_max_stable_dt_2d(p_prim_c_y[i], dx, dy)
         end
       else
+        __demand(__parallel)
         for i in pencil do
-          dt = CFL_num*cmath.fmin(dt, get_max_stable_dt_1d(p_prim_c_y[i], dx))
+          dt min= get_max_stable_dt_1d(p_prim_c_y[i], dx)
         end
       end
     end
+
+    dt = CFL_num*dt
 
     var Q_t : double = 0.0
 

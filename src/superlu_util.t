@@ -256,6 +256,8 @@ do
   --   c.printf("%d, ", matrix[{pr,pc}].rowptr[i])
   -- end
   -- c.printf("])\n\n")
+
+  return 1
 end
 
 task superlu.initialize_matrix_char_y( matrix : region(ispace(int2d), superlu.CSR_matrix),
@@ -401,6 +403,8 @@ do
   --   c.printf("%d, ", matrix[{pr,pc}].rowptr[i])
   -- end
   -- c.printf("])\n\n")
+
+  return 1
 end
 
 task superlu.initialize_matrix_char_z( matrix : region(ispace(int2d), superlu.CSR_matrix),
@@ -548,6 +552,8 @@ do
   --   c.printf("%d, ", matrix[{pr,pc}].rowptr[i])
   -- end
   -- c.printf("])\n\n")
+
+  return 1
 end
 
 local terra get_base_pointer_2d(pr   : c.legion_physical_region_t,
@@ -605,6 +611,8 @@ do
   -- c.printf("In init_superlu_vars\n")
 
   superlu.initialize_superlu_vars( matrix[{pr,pc}], Nsize, r_rhs, r_sol, slu )
+
+  return 1
 end
 
 __demand(__external)

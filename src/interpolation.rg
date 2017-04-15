@@ -901,5 +901,7 @@ do
   for i in r_rhs do
     r_rhs[i].{rho, u, v, w, p} = 0.0
   end
+
+  return 1
 end
 
