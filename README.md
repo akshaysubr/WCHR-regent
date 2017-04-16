@@ -25,7 +25,7 @@ To change the problem you want to run, simply link the `problem.rg` symlink to a
 
 ## TODO
 - Add non-periodic boundary conditions (possibly with ghost cells)
-- Implement different Runge-Kutta time stepping schemes, especially TVD-RK3
+- Implement different Runge-Kutta time stepping schemes
 - Add more general EOS
 
 ### Authors
