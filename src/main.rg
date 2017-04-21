@@ -310,11 +310,11 @@ task main()
   wait_for(token)
   c.printf("Finished initialization\n")
   
-  var TKE0 : double = 0.0
-  __demand(__parallel)
-  for i in pencil do
-    TKE0 += problem.TKE(p_prim_c_y[i])
-  end
+  -- var TKE0 : double = 0.0
+  -- __demand(__parallel)
+  -- for i in pencil do
+  --   TKE0 += problem.TKE(p_prim_c_y[i])
+  -- end
 
   -- var IOtoken = 0
   -- if config.fileIO then
@@ -438,11 +438,11 @@ task main()
     --   end
     -- end
 
-    var TKE : double = 0.0
-    __demand(__parallel)
-    for i in pencil do
-      TKE += problem.TKE(p_prim_c_y[i])
-    end
+    -- var TKE : double = 0.0
+    -- __demand(__parallel)
+    -- for i in pencil do
+    --   TKE += problem.TKE(p_prim_c_y[i])
+    -- end
 
     if (step-1)%(config.nstats*50) == 0 then
       c.printf("\n")
@@ -451,7 +451,8 @@ task main()
     end
 
     if (step-1)%config.nstats == 0 then
-      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, 0.0, 0.0, 0.0, TKE/TKE0)
+      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, 0.0, 0.0, 0.0, 0.0)
+      -- c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, 0.0, 0.0, 0.0, TKE/TKE0)
       -- c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, min_rho_p(r_prim_c), max_rho_p(r_prim_c), min_p_p(r_prim_c), max_p_p(r_prim_c))
     end
   end
