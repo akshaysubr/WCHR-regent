@@ -122,16 +122,12 @@ task main()
   var r_fder_c_y = region(grid_c,   conserved)  -- y flux derivative
   var r_fder_c_z = region(grid_c,   conserved)  -- z flux derivative
   
-  var r_cnsr_1   = region(grid_c,   conserved)  -- conserved variables at cell center for SSP-RK(5, 4)
-  var r_cnsr_2   = region(grid_c,   conserved)  -- conserved variables at cell center for SSP-RK(5, 4)
-  var r_cnsr_3   = region(grid_c,   conserved)  -- conserved variables at cell center for SSP-RK(5, 4)
-  var r_cnsr_4   = region(grid_c,   conserved)  -- conserved variables at cell center for SSP-RK(5, 4)
+  var r_cnsr_1   = region(grid_c,   conserved)  -- conserved variables at cell center for TVD-RK3
+  var r_cnsr_2   = region(grid_c,   conserved)  -- conserved variables at cell center for TVD-RK3
   
-  var r_rhs_0    = region(grid_c,   conserved)  -- RHS for time stepping at cell center for SSP-RK(5, 4) 
-  var r_rhs_1    = region(grid_c,   conserved)  -- RHS for time stepping at cell center for SSP-RK(5, 4) 
-  var r_rhs_2    = region(grid_c,   conserved)  -- RHS for time stepping at cell center for SSP-RK(5, 4) 
-  var r_rhs_3    = region(grid_c,   conserved)  -- RHS for time stepping at cell center for SSP-RK(5, 4) 
-  var r_rhs_4    = region(grid_c,   conserved)  -- RHS for time stepping at cell center for SSP-RK(5, 4) 
+  var r_rhs_0    = region(grid_c,   conserved)  -- RHS for time stepping at cell center for TVD-RK3
+  var r_rhs_1    = region(grid_c,   conserved)  -- RHS for time stepping at cell center for TVD-RK3
+  var r_rhs_2    = region(grid_c,   conserved)  -- RHS for time stepping at cell center for TVD-RK3
 
   -- data structure to hold x derivative LU decomposition
   var LU_x       = region(ispace(int3d, {x = Nx, y = config.prow, z = config.pcol}), LU_struct)
@@ -213,14 +209,6 @@ task main()
   var p_cnsr_y_2   = partition_ypencil_cnsr(r_cnsr_2,   pencil)
   var p_cnsr_z_2   = partition_zpencil_cnsr(r_cnsr_2,   pencil)
 
-  var p_cnsr_x_3   = partition_xpencil_cnsr(r_cnsr_3,   pencil)
-  var p_cnsr_y_3   = partition_ypencil_cnsr(r_cnsr_3,   pencil)
-  var p_cnsr_z_3   = partition_zpencil_cnsr(r_cnsr_3,   pencil)
-
-  var p_cnsr_x_4   = partition_xpencil_cnsr(r_cnsr_4,   pencil)
-  var p_cnsr_y_4   = partition_ypencil_cnsr(r_cnsr_4,   pencil)
-  var p_cnsr_z_4   = partition_zpencil_cnsr(r_cnsr_4,   pencil)
-
   var p_rhs_x_0    = partition_xpencil_cnsr(r_rhs_0,    pencil)
   var p_rhs_y_0    = partition_ypencil_cnsr(r_rhs_0,    pencil)
   var p_rhs_z_0    = partition_zpencil_cnsr(r_rhs_0,    pencil)
@@ -232,14 +220,6 @@ task main()
   var p_rhs_x_2    = partition_xpencil_cnsr(r_rhs_2,    pencil)
   var p_rhs_y_2    = partition_ypencil_cnsr(r_rhs_2,    pencil)
   var p_rhs_z_2    = partition_zpencil_cnsr(r_rhs_2,    pencil)
-
-  var p_rhs_x_3    = partition_xpencil_cnsr(r_rhs_3,    pencil)
-  var p_rhs_y_3    = partition_ypencil_cnsr(r_rhs_3,    pencil)
-  var p_rhs_z_3    = partition_zpencil_cnsr(r_rhs_3,    pencil)
-
-  var p_rhs_x_4    = partition_xpencil_cnsr(r_rhs_4,    pencil)
-  var p_rhs_y_4    = partition_ypencil_cnsr(r_rhs_4,    pencil)
-  var p_rhs_z_4    = partition_zpencil_cnsr(r_rhs_4,    pencil)
 
   var p_LU_x       = partition_LU(LU_x,                 pencil)
   var p_LU_y       = partition_LU(LU_y,                 pencil)
@@ -392,11 +372,11 @@ task main()
   wait_for(token)
   c.printf("Finished initialization\n")
   
-  -- var TKE0 : double = 0.0
-  -- __demand(__parallel)
-  -- for i in pencil do
-  --   TKE0 += problem.TKE(p_prim_c_y[i])
-  -- end
+  var TKE0 : double = 0.0
+  __demand(__parallel)
+  for i in pencil do
+    TKE0 += problem.TKE(p_prim_c_y[i])
+  end
 
   -- var IOtoken = 0
   -- if config.fileIO then
@@ -499,7 +479,7 @@ task main()
     end
     __demand(__parallel)
     for i in pencil do
-      add_value_cnsr( p_cnsr_y_1[i], p_rhs_y_0[i], 0.391752226571890*dt )
+      add_value_cnsr( p_cnsr_y_1[i], p_rhs_y_0[i], dt )
     end
 
     -- Update the primitive variables.
@@ -552,15 +532,15 @@ task main()
     end
     __demand(__parallel)
     for i in pencil do
-      add_value_cnsr( p_cnsr_y_2[i], p_cnsr_y[i], 0.444370493651235 )
+      add_value_cnsr( p_cnsr_y_2[i], p_cnsr_y[i], 3.0/4.0 )
     end
     __demand(__parallel)
     for i in pencil do
-      add_value_cnsr( p_cnsr_y_2[i], p_cnsr_y_1[i], 0.555629506348765 )
+      add_value_cnsr( p_cnsr_y_2[i], p_cnsr_y_1[i], 1.0/4.0 )
     end
     __demand(__parallel)
     for i in pencil do
-      add_value_cnsr( p_cnsr_y_2[i], p_rhs_y_1[i], 0.368410593050371*dt )
+      add_value_cnsr( p_cnsr_y_2[i], p_rhs_y_1[i], 1.0/4.0*dt )
     end
 
     -- Update the primitive variables.
@@ -609,149 +589,15 @@ task main()
     -- Update solution in this substep.
     __demand(__parallel)
     for i in pencil do
-      set_zero_cnsr( p_cnsr_y_3[i] )
+      self_multiply_cnsr( p_cnsr_y[i], 1.0/3.0 )
     end
     __demand(__parallel)
     for i in pencil do
-      add_value_cnsr( p_cnsr_y_3[i], p_cnsr_y[i], 0.620101851488403 )
+      add_value_cnsr( p_cnsr_y[i], p_cnsr_y_2[i], 2.0/3.0 )
     end
     __demand(__parallel)
     for i in pencil do
-      add_value_cnsr( p_cnsr_y_3[i], p_cnsr_y_2[i], 0.379898148511597 )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      add_value_cnsr( p_cnsr_y_3[i], p_rhs_y_2[i], 0.251891774271694*dt )
-    end
-
-    -- Update the primitive variables.
-    __demand(__parallel)
-    for i in pencil do
-      token += get_primitive_r(p_cnsr_y_3[i], p_prim_c_y[i])
-    end
-
-    --------------------------------------------------------------------------------------------
-    -- Advance fourth sub-step.
-    --------------------------------------------------------------------------------------------
-
-    -- Set RHS to zero.
-    __demand(__parallel)
-    for i in pencil do
-      set_zero_cnsr( p_rhs_y_3[i] )
-    end 
-
-    -- Add x-direction flux derivative to RHS.
-    __demand(__parallel)
-    for i in pencil do
-      add_xflux_der_to_rhs( p_cnsr_x_3[i], p_prim_c_x[i], p_prim_l_x[i], p_prim_r_x[i], p_rhs_l_x[i], p_rhs_r_x[i],
-                            p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x_3[i],
-                            p_LU_x[i], p_slu_l_x[i], p_slu_r_x[i], p_matrix_l_x[i], p_matrix_r_x[i],
-                            Nx, Ny, Nz )
-    end
-
-    -- Add y-direction flux derivative to RHS.
-    __demand(__parallel)
-    for i in pencil do
-      add_yflux_der_to_rhs( p_cnsr_y_3[i], p_prim_c_y[i], p_prim_l_y[i], p_prim_r_y[i], p_rhs_l_y[i], p_rhs_r_y[i],
-                            p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y_3[i],
-                            p_LU_y[i], p_slu_l_y[i], p_slu_r_y[i], p_matrix_l_y[i], p_matrix_r_y[i],
-                            Nx, Ny, Nz )
-    end
-
-    -- Add z-direction flux derivative to RHS.
-    __demand(__parallel)
-    for i in pencil do
-      add_zflux_der_to_rhs( p_cnsr_z_3[i], p_prim_c_z[i], p_prim_l_z[i], p_prim_r_z[i], p_rhs_l_z[i], p_rhs_r_z[i],
-                            p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z_3[i],
-                            p_LU_z[i], p_slu_l_z[i], p_slu_r_z[i], p_matrix_l_z[i], p_matrix_r_z[i],
-                            Nx, Ny, Nz )
-    end
-
-    -- Update solution in this substep.
-    __demand(__parallel)
-    for i in pencil do
-      set_zero_cnsr( p_cnsr_y_4[i] )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      add_value_cnsr( p_cnsr_y_4[i], p_cnsr_y[i], 0.178079954393132 )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      add_value_cnsr( p_cnsr_y_4[i], p_cnsr_y_3[i], 0.821920045606868 )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      add_value_cnsr( p_cnsr_y_4[i], p_rhs_y_3[i], 0.544974750228521*dt )
-    end
-
-    -- Update the primitive variables.
-    __demand(__parallel)
-    for i in pencil do
-      token += get_primitive_r(p_cnsr_y_4[i], p_prim_c_y[i])
-    end
-
-    --------------------------------------------------------------------------------------------
-    -- Advance fifth sub-step.
-    --------------------------------------------------------------------------------------------
-
-    -- Set RHS to zero.
-    __demand(__parallel)
-    for i in pencil do
-      set_zero_cnsr( p_rhs_y_4[i] )
-    end 
-
-    -- Add x-direction flux derivative to RHS.
-    __demand(__parallel)
-    for i in pencil do
-      add_xflux_der_to_rhs( p_cnsr_x_4[i], p_prim_c_x[i], p_prim_l_x[i], p_prim_r_x[i], p_rhs_l_x[i], p_rhs_r_x[i],
-                            p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x_4[i],
-                            p_LU_x[i], p_slu_l_x[i], p_slu_r_x[i], p_matrix_l_x[i], p_matrix_r_x[i],
-                            Nx, Ny, Nz )
-    end
-
-    -- Add y-direction flux derivative to RHS.
-    __demand(__parallel)
-    for i in pencil do
-      add_yflux_der_to_rhs( p_cnsr_y_4[i], p_prim_c_y[i], p_prim_l_y[i], p_prim_r_y[i], p_rhs_l_y[i], p_rhs_r_y[i],
-                            p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y_4[i],
-                            p_LU_y[i], p_slu_l_y[i], p_slu_r_y[i], p_matrix_l_y[i], p_matrix_r_y[i],
-                            Nx, Ny, Nz )
-    end
-
-    -- Add z-direction flux derivative to RHS.
-    __demand(__parallel)
-    for i in pencil do
-      add_zflux_der_to_rhs( p_cnsr_z_4[i], p_prim_c_z[i], p_prim_l_z[i], p_prim_r_z[i], p_rhs_l_z[i], p_rhs_r_z[i],
-                            p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z_4[i],
-                            p_LU_z[i], p_slu_l_z[i], p_slu_r_z[i], p_matrix_l_z[i], p_matrix_r_z[i],
-                            Nx, Ny, Nz )
-    end
-
-    -- Update solution in this substep.
-    __demand(__parallel)
-    for i in pencil do
-      set_zero_cnsr( p_cnsr_y[i] )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      add_value_cnsr( p_cnsr_y[i], p_cnsr_y_2[i], 0.517231671970585 )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      add_value_cnsr( p_cnsr_y[i], p_cnsr_y_3[i], 0.096059710526147 )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      add_value_cnsr( p_cnsr_y[i], p_rhs_y_3[i], 0.063692468666290*dt )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      add_value_cnsr( p_cnsr_y[i], p_cnsr_y_4[i], 0.386708617503269 )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      add_value_cnsr( p_cnsr_y[i], p_rhs_y_4[i], 0.226007483236906*dt )
+      add_value_cnsr( p_cnsr_y[i], p_rhs_y_2[i], 2.0/3.0*dt )
     end
 
     -- Update the primitive variables.
@@ -781,11 +627,11 @@ task main()
     --   end
     -- end
 
-    -- var TKE : double = 0.0
-    -- __demand(__parallel)
-    -- for i in pencil do
-    --   TKE += problem.TKE(p_prim_c_y[i])
-    -- end
+    var TKE : double = 0.0
+    __demand(__parallel)
+    for i in pencil do
+      TKE += problem.TKE(p_prim_c_y[i])
+    end
 
     if (step-1)%(config.nstats*50) == 0 then
       c.printf("\n")
@@ -794,8 +640,7 @@ task main()
     end
 
     if (step-1)%config.nstats == 0 then
-      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, 0.0, 0.0, 0.0, 0.0)
-      -- c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, 0.0, 0.0, 0.0, TKE/TKE0)
+      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, 0.0, 0.0, 0.0, TKE/TKE0)
       -- c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, min_rho_p(r_prim_c), max_rho_p(r_prim_c), min_p_p(r_prim_c), max_p_p(r_prim_c))
     end
   end

@@ -3,7 +3,7 @@ import "regent"
 require("fields")
 require("derivatives")
 require("interpolation")
-require("EOS")
+require("SOE")
 
 local superlu = require("superlu_util")
 local problem = require("problem")
@@ -62,15 +62,6 @@ local ddz_MND_rhov = make_ddz_MND(r_flux, r_flux_e, "rhov", r_der, "rhov", probl
 local ddz_MND_rhow = make_ddz_MND(r_flux, r_flux_e, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06MND, b06MND, c06MND)
 local ddz_MND_rhoE = make_ddz_MND(r_flux, r_flux_e, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06MND, b06MND, c06MND)
 -----------------------------------------------------
-
-task set_rhs_zero( r_rhs : region(ispace(int3d), conserved) )
-where
-  writes(r_rhs)
-do
-  for i in r_rhs do
-    r_rhs[i].{rho, rhou, rhov, rhow, rhoE} = 0.0
-  end
-end
 
 task add_xflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
                            r_prim_c   : region(ispace(int3d), primitive),
@@ -207,33 +198,5 @@ do
       r_rhs[i].rhow -= r_fder_c_z[i].rhow
       r_rhs[i].rhoE -= r_fder_c_z[i].rhoE
     end
-  end
-end
-
-task update_substep( r_cnsr : region(ispace(int3d), conserved),
-                     r_rhs  : region(ispace(int3d), conserved),
-                     Q_rhs  : region(ispace(int3d), conserved),
-                     dt     : double,
-                     A      : double,
-                     B      : double )
-where
-  reads (r_rhs), reads writes(r_cnsr, Q_rhs)
-do
-
-  for i in r_rhs do
-    Q_rhs[i].rho = dt * r_rhs[i].rho + A*Q_rhs[i].rho
-    r_cnsr[i].rho += B*Q_rhs[i].rho
-
-    Q_rhs[i].rhou = dt * r_rhs[i].rhou + A*Q_rhs[i].rhou
-    r_cnsr[i].rhou += B*Q_rhs[i].rhou
-
-    Q_rhs[i].rhov = dt * r_rhs[i].rhov + A*Q_rhs[i].rhov
-    r_cnsr[i].rhov += B*Q_rhs[i].rhov
-
-    Q_rhs[i].rhow = dt * r_rhs[i].rhow + A*Q_rhs[i].rhow
-    r_cnsr[i].rhow += B*Q_rhs[i].rhow
-
-    Q_rhs[i].rhoE = dt * r_rhs[i].rhoE + A*Q_rhs[i].rhoE
-    r_cnsr[i].rhoE += B*Q_rhs[i].rhoE
   end
 end

@@ -5,7 +5,7 @@ local cmath = terralib.includec("math.h")
 
 require("fields")
 require("IO")
-require("EOS")
+require("SOE")
 local superlu = require("superlu_util")
 
 alpha06CI = 3.0/16.0
@@ -893,13 +893,3 @@ do
 
  return 1
 end
-
-task set_rhs_zero_p( r_rhs : region(ispace(int3d), primitive) )
-where
-  writes(r_rhs)
-do
-  for i in r_rhs do
-    r_rhs[i].{rho, u, v, w, p} = 0.0
-  end
-end
-

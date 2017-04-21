@@ -5,7 +5,7 @@ local cmath = terralib.includec("math.h")
 local PI    = cmath.M_PI
 
 require("fields")
-require("EOS")
+require("SOE")
 
 task initialize_x( r_prim_l_x : region(ispace(int3d), primitive),
                  r_prim_r_x : region(ispace(int3d), primitive) )

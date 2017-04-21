@@ -60,6 +60,59 @@ fspace LU_struct {
   w  : double,
 }
 
+task set_zero_cnsr( r_cnsr : region(ispace(int3d), conserved) )
+where
+  writes(r_cnsr)
+do
+  for i in r_cnsr do
+    r_cnsr[i].{rho, rhou, rhov, rhow, rhoE} = 0.0
+  end
+
+  return 1
+end
+
+task set_zero_prim( r_prim : region(ispace(int3d), primitive) )
+where
+  writes(r_prim)
+do
+  for i in r_prim do
+    r_prim[i].{rho, u, v, w, p} = 0.0
+  end
+
+  return 1
+end
+
+task add_value_cnsr( r_cnsr : region(ispace(int3d), conserved),
+                     r_rhs  : region(ispace(int3d), conserved),
+                     coeff  : double )
+where
+  reads (r_rhs), reads writes(r_cnsr)
+do
+
+  for i in r_rhs do
+    r_cnsr[i].rho  += coeff*r_rhs[i].rho
+    r_cnsr[i].rhou += coeff*r_rhs[i].rhou
+    r_cnsr[i].rhov += coeff*r_rhs[i].rhov
+    r_cnsr[i].rhow += coeff*r_rhs[i].rhow
+    r_cnsr[i].rhoE += coeff*r_rhs[i].rhoE
+  end
+end
+
+task self_multiply_cnsr( r_cnsr : region(ispace(int3d), conserved),
+                         coeff  : double )
+where
+  reads writes(r_cnsr)
+do
+
+  for i in r_cnsr do
+    r_cnsr[i].rho  = coeff*r_cnsr[i].rho
+    r_cnsr[i].rhou = coeff*r_cnsr[i].rhou
+    r_cnsr[i].rhov = coeff*r_cnsr[i].rhov
+    r_cnsr[i].rhow = coeff*r_cnsr[i].rhow
+    r_cnsr[i].rhoE = coeff*r_cnsr[i].rhoE
+  end
+end
+
 function poff(i, x, y, z, Nx, Ny, Nz)
   return rexpr int3d { x = (i.x + x + Nx)%Nx, y = (i.y + y + Ny)%Ny, z = (i.z + z + Nz)%Nz } end
 end
