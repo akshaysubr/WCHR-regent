@@ -4,8 +4,8 @@ local superlu = {}
 do
   local superlu_root = os.getenv('SUPERLU_PATH') or "/opt/SuperLU_5.2.1"
   --local superlu_library = "-lsuperlu"
-  local superlu_library = "-L" .. superlu_root .. " -lsuperlu"
-  local superlu_include_dir = superlu_root
+  local superlu_library = "-L" .. superlu_root .. "/lib" .. " -lsuperlu"
+  local superlu_include_dir = superlu_root .. "/include"
   local root_dir = arg[0]:match(".*/") or "./"
   local superlu_util_cc = root_dir .. "superlu_util.c"
   if os.getenv('SAVEOBJ') == '1' then
@@ -27,7 +27,7 @@ do
   cc_flags = cc_flags .. " -lm -lblas " .. superlu_library 
 
   local cmd = (cc .. " " .. cc_flags .. " " .. superlu_util_cc .. " -o " .. superlu_util_so)
-  -- print(cmd)
+  print(cmd)
 
   if os.execute(cmd) ~= 0 then
     print("Error: failed to compile " .. superlu_util_cc)
