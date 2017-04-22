@@ -16,12 +16,13 @@ task get_primitive( rho  : double,
   var prim : double[5]
   
   var onebyrho = 1.0 / rho
-  var rhoe : double = rhoE - 0.5 * rho * (prim[1]*prim[1] + prim[2]*prim[2] + prim[3]*prim[3])
 
   prim[0] = rho
   prim[1] = rhou * onebyrho
   prim[2] = rhov * onebyrho
   prim[3] = rhow * onebyrho
+
+  var rhoe : double = rhoE - 0.5 * rho * (prim[1]*prim[1] + prim[2]*prim[2] + prim[3]*prim[3])
   prim[4] = get_pressure(rho, rhoe)
 
   return prim

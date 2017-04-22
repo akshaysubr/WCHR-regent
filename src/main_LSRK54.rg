@@ -406,7 +406,7 @@ task main()
   while tsim < tstop*(1.0 - 1.0e-16) do
     if cstring.strcmp(timestepping_setting, "CONSTANT_CFL_NUM") == 0 then
       -- Get stable dt.
-      dt = dt/0.0
+      dt = 1.0e+100
       if Nz >= 8 then
         __demand(__parallel)
         for i in pencil do
