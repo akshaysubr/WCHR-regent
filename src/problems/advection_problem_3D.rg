@@ -9,9 +9,9 @@ require("fields")
 local problem = {}
 
 -- Grid dimensions
-problem.NX = 32
-problem.NY = 32
-problem.NZ = 32
+problem.NX = 64
+problem.NY = 64
+problem.NZ = 64
 
 -- Domain size
 problem.LX = 2.0
@@ -31,9 +31,10 @@ problem.ONEBYDX = 1.0 / problem.DX
 problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
-problem.dt    = 0.2 * cmath.fmin(problem.DX, problem.DY)
-problem.tstop = 0.125
-problem.tviz  = 1.0
+problem.timestepping_setting = "CONSTANT_TIME_STEP" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
+problem.dt_or_CFL_num        = 2.5e-4
+problem.tstop                = 0.125
+problem.tviz                 = 1.0
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
@@ -109,6 +110,17 @@ do
   end
 
   return errors
+end
+
+task problem.TKE( r_prim_c : region(ispace(int3d), primitive) )
+where
+  reads(r_prim_c)
+do
+  var TKE : double = 0.0
+  for i in r_prim_c do
+    TKE += 0.5 * r_prim_c[i].rho * (r_prim_c[i].u*r_prim_c[i].u + r_prim_c[i].v*r_prim_c[i].v + r_prim_c[i].w*r_prim_c[i].w)
+  end
+  return TKE
 end
 
 return problem
