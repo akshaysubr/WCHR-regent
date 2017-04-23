@@ -59,7 +59,7 @@ task main()
   var step     : int64  = 0
   var tviz     : double = problem.tviz
   var vizcount : int    = 0
-  var vizcond  : bool   = true
+  var vizcond  : bool   = false
 
   var config : Config
   config:initialize_from_command(Nx, Ny, Nz)
@@ -365,10 +365,13 @@ task main()
     TKE0 += problem.TKE(p_prim_c_y[i])
   end
 
-  -- var IOtoken = 0
-  -- if config.fileIO then
-  --   IOtoken += write_coords(coords, config.filename_prefix)
-  -- end
+  var IOtoken = 0
+  if config.fileIO then
+    __demand(__parallel)
+    for i in pencil do
+      IOtoken += write_coords(p_coords_y[i], config.filename_prefix, i)
+    end
+  end
   
   var A_RK45 = array(0.0,
                      -6234157559845.0/12983515589748.0,
@@ -388,19 +391,14 @@ task main()
     token += get_conserved_r(p_prim_c_y[i], p_cnsr_y[i])
   end
 
-  -- if config.fileIO then
-  --   if vizcond then
-  --     wait_for(IOtoken)
-  --     IOtoken += write_primitive(r_prim_c, config.filename_prefix, vizcount)
-  --     vizcount = vizcount + 1
-  --     vizcond = false
-  --     dt = problem.dt
-  --   end
-  --   if tsim + dt >= tviz*vizcount then
-  --     dt = tviz * vizcount - tsim
-  --     vizcond = true
-  --   end
-  -- end
+  if config.fileIO then
+    wait_for(IOtoken)
+    __demand(__parallel)
+    for i in pencil do
+      IOtoken += write_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, i)
+    end
+    vizcount = vizcount + 1
+  end
   
   wait_for(token)
   var t_start = c.legion_get_current_time_in_micros()
@@ -430,6 +428,14 @@ task main()
       dt *= CFL_num
     else
       dt = dt_fix
+    end
+
+    if config.fileIO then
+      -- Check if viz dump is imminent
+      if tsim + dt >= tviz*vizcount then
+        dt = tviz * vizcount - tsim
+        vizcond = true
+      end
     end
 
     __demand(__parallel)
@@ -506,19 +512,17 @@ task main()
     step = step + 1
     tsim += dt
 
-    -- if config.fileIO then
-    --   if vizcond then
-    --     wait_for(IOtoken)
-    --     IOtoken += write_primitive(r_prim_c, config.filename_prefix, vizcount)
-    --     vizcount = vizcount + 1
-    --     vizcond = false
-    --     dt = problem.dt
-    --   end
-    --   if tsim + dt >= tviz*vizcount then
-    --     dt = tviz * vizcount - tsim
-    --     vizcond = true
-    --   end
-    -- end
+    if config.fileIO then
+      if vizcond then
+        wait_for(IOtoken)
+        __demand(__parallel)
+        for i in pencil do
+          IOtoken += write_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, i)
+        end
+        vizcount = vizcount + 1
+        vizcond = false
+      end
+    end
 
     var TKE : double = 0.0
     __demand(__parallel)
@@ -604,7 +608,9 @@ if os.getenv('SAVEOBJ') == '1' then
   local superlu_root = os.getenv('SUPERLU_PATH') or "/opt/SuperLU_5.2.1"
   local superlu_lib_dir = superlu_root .. "/lib"
   local superlu_include_dir = superlu_root .. "/include"
-  local link_flags = {"-L" .. root_dir, "-L" .. superlu_lib_dir, "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
+  local hdf_root = os.getenv('HDF_ROOT')
+  local hdf_lib_dir = hdf_root .. "/lib"
+  local link_flags = {"-L" .. root_dir, "-L" .. superlu_lib_dir, "-L" .. hdf_lib_dir, "-lhdf5", "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
   regentlib.saveobj(main, "wchr", "executable", csuperlu_mapper.register_mappers, link_flags)
 else
   regentlib.start(main, csuperlu_mapper.register_mappers)

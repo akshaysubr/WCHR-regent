@@ -57,7 +57,8 @@ end
 
 task write_primitive( r_prim     : region(ispace(int3d), primitive),
                       fileprefix : rawstring,
-                      vizcount   : int32 )
+                      vizcount   : int32,
+                      pencil     : int2d )
 where
   reads( r_prim )
 do
@@ -65,8 +66,8 @@ do
   var Ny = r_prim.ispace.bounds.hi.y - r_prim.ispace.bounds.lo.y + 1
   var Nz = r_prim.ispace.bounds.hi.z - r_prim.ispace.bounds.lo.z + 1
 
-  var vizstr : &int8 = [&int8] ( c.malloc(7*8) )
-  c.sprintf(vizstr, "%04d.h5", vizcount)
+  var vizstr : &int8 = [&int8] ( c.malloc(21*8) )
+  c.sprintf(vizstr, "%04d_px%04d_pz%04d.h5", vizcount, pencil.x, pencil.y)
   var filename : &int8 = [&int8] ( c.malloc(256*8) )
   st.strcpy(filename, fileprefix)
   st.strcat(filename, vizstr)
@@ -114,16 +115,21 @@ terra generate_hdf5_file_coords(filename : rawstring, NX : int64, NY : int64, NZ
 end
 
 task write_coords( r_coords   : region(ispace(int3d), coordinates),
-                   fileprefix : rawstring )
+                   fileprefix : rawstring,
+                   pencil     : int2d )
 where
   reads( r_coords )
 do
   var Nx = r_coords.ispace.bounds.hi.x - r_coords.ispace.bounds.lo.x + 1
   var Ny = r_coords.ispace.bounds.hi.y - r_coords.ispace.bounds.lo.y + 1
   var Nz = r_coords.ispace.bounds.hi.z - r_coords.ispace.bounds.lo.z + 1
+
+  var vizstr : &int8 = [&int8] ( c.malloc(23*8) )
+  c.sprintf(vizstr, "coords_px%04d_pz%04d.h5", pencil.x, pencil.y)
   var filename : &int8 = [&int8] ( c.malloc(256*8) )
   st.strcpy(filename, fileprefix)
-  st.strcat(filename, "coords.h5")
+  st.strcat(filename, vizstr)
+  c.free(vizstr)
 
   generate_hdf5_file_coords(filename, Nx, Ny, Nz)
 

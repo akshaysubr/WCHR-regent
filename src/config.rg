@@ -16,7 +16,7 @@ struct Config
 local cstring = terralib.includec("string.h")
 
 terra print_usage_and_abort()
-  c.printf("Usage: regent.py edge.rg [OPTIONS]\n")
+  c.printf("Usage: regent.py main.rg [OPTIONS]\n")
   c.printf("OPTIONS\n")
   c.printf("  -h               : Print the usage and exit.\n")
   c.printf("  -prefix {prefix} : Use {prefix} as prefix for file I/O.\n")

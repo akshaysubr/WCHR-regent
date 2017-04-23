@@ -32,9 +32,9 @@ problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
 problem.timestepping_setting = "CONSTANT_TIME_STEP" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
-problem.dt_or_CFL_num        = 2.5e-4
+problem.dt_or_CFL_num        = 1.0e-3
 problem.tstop                = 0.125
-problem.tviz                 = 1.0
+problem.tviz                 = 0.0625
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
@@ -48,6 +48,10 @@ do
     coords[i].x_c = problem.X1 + (i.x + 0.5) * dx
     coords[i].y_c = problem.Y1 + (i.y + 0.5) * dy
     coords[i].z_c = problem.Z1 + (i.z + 0.5) * dz
+
+    -- c.printf("ix, iy, iz = %d, %d, %d\n", i.x, i.y, i.z)
+    -- c.printf("x, y, z = %f, %f, %f\n", coords[i].x_c, coords[i].y_c, coords[i].z_c)
+    -- c.printf("\n")
 
     -- r_prim_c[i].rho = 1.0 + 0.5*cmath.exp(-cmath.pow((coords[i].x_c/0.2), 2) - cmath.pow((coords[i].y_c/0.2), 2) - cmath.pow((coords[i].z_c/0.2), 2))
     r_prim_c[i].rho = 1.0 + 0.5*( cmath.sin( PI*coords[i].x_c ) * cmath.sin( PI*coords[i].y_c ) * cmath.sin( PI*coords[i].z_c ) )
