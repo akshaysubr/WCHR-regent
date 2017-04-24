@@ -31,6 +31,8 @@ To change the problem you want to run, simply link the `problem.rg` symlink to a
 ## TODO
 - Add non-periodic boundary conditions (possibly with ghost cells)
 - Custom block-tridiagonal solver based to remove SuperLU as a dependency
+- Get the SPMD transformation working
+- Make the code GPU compatible (at least the interpolation and solve routines)
 
 ### Authors
 - Akshay Subramaniam (akshays@stanford.edu)
