@@ -1,0 +1,29 @@
+8x1x1
+Error in rho = 4.20339e-06
+Error in u   = 0
+Error in v   = 0
+Error in w   = 4.44089e-16
+Error in p   = 2.88658e-15
+Average time per time step =  5.56805e-02
+
+16x1x1
+Error in rho = 6.76585e-08
+Error in u   = 0
+Error in v   = 0
+Error in w   = 3.33067e-15
+Error in p   = 6.55032e-15
+Average time per time step =  5.59177e-02
+
+32x1x1
+Error in rho = 1.06307e-09
+Error in u   = 0
+Error in v   = 0
+Error in w   = 2.88658e-15
+Error in p   = 5.66214e-15
+Average time per time step =  6.09786e-02
+
+64x1x1
+
+128x1x1
+
+256x1x1
