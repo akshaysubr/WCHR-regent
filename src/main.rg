@@ -610,7 +610,12 @@ if os.getenv('SAVEOBJ') == '1' then
   local superlu_include_dir = superlu_root .. "/include"
   local hdf_root = os.getenv('HDF_ROOT')
   local hdf_lib_dir = hdf_root .. "/lib"
-  local link_flags = {"-L" .. root_dir, "-L" .. superlu_lib_dir, "-L" .. hdf_lib_dir, "-lhdf5", "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
+  local link_flags = {}
+  if os.getenv('USE_IO') == '1' then
+    link_flags = {"-L" .. root_dir, "-L" .. superlu_lib_dir, "-L" .. hdf_lib_dir, "-lhdf5", "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
+  else
+    link_flags = {"-L" .. root_dir, "-L" .. superlu_lib_dir, "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
+  end
   regentlib.saveobj(main, "wchr", "executable", csuperlu_mapper.register_mappers, link_flags)
 else
   regentlib.start(main, csuperlu_mapper.register_mappers)
