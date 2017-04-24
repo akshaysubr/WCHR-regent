@@ -1,7 +1,28 @@
 import "regent"
 
 local use_io = os.getenv('USE_IO') == '1' or false
-if not use_io then return end
+if not use_io then
+  task write_primitive( r_prim     : region(ispace(int3d), primitive),
+                        fileprefix : rawstring,
+                        vizcount   : int32,
+                        pencil     : int2d )
+  where
+    reads( r_prim )
+  do
+    return 1
+  end
+
+  task write_coords( r_coords   : region(ispace(int3d), coordinates),
+                     fileprefix : rawstring,
+                     pencil     : int2d )
+  where
+    reads( r_coords )
+  do
+    return 1
+  end
+
+  return false
+end
 
 require("fields")
 
@@ -145,3 +166,5 @@ do
 
   return 1
 end
+
+return true

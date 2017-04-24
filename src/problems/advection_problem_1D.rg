@@ -9,7 +9,7 @@ require("fields")
 local problem = {}
 
 -- Grid dimensions
-problem.NX = 200
+problem.NX = 32
 problem.NY = 1
 problem.NZ = 1
 
@@ -31,9 +31,10 @@ problem.ONEBYDX = 1.0 / problem.DX
 problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
-problem.dt    = 0.2 * problem.DX
-problem.tstop = 2.0
-problem.tviz  = 1.0
+problem.timestepping_setting = "CONSTANT_TIME_STEP" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
+problem.dt_or_CFL_num        = 5.0e-5
+problem.tstop                = 1.0e-2
+problem.tviz                 = 0.0625
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
@@ -98,6 +99,17 @@ do
   end
 
   return errors
+end
+
+task problem.TKE( r_prim_c : region(ispace(int3d), primitive) )
+where
+  reads(r_prim_c)
+do
+  var TKE : double = 0.0
+  for i in r_prim_c do
+    TKE += 0.5 * r_prim_c[i].rho * (r_prim_c[i].u*r_prim_c[i].u + r_prim_c[i].v*r_prim_c[i].v + r_prim_c[i].w*r_prim_c[i].w)
+  end
+  return TKE
 end
 
 return problem

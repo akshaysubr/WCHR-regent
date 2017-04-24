@@ -8,10 +8,10 @@ local min     = regentlib.fmin
 
 require("fields")
 require("derivatives")
-require("IO")
 require("SOE")
 require("RHS")
 require("partition")
+local use_io = require("IO")
 
 local superlu = require("superlu_util")
 local problem = require("problem")
@@ -78,7 +78,7 @@ task main()
   end
   
   c.printf("           prow, pcol           = %d, %d\n", config.prow, config.pcol)
-  if config.fileIO then
+  if use_io then
     c.printf("           fileIO               = true\n")
     c.printf("           prefix               = %s\n", config.filename_prefix)
   else
@@ -366,7 +366,7 @@ task main()
   end
 
   var IOtoken = 0
-  if config.fileIO then
+  if use_io then
     __demand(__parallel)
     for i in pencil do
       IOtoken += write_coords(p_coords_y[i], config.filename_prefix, i)
@@ -391,7 +391,7 @@ task main()
     token += get_conserved_r(p_prim_c_y[i], p_cnsr_y[i])
   end
 
-  if config.fileIO then
+  if use_io then
     wait_for(IOtoken)
     __demand(__parallel)
     for i in pencil do
@@ -430,7 +430,7 @@ task main()
       dt = dt_fix
     end
 
-    if config.fileIO then
+    if use_io then
       -- Check if viz dump is imminent
       if tsim + dt >= tviz*vizcount then
         dt = tviz * vizcount - tsim
@@ -512,7 +512,7 @@ task main()
     step = step + 1
     tsim += dt
 
-    if config.fileIO then
+    if use_io then
       if vizcond then
         wait_for(IOtoken)
         __demand(__parallel)
@@ -611,7 +611,7 @@ if os.getenv('SAVEOBJ') == '1' then
   local hdf_root = os.getenv('HDF_ROOT')
   local hdf_lib_dir = hdf_root .. "/lib"
   local link_flags = {}
-  if os.getenv('USE_IO') == '1' then
+  if use_io then
     link_flags = {"-L" .. root_dir, "-L" .. superlu_lib_dir, "-L" .. hdf_lib_dir, "-lhdf5", "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
   else
     link_flags = {"-L" .. root_dir, "-L" .. superlu_lib_dir, "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
