@@ -1,1 +1,1 @@
-problems/advection_problem_1D.rg
+problems/advection_problem_3D.rg
