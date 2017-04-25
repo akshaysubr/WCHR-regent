@@ -1,0 +1,39 @@
+64x64x64, prow = 1, pcol = 1
+Error in rho = 5.04052e-12
+Error in u   = 6.31717e-13
+Error in v   = 6.31717e-13
+Error in w   = 9.21718e-12
+Error in p   = 1.06416e-11
+Average time per time step =  4.75493e+01
+
+64x64x64, prow = 2, pcol = 4
+Error in rho = 5.08604e-12
+Error in u   = 1.56319e-13
+Error in v   = 1.53466e-12
+Error in w   = 9.17877e-12
+Error in p   = 1.04909e-11
+Average time per time step =  3.71019e+01
+
+64x64x64, prow = 4, pcol = 4
+Error in rho = 5.02709e-12
+Error in u   = 1.41365e-12
+Error in v   = 1.41365e-12
+Error in w   = 9.13525e-12
+Error in p   = 1.04829e-11
+Average time per time step =  3.73661e+01
+
+64x64x64, prow = 8, pcol = 8
+Error in rho = 1.59628e-12
+Error in u   = 8.30225e-13
+Error in v   = 8.30225e-13
+Error in w   = 4.45199e-13
+Error in p   = 1.20703e-12
+Average time per time step =  4.34433e+01
+
+64x64x64, prow = 16, pcol = 16
+Error in rho = 9.53904e-13
+Error in u   = 7.79377e-14
+Error in v   = 7.79377e-14
+Error in w   = 4.5286e-13
+Error in p   = 5.81757e-13
+Average time per time step =  8.15597e+01
