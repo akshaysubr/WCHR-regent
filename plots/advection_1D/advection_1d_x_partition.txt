@@ -1,0 +1,92 @@
+32x1x1, prow = 1, pcol = 1
+Error in rho = 1.06307e-09
+Error in u   = 2.88658e-15
+Error in v   = 0
+Error in w   = 0
+Error in p   = 5.66214e-15
+Average time per time step =  5.59959e-02
+
+32x4x4, prow = 1, pcol = 1
+Error in rho = 1.06307e-09
+Error in u   = 6.32827e-14
+Error in v   = 0
+Error in w   = 0
+Error in p   = 8.59313e-14
+Average time per time step =  7.92567e-02
+
+32x8x8, prow = 1, pcol = 1
+Error in rho = 1.06308e-09
+Error in u   = 3.77476e-15
+Error in v   = 2.4485e-15
+Error in w   = 2.4485e-15
+Error in p   = 9.10383e-15
+Average time per time step =  3.50897e-01
+
+32x32x32, prow = 1, pcol = 1
+Error in rho = 1.06309e-09
+Error in u   = 4.79394e-13
+Error in v   = 1.27334e-13
+Error in w   = 1.27334e-13
+Error in p   = 2.39364e-13
+Average time per time step =  6.02372e+00
+
+
+
+--------------------------
+32x8x8, prow = 1, pcol = 1
+--------------------------
+IterRefine = NOREFINE
+Error in rho = 1.06308e-09
+Error in u   = 3.77476e-15
+Error in v   = 2.4485e-15
+Error in w   = 2.4485e-15
+Error in p   = 9.10383e-15
+Average time per time step =  3.40125e-01
+
+IterRefine = SLU_SINGLE
+Error in rho = 1.06316e-09
+Error in u   = 1.03251e-13
+Error in v   = 4.2289e-15
+Error in w   = 3.03615e-15
+Error in p   = 1.42331e-13
+Average time per time step =  4.74938e-01
+
+IterRefine = SLU_DOUBLE
+Error in rho = 1.06316e-09
+Error in u   = 1.03251e-13
+Error in v   = 4.2289e-15
+Error in w   = 3.03615e-15
+Error in p   = 1.42331e-13
+Average time per time step =  5.00926e-01
+
+IterRefine = SLU_EXTRA
+Error in rho = 1.06316e-09
+Error in u   = 1.03251e-13
+Error in v   = 4.2289e-15
+Error in w   = 3.03615e-15
+Error in p   = 1.42331e-13
+Average time per time step =  4.98832e-01
+
+IterRefine = SLU_EXTRA, Equil = YES
+Error in rho = 1.06308e-09
+Error in u   = 1.15463e-14
+Error in v   = 7.38247e-16
+Error in w   = 2.08929e-15
+Error in p   = 1.94289e-14
+Average time per time step =  5.22956e-01
+
+IterRefine = NOREFINE, Equil = YES
+Error in rho = 1.06308e-09
+Error in u   = 1.0103e-14
+Error in v   = 9.43412e-16
+Error in w   = 9.43412e-16
+Error in p   = 7.43849e-15
+Average time per time step =  3.65815e-01
+
+IterRefine = NOREFINE, Equil = YES, DiagPivotThresh = 1.0e-2
+Error in rho = 1.06309e-09
+Error in u   = 1.94178e-13
+Error in v   = 1.44823e-14
+Error in w   = 1.3771e-14
+Error in p   = 1.87406e-13
+Average time per time step =  3.59635e-01

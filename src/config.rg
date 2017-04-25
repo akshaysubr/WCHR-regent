@@ -21,7 +21,9 @@ terra print_usage_and_abort()
   c.printf("  -h               : Print the usage and exit.\n")
   c.printf("  -prefix {prefix} : Use {prefix} as prefix for file I/O.\n")
   c.printf("  -stats {nstats}  : Print stats only every {nstats} steps.\n")
-  c.printf("  -p {value}       : Set the number of parallel tasks to {value}.\n")
+  c.printf("  -p {value}       : Set the number of parallel tasks to {value} (Default = 1).\n")
+  c.printf("  -prow {value}    : [Optional] Set the number of parallel tasks in x decomposition to {value}.\n")
+  c.printf("  -pcol {value}    : [Optional] Set the number of parallel tasks in z decomposition to {value}.\n")
   c.abort()
 end
 
@@ -53,6 +55,9 @@ terra Config:initialize_from_command( nx : int, ny : int, nz : int )
   self.parallelism = 1
   self.nstats = 1
 
+  var use_prow : bool = false
+  var use_pcol : bool = false
+
   var args = c.legion_runtime_get_input_args()
   var i = 1
   while i < args.argc do
@@ -68,11 +73,24 @@ terra Config:initialize_from_command( nx : int, ny : int, nz : int )
     elseif cstring.strcmp(args.argv[i], "-p") == 0 then
       i = i + 1
       self.parallelism = c.atoi(args.argv[i])
+    elseif cstring.strcmp(args.argv[i], "-prow") == 0 then
+      i = i + 1
+      self.prow = c.atoi(args.argv[i])
+      use_prow = true
+    elseif cstring.strcmp(args.argv[i], "-pcol") == 0 then
+      i = i + 1
+      self.pcol = c.atoi(args.argv[i])
+      use_pcol = true
     end
     i = i + 1
   end
 
-  self.prow, self.pcol = factorize(self.parallelism)
+  regentlib.assert(use_prow == use_pcol, "Both prow and pcol should be specified or use -p {value} for autofactorization")
+  if use_prow then
+    self.parallelism = self.prow*self.pcol
+  else
+    self.prow, self.pcol = factorize(self.parallelism)
+  end
 end
 
 return Config

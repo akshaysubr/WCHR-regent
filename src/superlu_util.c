@@ -21,6 +21,7 @@ void MatrixSolve(double * restrict dX, double * restrict df, double * restrict n
     dgssvx(&(vars->options), &(vars->A), vars->perm_c, vars->perm_r, vars->etree, vars->equed, vars->R, vars->C,
            &(vars->L), &(vars->U), vars->work, vars->lwork, &(vars->B), &(vars->X), &(vars->rpg), &(vars->rcond), vars->ferr, vars->berr,
            &(vars->Glu), &(vars->mem_usage), &(vars->stat), &info);
+
 }
 
 void destroy_superlu_vars(superlu_vars_t *vars)
@@ -67,12 +68,14 @@ void initialize_superlu_vars(double *nzval, int* rowind, int *colptr, long int N
     vars->lwork = 0;
 
     set_default_options(&(vars->options));
-    vars->options.Equil = NO;
+    vars->options.Equil = YES;
     vars->options.DiagPivotThresh = 1.0;
     vars->options.Trans = NOTRANS;
     vars->options.PrintStat = NO;
     vars->options.ColPerm = COLAMD;
     vars->options.RowPerm = NO;
+    vars->options.IterRefine = NOREFINE;
+    // vars->options.IterRefine = SLU_EXTRA;
 
     StatInit(&(vars->stat));
 
