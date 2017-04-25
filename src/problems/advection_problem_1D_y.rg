@@ -9,17 +9,17 @@ require("fields")
 local problem = {}
 
 -- Grid dimensions
-problem.NX = 32
-problem.NY = 1
+problem.NX = 1
+problem.NY = 64
 problem.NZ = 1
 
 -- Domain size
-problem.LX = 2.0
-problem.LY = 1.0
+problem.LX = 1.0
+problem.LY = 2.0
 problem.LZ = 1.0
 
-problem.X1 = -1.0
-problem.Y1 = -0.5
+problem.X1 = -0.5
+problem.Y1 = -1.0
 problem.Z1 = -0.5
 
 -- Grid spacing
@@ -49,9 +49,9 @@ do
     coords[i].y_c = problem.Y1 + (i.y + 0.5) * dy
     coords[i].z_c = problem.Z1 + (i.z + 0.5) * dz
 
-    r_prim_c[i].rho = 1.0 + 0.5*cmath.sin(PI*coords[i].x_c)
-    r_prim_c[i].u   = 1.0
-    r_prim_c[i].v   = 0.0 
+    r_prim_c[i].rho = 1.0 + 0.5*cmath.sin(PI*coords[i].y_c)
+    r_prim_c[i].u   = 0.0
+    r_prim_c[i].v   = 1.0 
     r_prim_c[i].w   = 0.0
     r_prim_c[i].p   = 1.0
   end
@@ -71,17 +71,17 @@ do
   for i in r_prim_c do
     var err : double
 
-    err = cmath.fabs( r_prim_c[i].rho - (1.0 + 0.5*cmath.sin(PI*(coords[i].x_c - tsim))) )
+    err = cmath.fabs( r_prim_c[i].rho - (1.0 + 0.5*cmath.sin(PI*(coords[i].y_c - tsim))) )
     if err > errors[0] then
       errors[0] = err
     end
 
-    err = cmath.fabs( r_prim_c[i].u   - 1.0 )
+    err = cmath.fabs( r_prim_c[i].u   - 0.0 )
     if err > errors[1] then
       errors[1] = err
     end
 
-    err = cmath.fabs( r_prim_c[i].v   - 0.0 )
+    err = cmath.fabs( r_prim_c[i].v   - 1.0 )
     if err > errors[2] then
       errors[2] = err
     end

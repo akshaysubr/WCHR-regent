@@ -1,0 +1,47 @@
+8x1x1
+Error in rho = 4.20339e-06
+Error in u   = 4.44089e-16
+Error in v   = 0
+Error in w   = 0
+Error in p   = 2.88658e-15
+Average time per time step =  6.27796e-02
+
+16x1x1
+Error in rho = 6.76585e-08
+Error in u   = 3.33067e-15
+Error in v   = 0
+Error in w   = 0
+Error in p   = 6.55032e-15
+Average time per time step =  5.59937e-02
+
+32x1x1
+Error in rho = 1.06307e-09
+Error in u   = 2.88658e-15
+Error in v   = 0
+Error in w   = 0
+Error in p   = 5.66214e-15
+Average time per time step =  5.62972e-02
+
+64x1x1
+Error in rho = 1.66217e-11
+Error in u   = 1.9984e-15
+Error in v   = 0
+Error in w   = 0
+Error in p   = 5.55112e-15
+Average time per time step =  6.17759e-02
+
+128x1x1
+Error in rho = 2.62568e-13
+Error in u   = 7.88258e-15
+Error in v   = 0
+Error in w   = 0
+Error in p   = 1.26565e-14
+Average time per time step =  6.46820e-02
+
+256x1x1
+Error in rho = 1.44329e-14
+Error in u   = 9.54792e-15
+Error in v   = 0
+Error in w   = 0
+Error in p   = 1.70974e-14
+Average time per time step =  6.85335e-02

@@ -9,18 +9,18 @@ require("fields")
 local problem = {}
 
 -- Grid dimensions
-problem.NX = 64
-problem.NY = 64
-problem.NZ = 64
+problem.NX = 32
+problem.NY = 8
+problem.NZ = 8
 
 -- Domain size
 problem.LX = 2.0
-problem.LY = 2.0
-problem.LZ = 2.0
+problem.LY = 1.0
+problem.LZ = 1.0
 
 problem.X1 = -1.0
-problem.Y1 = -1.0
-problem.Z1 = -1.0
+problem.Y1 = -0.5
+problem.Z1 = -0.5
 
 -- Grid spacing
 problem.DX = problem.LX / problem.NX
@@ -32,8 +32,8 @@ problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
 problem.timestepping_setting = "CONSTANT_TIME_STEP" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
-problem.dt_or_CFL_num        = 1.0e-3
-problem.tstop                = 0.125
+problem.dt_or_CFL_num        = 5.0e-5
+problem.tstop                = 1.0e-2
 problem.tviz                 = 0.0625
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
@@ -49,15 +49,10 @@ do
     coords[i].y_c = problem.Y1 + (i.y + 0.5) * dy
     coords[i].z_c = problem.Z1 + (i.z + 0.5) * dz
 
-    -- c.printf("ix, iy, iz = %d, %d, %d\n", i.x, i.y, i.z)
-    -- c.printf("x, y, z = %f, %f, %f\n", coords[i].x_c, coords[i].y_c, coords[i].z_c)
-    -- c.printf("\n")
-
-    -- r_prim_c[i].rho = 1.0 + 0.5*cmath.exp(-cmath.pow((coords[i].x_c/0.2), 2) - cmath.pow((coords[i].y_c/0.2), 2) - cmath.pow((coords[i].z_c/0.2), 2))
-    r_prim_c[i].rho = 1.0 + 0.5*( cmath.sin( PI*coords[i].x_c ) * cmath.sin( PI*coords[i].y_c ) * cmath.sin( PI*coords[i].z_c ) )
+    r_prim_c[i].rho = 1.0 + 0.5*cmath.sin(PI*coords[i].x_c)
     r_prim_c[i].u   = 1.0
-    r_prim_c[i].v   = 1.0 
-    r_prim_c[i].w   = 1.0
+    r_prim_c[i].v   = 0.0 
+    r_prim_c[i].w   = 0.0
     r_prim_c[i].p   = 1.0
   end
 
@@ -76,17 +71,7 @@ do
   for i in r_prim_c do
     var err : double
 
-    var x0 : double = coords[i].x_c - tsim
-    x0 = x0 - cmath.nearbyint(x0/problem.LX)*problem.LX
-
-    var y0 : double = coords[i].y_c - tsim
-    y0 = y0 - cmath.nearbyint(y0/problem.LY)*problem.LY
-
-    var z0 : double = coords[i].z_c - tsim
-    z0 = z0 - cmath.nearbyint(z0/problem.LZ)*problem.LZ
-
-    -- err = cmath.fabs( r_prim_c[i].rho - (1.0 + 0.5*cmath.exp( -cmath.pow(( x0/0.2), 2) - cmath.pow(( y0/0.2), 2) - cmath.pow(( z0/0.2), 2) )) )
-    err = cmath.fabs( r_prim_c[i].rho - (1.0 + 0.5*( cmath.sin( PI*x0 ) * cmath.sin( PI*y0 ) * cmath.sin( PI*z0 )) ) )
+    err = cmath.fabs( r_prim_c[i].rho - (1.0 + 0.5*cmath.sin(PI*(coords[i].x_c - tsim))) )
     if err > errors[0] then
       errors[0] = err
     end
@@ -96,12 +81,12 @@ do
       errors[1] = err
     end
 
-    err = cmath.fabs( r_prim_c[i].v   - 1.0 )
+    err = cmath.fabs( r_prim_c[i].v   - 0.0 )
     if err > errors[2] then
       errors[2] = err
     end
 
-    err = cmath.fabs( r_prim_c[i].w   - 1.0 )
+    err = cmath.fabs( r_prim_c[i].w   - 0.0 )
     if err > errors[3] then
       errors[3] = err
     end
