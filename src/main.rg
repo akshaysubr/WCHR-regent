@@ -517,6 +517,19 @@ task main()
       end
     end
 
+    var errors : double[5]
+    for ierr = 0,5 do
+      errors[ierr] = 0.0
+    end
+    for i in pencil do
+      var perrors = problem.get_errors(p_coords_y[i], p_prim_c_y[i], tsim)
+      for ierr = 0,5 do
+        if perrors[ierr] > errors[ierr] then
+          errors[ierr] = perrors[ierr]
+        end
+      end
+    end
+
     var TKE : double = 0.0
     __demand(__parallel)
     for i in pencil do
@@ -525,12 +538,12 @@ task main()
 
     if (step-1)%(config.nstats*50) == 0 then
       c.printf("\n")
-      c.printf("%6.6s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s\n", "Step","Time","Timestep","Min rho","Max rho","Min p","Max p")
+      c.printf("%6.6s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s\n", "Step","Time","Timestep","Error rho","Error u","Error p","TKE")
       c.printf("-------|-------------|-------------|-------------|-------------|-------------|------------\n")
     end
 
     if (step-1)%config.nstats == 0 then
-      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, 0.0, 0.0, 0.0, TKE/TKE0)
+      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, errors[0], errors[1], errors[4], TKE/TKE0)
       -- c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, min_rho_p(r_prim_c), max_rho_p(r_prim_c), min_p_p(r_prim_c), max_p_p(r_prim_c))
     end
   end
