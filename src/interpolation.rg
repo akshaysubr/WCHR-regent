@@ -141,7 +141,7 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
       var C : double = 1.0e9
       -- p = 2
       -- q = 4
-      var epsilon : double = 1.0e-40
+      var epsilon : double = 1.0e-10
       var alpha_beta : double = 45.0
       
       var alpha_2 : double = (values[eq][2] - values[eq][1])
