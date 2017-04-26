@@ -438,6 +438,8 @@ task main()
       end
     end
 
+    var Q_t : double = 0.0
+
     __demand(__parallel)
     for i in pencil do
       set_zero_cnsr( p_qrhs_y[i] )
@@ -446,7 +448,6 @@ task main()
     --------------------------------------------------------------------------------------------
     -- Advance sub-steps.
     --------------------------------------------------------------------------------------------
-
     for isub = 0,5 do
 
       -- Set RHS to zero.
@@ -486,16 +487,12 @@ task main()
       -- Update solution in this substep.
       __demand(__parallel)
       for i in pencil do
-        self_multiply_cnsr( p_qrhs_y[i], A_RK45[isub] )
+        update_substep( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK45[isub], B_RK45[isub] )
       end
-      __demand(__parallel)
-      for i in pencil do
-        add_value_cnsr( p_qrhs_y[i], p_rhs_y[i], dt )
-      end
-      __demand(__parallel)
-      for i in pencil do
-        add_value_cnsr( p_cnsr_y[i], p_qrhs_y[i], B_RK45[isub] )
-      end
+
+      -- Update simulation time as well
+      Q_t = dt + A_RK45[isub]*Q_t
+      tsim += B_RK45[isub]*Q_t
 
       -- Update the primitive variables.
       __demand(__parallel)
@@ -505,12 +502,8 @@ task main()
 
     end
 
-    --------------------------------------------------------------------------------------------
-    -- Update time step and time.
-    --------------------------------------------------------------------------------------------
-    
+    -- Update time step
     step = step + 1
-    tsim += dt
 
     if use_io then
       if vizcond then

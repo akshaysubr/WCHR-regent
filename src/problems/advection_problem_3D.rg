@@ -31,8 +31,10 @@ problem.ONEBYDX = 1.0 / problem.DX
 problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
-problem.timestepping_setting = "CONSTANT_TIME_STEP" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
-problem.dt_or_CFL_num        = 1.0e-3
+-- problem.timestepping_setting = "CONSTANT_TIME_STEP" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
+-- problem.dt_or_CFL_num        = 1.0e-3
+problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
+problem.dt_or_CFL_num        = 0.8
 problem.tstop                = 0.125
 problem.tviz                 = 0.0625
 

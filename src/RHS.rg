@@ -200,3 +200,31 @@ do
     end
   end
 end
+
+task update_substep( r_cnsr : region(ispace(int3d), conserved),
+                     r_rhs  : region(ispace(int3d), conserved),
+                     Q_rhs  : region(ispace(int3d), conserved),
+                     dt     : double,
+                     A      : double,
+                     B      : double )
+where
+  reads (r_rhs), reads writes(r_cnsr, Q_rhs)
+do
+
+  for i in r_rhs do
+    Q_rhs[i].rho = dt * r_rhs[i].rho + A*Q_rhs[i].rho
+    r_cnsr[i].rho += B*Q_rhs[i].rho
+
+    Q_rhs[i].rhou = dt * r_rhs[i].rhou + A*Q_rhs[i].rhou
+    r_cnsr[i].rhou += B*Q_rhs[i].rhou
+
+    Q_rhs[i].rhov = dt * r_rhs[i].rhov + A*Q_rhs[i].rhov
+    r_cnsr[i].rhov += B*Q_rhs[i].rhov
+
+    Q_rhs[i].rhow = dt * r_rhs[i].rhow + A*Q_rhs[i].rhow
+    r_cnsr[i].rhow += B*Q_rhs[i].rhow
+
+    Q_rhs[i].rhoE = dt * r_rhs[i].rhoE + A*Q_rhs[i].rhoE
+    r_cnsr[i].rhoE += B*Q_rhs[i].rhoE
+  end
+end
