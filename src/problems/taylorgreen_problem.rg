@@ -68,45 +68,6 @@ do
 
   var errors : double[5] = array(0.0, 0.0, 0.0, 0.0, 0.0)
 
-  for i in r_prim_c do
-    var err : double
-
-    var x0 : double = coords[i].x_c - tsim
-    x0 = x0 - cmath.nearbyint(x0/problem.LX)*problem.LX
-
-    var y0 : double = coords[i].y_c - tsim
-    y0 = y0 - cmath.nearbyint(y0/problem.LY)*problem.LY
-
-    var z0 : double = coords[i].z_c - tsim
-    z0 = z0 - cmath.nearbyint(z0/problem.LZ)*problem.LZ
-
-    err = cmath.fabs( r_prim_c[i].rho - (1.0 + 0.5*cmath.exp( -cmath.pow(( x0/0.2), 2) - cmath.pow(( y0/0.2), 2) - cmath.pow(( z0/0.2), 2) )) )
-    if err > errors[0] then
-      errors[0] = err
-    end
-
-    err = cmath.fabs( r_prim_c[i].u   - 1.0 )
-    if err > errors[1] then
-      errors[1] = err
-    end
-
-    err = cmath.fabs( r_prim_c[i].v   - 1.0 )
-    if err > errors[2] then
-      errors[2] = err
-    end
-
-    err = cmath.fabs( r_prim_c[i].w   - 1.0 )
-    if err > errors[3] then
-      errors[3] = err
-    end
-
-    err = cmath.fabs( r_prim_c[i].p   - 1.0 )
-    if err > errors[4] then
-      errors[4] = err
-    end
-
-  end
-
   return errors
 end
 
