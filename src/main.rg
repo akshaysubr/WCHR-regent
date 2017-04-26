@@ -518,17 +518,17 @@ task main()
     end
 
     var errors : double[5]
-    for ierr = 0,5 do
-      errors[ierr] = 0.0
-    end
-    for i in pencil do
-      var perrors = problem.get_errors(p_coords_y[i], p_prim_c_y[i], tsim)
-      for ierr = 0,5 do
-        if perrors[ierr] > errors[ierr] then
-          errors[ierr] = perrors[ierr]
-        end
-      end
-    end
+    -- for ierr = 0,5 do
+    --   errors[ierr] = 0.0
+    -- end
+    -- for i in pencil do
+    --   var perrors = problem.get_errors(p_coords_y[i], p_prim_c_y[i], tsim)
+    --   for ierr = 0,5 do
+    --     if perrors[ierr] > errors[ierr] then
+    --       errors[ierr] = perrors[ierr]
+    --     end
+    --   end
+    -- end
 
     var TKE : double = 0.0
     __demand(__parallel)
