@@ -25,6 +25,18 @@ fspace conserved {
   rhoE : double,
 }
 
+fspace tensor2 {
+  _11 : double,
+  _12 : double,
+  _13 : double,
+  _21 : double,
+  _22 : double,
+  _23 : double,
+  _31 : double,
+  _32 : double,
+  _33 : double,
+}
+
 fspace auxiliary {
   e    : double,
   sos  : double,

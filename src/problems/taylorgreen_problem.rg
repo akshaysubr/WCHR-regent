@@ -9,9 +9,9 @@ require("fields")
 local problem = {}
 
 -- Grid dimensions
-problem.NX = 64
-problem.NY = 64
-problem.NZ = 64
+problem.NX = 32
+problem.NY = 32
+problem.NZ = 32
 
 -- Domain size
 problem.LX = 2.0*PI
@@ -80,6 +80,20 @@ do
     TKE += 0.5 * r_prim_c[i].rho * (r_prim_c[i].u*r_prim_c[i].u + r_prim_c[i].v*r_prim_c[i].v + r_prim_c[i].w*r_prim_c[i].w)
   end
   return TKE
+end
+
+task problem.enstrophy( r_duidxj : region(ispace(int3d), tensor2) )
+where
+  reads(r_duidxj)
+do
+  var enstrophy : double = 0.0
+  for i in r_duidxj do
+    var omega_x : double = r_duidxj[i]._32 - r_duidxj[i]._23
+    var omega_y : double = r_duidxj[i]._13 - r_duidxj[i]._31
+    var omega_z : double = r_duidxj[i]._21 - r_duidxj[i]._12
+    enstrophy += omega_x*omega_x + omega_y*omega_y + omega_z*omega_z
+  end
+  return enstrophy
 end
 
 return problem

@@ -13,11 +13,11 @@ local cmath = terralib.includec("math.h")
 
 
 -- Make the node and midpoint-node differencing tasks (Using pentadiagonal solver for this instead of tridiagonal solver)
-local alpha10d1 = 1.0/3.0
-local beta10d1  = 0.0
-local a06d1 = ( 14.0/ 9.0)/2.0
-local b06d1 = (  1.0/ 9.0)/4.0
-local c06d1 = (  0.0/100.0)/6.0
+alpha06d1 = 1.0/3.0
+beta06d1  = 0.0
+a06d1 = ( 14.0/ 9.0)/2.0
+b06d1 = (  1.0/ 9.0)/4.0
+c06d1 = (  0.0/100.0)/6.0
 
 -- Compact MND finite difference
 -- alpha06MND = -1.0/12.0
@@ -61,6 +61,23 @@ local ddz_MND_rhou = make_ddz_MND(r_flux, r_flux_e, "rhou", r_der, "rhou", probl
 local ddz_MND_rhov = make_ddz_MND(r_flux, r_flux_e, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06MND, b06MND, c06MND)
 local ddz_MND_rhow = make_ddz_MND(r_flux, r_flux_e, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06MND, b06MND, c06MND)
 local ddz_MND_rhoE = make_ddz_MND(r_flux, r_flux_e, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06MND, b06MND, c06MND)
+
+local r_prim   = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim")
+local r_prim_e = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim_e")
+local r_der    = regentlib.newsymbol(region(ispace(int3d), tensor2),   "r_der")
+
+local ddx_u   = make_ddx(r_prim, "u", r_der, "_11", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
+local ddy_u   = make_ddy(r_prim, "u", r_der, "_12", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
+local ddz_u   = make_ddz(r_prim, "u", r_der, "_13", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
+
+local ddx_v   = make_ddx(r_prim, "v", r_der, "_21", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
+local ddy_v   = make_ddy(r_prim, "v", r_der, "_22", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
+local ddz_v   = make_ddz(r_prim, "v", r_der, "_23", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
+
+local ddx_w   = make_ddx(r_prim, "w", r_der, "_31", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
+local ddy_w   = make_ddy(r_prim, "w", r_der, "_32", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
+local ddz_w   = make_ddz(r_prim, "w", r_der, "_33", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
+
 -----------------------------------------------------
 
 task add_xflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
@@ -227,4 +244,79 @@ do
     Q_rhs[i].rhoE = dt * r_rhs[i].rhoE + A*Q_rhs[i].rhoE
     r_cnsr[i].rhoE += B*Q_rhs[i].rhoE
   end
+end
+
+task get_velocity_x_derivatives( r_prim_c : region(ispace(int3d), primitive),
+                                 r_duidxj : region(ispace(int3d), tensor2),
+                                 LU_x     : region(ispace(int3d), LU_struct) )
+where
+  reads (r_prim_c, LU_x), reads writes (r_duidxj.{_11, _21, _31})
+do
+  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+
+  var token = 1
+  if (nx < 8) then
+    for i in r_duidxj do
+      r_duidxj[i]._11 = 0.0
+      r_duidxj[i]._21 = 0.0
+      r_duidxj[i]._31 = 0.0
+    end
+    return token
+  end
+
+  token += ddx_u(r_prim_c, r_duidxj, LU_x)
+  token += ddx_v(r_prim_c, r_duidxj, LU_x)
+  token += ddx_w(r_prim_c, r_duidxj, LU_x) 
+
+  return token
+end
+
+task get_velocity_y_derivatives( r_prim_c : region(ispace(int3d), primitive),
+                                 r_duidxj : region(ispace(int3d), tensor2),
+                                 LU_y     : region(ispace(int3d), LU_struct) )
+where
+  reads (r_prim_c, LU_y), reads writes (r_duidxj.{_12, _22, _32})
+do
+  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+
+  var token = 1
+  if (ny < 8) then
+    for i in r_duidxj do
+      r_duidxj[i]._12 = 0.0
+      r_duidxj[i]._22 = 0.0
+      r_duidxj[i]._32 = 0.0
+    end
+    return token
+  end
+
+  token += ddy_u(r_prim_c, r_duidxj, LU_y)
+  token += ddy_v(r_prim_c, r_duidxj, LU_y)
+  token += ddy_w(r_prim_c, r_duidxj, LU_y) 
+
+  return token
+end
+
+task get_velocity_z_derivatives( r_prim_c : region(ispace(int3d), primitive),
+                                 r_duidxj : region(ispace(int3d), tensor2),
+                                 LU_z     : region(ispace(int3d), LU_struct) )
+where
+  reads (r_prim_c, LU_z), reads writes (r_duidxj.{_13, _23, _33})
+do
+  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+
+  var token = 1
+  if (nz < 8) then
+    for i in r_duidxj do
+      r_duidxj[i]._13 = 0.0
+      r_duidxj[i]._23 = 0.0
+      r_duidxj[i]._33 = 0.0
+    end
+    return token
+  end
+
+  token += ddz_u(r_prim_c, r_duidxj, LU_z)
+  token += ddz_v(r_prim_c, r_duidxj, LU_z)
+  token += ddz_w(r_prim_c, r_duidxj, LU_z) 
+
+  return token
 end

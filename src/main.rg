@@ -109,6 +109,8 @@ task main()
   var r_prim_r_y = region(grid_e_y, primitive)  -- primitive variables at right y cell edge
   var r_prim_r_z = region(grid_e_z, primitive)  -- primitive variables at right z cell edge
 
+  var r_duidxj   = region(grid_c,   tensor2)    -- Velocity gradient tensor at the cell center
+
   var r_rhs_l_x  = region(grid_e_x, primitive)  -- store RHS for left interpolation in x
   var r_rhs_r_x  = region(grid_e_x, primitive)  -- store RHS for right interpolation in x
   var r_rhs_l_y  = region(grid_e_y, primitive)  -- store RHS for left interpolation in y
@@ -129,13 +131,16 @@ task main()
   var r_qrhs     = region(grid_c,   conserved)  -- buffer for RK45 time stepping
 
   -- data structure to hold x derivative LU decomposition
-  var LU_x       = region(ispace(int3d, {x = Nx, y = config.prow, z = config.pcol}), LU_struct)
+  var LU_x       = region(ispace(int3d, {x = Nx, y = config.prow, z = config.pcol}), LU_struct) -- For staggered finite difference
+  var LU_N_x     = region(ispace(int3d, {x = Nx, y = config.prow, z = config.pcol}), LU_struct) -- For nodal finite difference
   
   -- data structure to hold y derivative LU decomposition
-  var LU_y       = region(ispace(int3d, {x = Ny, y = config.prow, z = config.pcol}), LU_struct)
+  var LU_y       = region(ispace(int3d, {x = Ny, y = config.prow, z = config.pcol}), LU_struct) -- For staggered finite difference
+  var LU_N_y     = region(ispace(int3d, {x = Ny, y = config.prow, z = config.pcol}), LU_struct) -- For nodal finite difference
 
   -- data structure to hold z derivative LU decomposition
-  var LU_z       = region(ispace(int3d, {x = Nz, y = config.prow, z = config.pcol}), LU_struct)
+  var LU_z       = region(ispace(int3d, {x = Nz, y = config.prow, z = config.pcol}), LU_struct) -- For staggered finite difference
+  var LU_N_z     = region(ispace(int3d, {x = Nz, y = config.prow, z = config.pcol}), LU_struct) -- For nodal finite difference
 
   var pencil = ispace(int2d, int2d {config.prow, config.pcol})
 
@@ -180,6 +185,10 @@ task main()
   var p_prim_r_y   = partition_ypencil_prim(r_prim_r_y, pencil)
   var p_prim_r_z   = partition_zpencil_prim(r_prim_r_z, pencil)
 
+  var p_duidxj_x   = partition_xpencil_tnsr2(r_duidxj,  pencil)
+  var p_duidxj_y   = partition_ypencil_tnsr2(r_duidxj,  pencil)
+  var p_duidxj_z   = partition_zpencil_tnsr2(r_duidxj,  pencil)
+
   var p_rhs_l_x    = partition_xpencil_prim(r_rhs_l_x,  pencil)
   var p_rhs_l_y    = partition_ypencil_prim(r_rhs_l_y,  pencil)
   var p_rhs_l_z    = partition_zpencil_prim(r_rhs_l_z,  pencil)
@@ -211,6 +220,10 @@ task main()
   var p_LU_x       = partition_LU(LU_x, pencil)
   var p_LU_y       = partition_LU(LU_y, pencil)
   var p_LU_z       = partition_LU(LU_z, pencil)
+
+  var p_LU_N_x     = partition_LU(LU_N_x, pencil)
+  var p_LU_N_y     = partition_LU(LU_N_y, pencil)
+  var p_LU_N_z     = partition_LU(LU_N_z, pencil)
 
   var p_slu_l_x    = partition_slu(slu_l_x, pencil)
   var p_slu_r_x    = partition_slu(slu_r_x, pencil)
@@ -348,6 +361,18 @@ task main()
   for i in pencil do
     token += get_LU_decomposition(p_LU_z[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
   end
+  __demand(__parallel)
+  for i in pencil do
+    token += get_LU_decomposition(p_LU_N_x[i], beta06d1, alpha06d1, 1.0, alpha06d1, beta06d1)
+  end
+  __demand(__parallel)
+  for i in pencil do
+    token += get_LU_decomposition(p_LU_N_y[i], beta06d1, alpha06d1, 1.0, alpha06d1, beta06d1)
+  end
+  __demand(__parallel)
+  for i in pencil do
+    token += get_LU_decomposition(p_LU_N_z[i], beta06d1, alpha06d1, 1.0, alpha06d1, beta06d1)
+  end
   wait_for(token)
   c.printf("Finished LU initialization\n")
 
@@ -358,12 +383,31 @@ task main()
   end
   wait_for(token)
   c.printf("Finished initialization\n")
-  
+ 
+  __demand(__parallel)
+  for i in pencil do
+    token += get_velocity_x_derivatives( p_prim_c_x[i], p_duidxj_x[i], p_LU_N_x[i] )
+  end
+  __demand(__parallel)
+  for i in pencil do
+    token += get_velocity_y_derivatives( p_prim_c_y[i], p_duidxj_y[i], p_LU_N_y[i] )
+  end
+  __demand(__parallel)
+  for i in pencil do
+    token += get_velocity_z_derivatives( p_prim_c_z[i], p_duidxj_z[i], p_LU_N_z[i] )
+  end
+ 
   var TKE0 : double = 0.0
   __demand(__parallel)
   for i in pencil do
     TKE0 += problem.TKE(p_prim_c_y[i])
   end
+  var enstrophy0 : double = 0.0
+  __demand(__parallel)
+  for i in pencil do
+    enstrophy0 += problem.enstrophy( p_duidxj_y[i] )
+  end
+  c.printf("TKE, Enstrophy = %g, %g", TKE0, enstrophy0)
 
   var IOtoken = 0
   if use_io then
@@ -490,7 +534,7 @@ task main()
         update_substep( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK45[isub], B_RK45[isub] )
       end
 
-      -- Update simulation time as well
+      -- Update simulation time as well.
       Q_t = dt + A_RK45[isub]*Q_t
       tsim += B_RK45[isub]*Q_t
 
@@ -500,9 +544,23 @@ task main()
         token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
       end
 
+      -- Update velocity gradient tensor.
+      __demand(__parallel)
+      for i in pencil do
+        token += get_velocity_x_derivatives( p_prim_c_x[i], p_duidxj_x[i], p_LU_N_x[i] )
+      end
+      __demand(__parallel)
+      for i in pencil do
+        token += get_velocity_y_derivatives( p_prim_c_y[i], p_duidxj_y[i], p_LU_N_y[i] )
+      end
+      __demand(__parallel)
+      for i in pencil do
+        token += get_velocity_z_derivatives( p_prim_c_z[i], p_duidxj_z[i], p_LU_N_z[i] )
+      end
+ 
     end
 
-    -- Update time step
+    -- Update time step.
     step = step + 1
 
     if use_io then
@@ -536,14 +594,20 @@ task main()
       TKE += problem.TKE(p_prim_c_y[i])
     end
 
+    var enstrophy : double = 0.0
+    __demand(__parallel)
+    for i in pencil do
+      enstrophy += problem.enstrophy( p_duidxj_y[i] )
+    end
+
     if (step-1)%(config.nstats*50) == 0 then
       c.printf("\n")
-      c.printf("%6.6s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s\n", "Step","Time","Timestep","Error rho","Error u","Error p","TKE")
-      c.printf("-------|-------------|-------------|-------------|-------------|-------------|------------\n")
+      c.printf("%6.6s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s\n", "Step","Time","Timestep","Error rho","Error u","Error p","TKE","Enstrophy")
+      c.printf("-------|-------------|-------------|-------------|-------------|-------------|-------------|------------\n")
     end
 
     if (step-1)%config.nstats == 0 then
-      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, errors[0], errors[1], errors[4], TKE/TKE0)
+      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, errors[0], errors[1], errors[4], TKE/TKE0, enstrophy/enstrophy0)
       -- c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, min_rho_p(r_prim_c), max_rho_p(r_prim_c), min_p_p(r_prim_c), max_p_p(r_prim_c))
     end
   end

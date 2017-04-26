@@ -141,6 +141,11 @@ partition_xpencil_cnsr = make_partition_xpencil(r_cnsr)
 partition_ypencil_cnsr = make_partition_ypencil(r_cnsr)
 partition_zpencil_cnsr = make_partition_zpencil(r_cnsr)
 
+local r_tnsr2  = regentlib.newsymbol(region(ispace(int3d), tensor2), "r_tnsr2")
+partition_xpencil_tnsr2 = make_partition_xpencil(r_tnsr2)
+partition_ypencil_tnsr2 = make_partition_ypencil(r_tnsr2)
+partition_zpencil_tnsr2 = make_partition_zpencil(r_tnsr2)
+
 local slu = regentlib.newsymbol(region(ispace(int2d), superlu.c.superlu_vars_t), "slu")
 partition_slu = make_partition2D(slu)
 
