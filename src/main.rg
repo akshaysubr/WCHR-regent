@@ -384,29 +384,30 @@ task main()
   wait_for(token)
   c.printf("Finished initialization\n")
  
-  __demand(__parallel)
-  for i in pencil do
-    token += get_velocity_x_derivatives( p_prim_c_x[i], p_duidxj_x[i], p_LU_N_x[i] )
-  end
-  __demand(__parallel)
-  for i in pencil do
-    token += get_velocity_y_derivatives( p_prim_c_y[i], p_duidxj_y[i], p_LU_N_y[i] )
-  end
-  __demand(__parallel)
-  for i in pencil do
-    token += get_velocity_z_derivatives( p_prim_c_z[i], p_duidxj_z[i], p_LU_N_z[i] )
-  end
+  -- __demand(__parallel)
+  -- for i in pencil do
+  --   token += get_velocity_x_derivatives( p_prim_c_x[i], p_duidxj_x[i], p_LU_N_x[i] )
+  -- end
+  -- __demand(__parallel)
+  -- for i in pencil do
+  --   token += get_velocity_y_derivatives( p_prim_c_y[i], p_duidxj_y[i], p_LU_N_y[i] )
+  -- end
+  -- __demand(__parallel)
+  -- for i in pencil do
+  --   token += get_velocity_z_derivatives( p_prim_c_z[i], p_duidxj_z[i], p_LU_N_z[i] )
+  -- end
  
   var TKE0 : double = 0.0
   __demand(__parallel)
   for i in pencil do
     TKE0 += problem.TKE(p_prim_c_y[i])
   end
-  var enstrophy0 : double = 0.0
-  __demand(__parallel)
-  for i in pencil do
-    enstrophy0 += problem.enstrophy( p_duidxj_y[i] )
-  end
+  var enstrophy0 : double = 1.0
+  -- var enstrophy0 : double = 0.0
+  -- __demand(__parallel)
+  -- for i in pencil do
+  --   enstrophy0 += problem.enstrophy( p_duidxj_y[i] )
+  -- end
   c.printf("TKE, Enstrophy = %g, %g", TKE0, enstrophy0)
 
   var IOtoken = 0
@@ -544,19 +545,19 @@ task main()
         token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
       end
 
-      -- Update velocity gradient tensor.
-      __demand(__parallel)
-      for i in pencil do
-        token += get_velocity_x_derivatives( p_prim_c_x[i], p_duidxj_x[i], p_LU_N_x[i] )
-      end
-      __demand(__parallel)
-      for i in pencil do
-        token += get_velocity_y_derivatives( p_prim_c_y[i], p_duidxj_y[i], p_LU_N_y[i] )
-      end
-      __demand(__parallel)
-      for i in pencil do
-        token += get_velocity_z_derivatives( p_prim_c_z[i], p_duidxj_z[i], p_LU_N_z[i] )
-      end
+      -- -- Update velocity gradient tensor.
+      -- __demand(__parallel)
+      -- for i in pencil do
+      --   token += get_velocity_x_derivatives( p_prim_c_x[i], p_duidxj_x[i], p_LU_N_x[i] )
+      -- end
+      -- __demand(__parallel)
+      -- for i in pencil do
+      --   token += get_velocity_y_derivatives( p_prim_c_y[i], p_duidxj_y[i], p_LU_N_y[i] )
+      -- end
+      -- __demand(__parallel)
+      -- for i in pencil do
+      --   token += get_velocity_z_derivatives( p_prim_c_z[i], p_duidxj_z[i], p_LU_N_z[i] )
+      -- end
  
     end
 
@@ -576,9 +577,10 @@ task main()
     end
 
     var errors : double[5]
-    -- for ierr = 0,5 do
-    --   errors[ierr] = 0.0
-    -- end
+    for ierr = 0,5 do
+      errors[ierr] = 0.0
+    end
+
     -- for i in pencil do
     --   var perrors = problem.get_errors(p_coords_y[i], p_prim_c_y[i], tsim)
     --   for ierr = 0,5 do
@@ -595,10 +597,10 @@ task main()
     end
 
     var enstrophy : double = 0.0
-    __demand(__parallel)
-    for i in pencil do
-      enstrophy += problem.enstrophy( p_duidxj_y[i] )
-    end
+    -- __demand(__parallel)
+    -- for i in pencil do
+    --   enstrophy += problem.enstrophy( p_duidxj_y[i] )
+    -- end
 
     if (step-1)%(config.nstats*50) == 0 then
       c.printf("\n")
