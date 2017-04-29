@@ -9,9 +9,9 @@ require("fields")
 local problem = {}
 
 -- Grid dimensions
-problem.NX = 32
-problem.NY = 32
-problem.NZ = 32
+problem.NX = 32 
+problem.NY = 32 
+problem.NZ = 32 
 
 -- Domain size
 problem.LX = 2.0*PI

@@ -194,7 +194,7 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
         var sum : double = 0.0
         for i = 0, 4 do
           var dummy : double = (tau_6/(beta[i] + epsilon))
-          dummy = dummy*dummy
+          dummy = dummy*dummy*dummy
           dummy = dummy*dummy
           omega_central[i] = d_central[i]*( C + dummy )
           sum = sum + omega_central[i]
