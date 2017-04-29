@@ -30,7 +30,7 @@ def get_regent_TKE(data_file):
 # data_file  = sys.argv[1]
 # linetype   = sys.argv[2]
 
-t_ECISFD, TKE_ECISFD = get_regent_TKE('../src/taylorgreen_N032_p2.log')
+t_ECISFD, TKE_ECISFD = get_regent_TKE('taylorgreen_results/taylorgreen064_cpu16_eps1em10.log')
 # t_ECISFD, TKE_ECISFD = get_regent_TKE('../src/taylorgreen_ECISFD_p1_N032.log')
 # t_ECIEFD, TKE_ECIEFD = get_regent_TKE('../src/taylorgreen_ECIEFD_p1_N032.log')
 # t_ECIEFD2, TKE_ECIEFD2 = get_regent_TKE('../src/taylorgreen_ECIEFD_N032.log')
