@@ -13,6 +13,7 @@ beta06CI  = 5.0/8.0
 gamma06CI = 3.0/16.0
 
 local xi = 2.0/3.0
+-- local xi = 0.7
 -- local xi = 1.0
   
 local function v_index(i,is_left)
@@ -69,7 +70,7 @@ local function make_get_nonlinear_weights_JS(get_beta, is_left)
     for eq = 0, 5 do 
       var beta = [get_beta](values, eq)
   
-      var epsilon : double = 1.0e-10
+      var epsilon : double = 1.0e-40
       
       -- Compute the nonlinear weights
       var d = array(1.0/4.0, 1.0/2.0, 1.0/4.0, 0.0)
@@ -138,11 +139,11 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
       -- var epsilon : double = 1.0e-6
       -- var alpha_beta : double = 40.0
 
-      var C : double = 1.0e9
+      var C : double = 1.0e14
       -- p = 2
-      -- q = 4
-      var epsilon : double = 1.0e-10
-      var alpha_beta : double = 45.0
+      -- q = 6
+      var epsilon : double = 1.0e-40
+      var alpha_beta : double = 50.0
       
       var alpha_2 : double = (values[eq][2] - values[eq][1])
       var alpha_3 : double = (values[eq][3] - values[eq][2])
@@ -163,7 +164,7 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
         var sum : double = 0.0
         for i = 0, 4 do
           var dummy : double = (tau_6/(beta[i] + epsilon))
-          dummy = dummy*dummy
+          dummy = dummy*dummy*dummy
           dummy = dummy*dummy
           omega_central[i] = d_central[i]*( C + dummy )
           sum = sum + omega_central[i]
