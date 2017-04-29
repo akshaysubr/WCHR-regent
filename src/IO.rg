@@ -87,8 +87,10 @@ do
   var Ny = r_prim.ispace.bounds.hi.y - r_prim.ispace.bounds.lo.y + 1
   var Nz = r_prim.ispace.bounds.hi.z - r_prim.ispace.bounds.lo.z + 1
 
-  var vizstr : &int8 = [&int8] ( c.malloc(21*8) )
-  c.sprintf(vizstr, "%04d_px%04d_pz%04d.h5", vizcount, pencil.x, pencil.y)
+  -- var vizstr : &int8 = [&int8] ( c.malloc(21*8) )
+  -- c.sprintf(vizstr, "%04d_px%04d_pz%04d.h5", vizcount, pencil.x, pencil.y)
+  var vizstr : &int8 = [&int8] ( c.malloc(22*8) )
+  c.sprintf(vizstr, "%04d_px%04d_pz%04d.dat", vizcount, pencil.x, pencil.y)
   var filename : &int8 = [&int8] ( c.malloc(256*8) )
   st.strcpy(filename, fileprefix)
   st.strcat(filename, vizstr)
@@ -96,17 +98,34 @@ do
 
   c.printf("\nWriting visualization file %s\n", filename)
 
-  generate_hdf5_file(filename, Nx, Ny, Nz)
+  var file_handle = c.fopen(filename, 'w')
 
-  var grid = ispace(int3d, {x = Nx, y = Ny, z = Nz})
-  var tmp_prim = region(grid, primitive)
+  var bounds_c = r_prim.ispace.bounds
+  c.fprintf(file_handle, "%d %d %d\n", bounds_c.lo.x, bounds_c.lo.y, bounds_c.lo.z )
+  c.fprintf(file_handle, "%d %d %d\n", bounds_c.hi.x, bounds_c.hi.y, bounds_c.hi.z )
 
-  attach(hdf5, tmp_prim.{rho, u, v, w, p}, filename, regentlib.file_read_write)
-  copy(r_prim.{rho, u, v, w, p}, tmp_prim.{rho, u, v, w, p})
-  detach(hdf5, tmp_prim.{rho, u, v, w, p})
+  for k = bounds_c.lo.z, bounds_c.hi.z+1 do
+    for j = bounds_c.lo.y, bounds_c.hi.y+1 do
+      for i = bounds_c.lo.x, bounds_c.hi.x+1 do
+        c.fprintf(file_handle, "%26.16e %26.16e %26.16e %26.16e %26.16e\n", r_prim[{i,j,k}].rho, r_prim[{i,j,k}].u, r_prim[{i,j,k}].v, r_prim[{i,j,k}].w, r_prim[{i,j,k}].p)
+      end
+    end
+  end
 
+  c.fclose(file_handle) 
   c.free(filename)
-  __delete(tmp_prim)
+
+  -- generate_hdf5_file(filename, Nx, Ny, Nz)
+
+  -- var grid = ispace(int3d, {x = Nx, y = Ny, z = Nz})
+  -- var tmp_prim = region(grid, primitive)
+
+  -- attach(hdf5, tmp_prim.{rho, u, v, w, p}, filename, regentlib.file_read_write)
+  -- copy(r_prim.{rho, u, v, w, p}, tmp_prim.{rho, u, v, w, p})
+  -- detach(hdf5, tmp_prim.{rho, u, v, w, p})
+
+  -- c.free(filename)
+  -- __delete(tmp_prim)
   return 1
 end
 
@@ -145,24 +164,43 @@ do
   var Ny = r_coords.ispace.bounds.hi.y - r_coords.ispace.bounds.lo.y + 1
   var Nz = r_coords.ispace.bounds.hi.z - r_coords.ispace.bounds.lo.z + 1
 
-  var vizstr : &int8 = [&int8] ( c.malloc(23*8) )
-  c.sprintf(vizstr, "coords_px%04d_pz%04d.h5", pencil.x, pencil.y)
+  -- var vizstr : &int8 = [&int8] ( c.malloc(23*8) )
+  -- c.sprintf(vizstr, "coords_px%04d_pz%04d.h5", pencil.x, pencil.y)
+  var vizstr : &int8 = [&int8] ( c.malloc(24*8) )
+  c.sprintf(vizstr, "coords_px%04d_pz%04d.dat", pencil.x, pencil.y)
   var filename : &int8 = [&int8] ( c.malloc(256*8) )
   st.strcpy(filename, fileprefix)
   st.strcat(filename, vizstr)
   c.free(vizstr)
 
-  generate_hdf5_file_coords(filename, Nx, Ny, Nz)
+  var file_handle = c.fopen(filename, 'w')
 
-  var grid = ispace(int3d, {x = Nx, y = Ny, z = Nz})
-  var tmp_coords = region(grid, coordinates)
+  var bounds_c = r_coords.ispace.bounds
+  c.fprintf(file_handle, "%d %d %d\n", bounds_c.lo.x, bounds_c.lo.y, bounds_c.lo.z )
+  c.fprintf(file_handle, "%d %d %d\n", bounds_c.hi.x, bounds_c.hi.y, bounds_c.hi.z )
 
-  attach(hdf5, tmp_coords.{x_c, y_c, z_c}, filename, regentlib.file_read_write)
-  copy(r_coords.{x_c, y_c, z_c}, tmp_coords.{x_c, y_c, z_c})
-  detach(hdf5, tmp_coords.{x_c, y_c, z_c})
+  for k = bounds_c.lo.z, bounds_c.hi.z+1 do
+    for j = bounds_c.lo.y, bounds_c.hi.y+1 do
+      for i = bounds_c.lo.x, bounds_c.hi.x+1 do
+        c.fprintf(file_handle, "%26.16e %26.16e %26.16e\n", r_coords[{i,j,k}].x_c, r_coords[{i,j,k}].y_c, r_coords[{i,j,k}].z_c )
+      end
+    end
+  end
 
+  c.fclose(file_handle) 
   c.free(filename)
-  __delete(tmp_coords)
+
+  -- generate_hdf5_file_coords(filename, Nx, Ny, Nz)
+
+  -- var grid = ispace(int3d, {x = Nx, y = Ny, z = Nz})
+  -- var tmp_coords = region(grid, coordinates)
+
+  -- attach(hdf5, tmp_coords.{x_c, y_c, z_c}, filename, regentlib.file_read_write)
+  -- copy(r_coords.{x_c, y_c, z_c}, tmp_coords.{x_c, y_c, z_c})
+  -- detach(hdf5, tmp_coords.{x_c, y_c, z_c})
+
+  -- c.free(filename)
+  -- __delete(tmp_coords)
 
   return 1
 end
