@@ -604,13 +604,13 @@ task main()
 
     if (step-1)%(config.nstats*50) == 0 then
       c.printf("\n")
-      c.printf("%6.6s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s |%12.12s\n", "Step","Time","Timestep","Error rho","Error u","Error p","TKE","Enstrophy")
-      c.printf("-------|-------------|-------------|-------------|-------------|-------------|-------------|------------\n")
+      c.printf("%6.6s |%16.16s |%16.16s |%16.16s |%16.16s |%16.16s |%16.16s |%16.16s\n", "Step","Time","Timestep","Error rho","Error u","Error p","TKE","Enstrophy")
+      c.printf("-------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|----------------\n")
     end
 
     if (step-1)%config.nstats == 0 then
-      c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, errors[0], errors[1], errors[4], TKE/TKE0, enstrophy/enstrophy0)
-      -- c.printf("%6d |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e |%12.4e\n", step, tsim, dt, min_rho_p(r_prim_c), max_rho_p(r_prim_c), min_p_p(r_prim_c), max_p_p(r_prim_c))
+      c.printf("%6d |%16.8e |%16.8e |%16.8e |%16.8e |%16.8e |%16.8e |%16.8e\n", step, tsim, dt, errors[0], errors[1], errors[4], TKE/TKE0, enstrophy/enstrophy0)
+      -- c.printf("%6d |%16.8e |%16.8e |%16.8e |%16.8e |%16.8e |%16.8e\n", step, tsim, dt, min_rho_p(r_prim_c), max_rho_p(r_prim_c), min_p_p(r_prim_c), max_p_p(r_prim_c))
     end
   end
   
