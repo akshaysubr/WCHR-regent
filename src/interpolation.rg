@@ -139,11 +139,11 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
       -- var epsilon : double = 1.0e-6
       -- var alpha_beta : double = 40.0
 
-      var C : double = 1.0e14
+      var C : double = 1.0e10
       -- p = 2
-      -- q = 6
+      -- q = 4
       var epsilon : double = 1.0e-40
-      var alpha_beta : double = 50.0
+      var alpha_beta : double = 55.0
       
       var alpha_2 : double = (values[eq][2] - values[eq][1])
       var alpha_3 : double = (values[eq][3] - values[eq][2])
@@ -164,8 +164,8 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
         var sum : double = 0.0
         for i = 0, 4 do
           var dummy : double = (tau_6/(beta[i] + epsilon))
-          dummy = dummy*dummy*dummy
-          dummy = dummy*dummy       -- q = 6
+          dummy = dummy*dummy
+          dummy = dummy*dummy       -- q = 4
           omega_central[i] = d_central[i]*( C + dummy )
           sum = sum + omega_central[i]
         end
@@ -194,8 +194,8 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
         var sum : double = 0.0
         for i = 0, 4 do
           var dummy : double = (tau_6/(beta[i] + epsilon))
-          dummy = dummy*dummy*dummy
-          dummy = dummy*dummy       -- q = 6
+          dummy = dummy*dummy
+          dummy = dummy*dummy       -- q = 4
           omega_central[i] = d_central[i]*( C + dummy )
           sum = sum + omega_central[i]
         end
