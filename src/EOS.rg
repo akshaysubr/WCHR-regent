@@ -1,10 +1,12 @@
 import "regent"
+local problem = require("problem")
 
 local c     = regentlib.c
 local cmath = terralib.includec("math.h")
 
 -- local gamma = 1.4
-local gamma = 5.0/3.0
+-- local gamma = 5.0/3.0
+local gamma    = problem.gamma
 local gamma_m1 = gamma - 1.0
 local onebygm1 = 1.0 / gamma_m1
 

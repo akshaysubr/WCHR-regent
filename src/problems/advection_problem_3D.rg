@@ -8,6 +8,9 @@ require("fields")
 
 local problem = {}
 
+-- Problem specific parameters
+problem.gamma = 1.4  -- Ratio of specific heats
+
 -- Grid dimensions
 problem.NX = 64
 problem.NY = 64

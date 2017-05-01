@@ -376,12 +376,12 @@ task main()
   wait_for(token)
   c.printf("Finished LU initialization\n")
 
-  __demand(__parallel)
+  -- __demand(__parallel)
   for i in pencil do
     -- Initialize everything in y decomposition.
     token += problem.initialize(p_coords_y[i], p_prim_c_y[i], dx, dy, dz)
+    wait_for(token)
   end
-  wait_for(token)
   c.printf("Finished initialization\n")
  
   -- __demand(__parallel)

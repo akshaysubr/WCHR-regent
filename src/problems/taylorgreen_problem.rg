@@ -8,10 +8,13 @@ require("fields")
 
 local problem = {}
 
+-- Problem specific parameters
+problem.gamma = 5.0/3.0
+
 -- Grid dimensions
-problem.NX = 64 
-problem.NY = 64 
-problem.NZ = 64 
+problem.NX = 32 
+problem.NY = 32 
+problem.NZ = 32 
 
 -- Domain size
 problem.LX = 2.0*PI
