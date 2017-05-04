@@ -37,11 +37,6 @@ fspace tensor2 {
   _33 : double,
 }
 
-fspace auxiliary {
-  e    : double,
-  sos  : double,
-}
-
 fspace fluxvar {
   f       : double,
   dfdx    : double,
@@ -72,6 +67,10 @@ fspace LU_struct {
   w  : double,
 }
 
+function poff(i, x, y, z, Nx, Ny, Nz)
+  return rexpr int3d { x = (i.x + x + Nx)%Nx, y = (i.y + y + Ny)%Ny, z = (i.z + z + Nz)%Nz } end
+end
+
 task set_zero_cnsr( r_cnsr : region(ispace(int3d), conserved) )
 where
   writes(r_cnsr)
@@ -94,107 +93,103 @@ do
   return 1
 end
 
-task add_value_cnsr( r_cnsr : region(ispace(int3d), conserved),
-                     r_rhs  : region(ispace(int3d), conserved),
-                     coeff  : double )
-where
-  reads (r_rhs), reads writes(r_cnsr)
-do
+-- task add_value_cnsr( r_cnsr : region(ispace(int3d), conserved),
+--                      r_rhs  : region(ispace(int3d), conserved),
+--                      coeff  : double )
+-- where
+--   reads (r_rhs), reads writes(r_cnsr)
+-- do
+-- 
+--   for i in r_rhs do
+--     r_cnsr[i].rho  += coeff*r_rhs[i].rho
+--     r_cnsr[i].rhou += coeff*r_rhs[i].rhou
+--     r_cnsr[i].rhov += coeff*r_rhs[i].rhov
+--     r_cnsr[i].rhow += coeff*r_rhs[i].rhow
+--     r_cnsr[i].rhoE += coeff*r_rhs[i].rhoE
+--   end
+-- end
+-- 
+-- task self_multiply_cnsr( r_cnsr : region(ispace(int3d), conserved),
+--                          coeff  : double )
+-- where
+--   reads writes(r_cnsr)
+-- do
+-- 
+--   for i in r_cnsr do
+--     r_cnsr[i].rho  = coeff*r_cnsr[i].rho
+--     r_cnsr[i].rhou = coeff*r_cnsr[i].rhou
+--     r_cnsr[i].rhov = coeff*r_cnsr[i].rhov
+--     r_cnsr[i].rhow = coeff*r_cnsr[i].rhow
+--     r_cnsr[i].rhoE = coeff*r_cnsr[i].rhoE
+--   end
+-- end
 
-  for i in r_rhs do
-    r_cnsr[i].rho  += coeff*r_rhs[i].rho
-    r_cnsr[i].rhou += coeff*r_rhs[i].rhou
-    r_cnsr[i].rhov += coeff*r_rhs[i].rhov
-    r_cnsr[i].rhow += coeff*r_rhs[i].rhow
-    r_cnsr[i].rhoE += coeff*r_rhs[i].rhoE
-  end
-end
-
-task self_multiply_cnsr( r_cnsr : region(ispace(int3d), conserved),
-                         coeff  : double )
-where
-  reads writes(r_cnsr)
-do
-
-  for i in r_cnsr do
-    r_cnsr[i].rho  = coeff*r_cnsr[i].rho
-    r_cnsr[i].rhou = coeff*r_cnsr[i].rhou
-    r_cnsr[i].rhov = coeff*r_cnsr[i].rhov
-    r_cnsr[i].rhow = coeff*r_cnsr[i].rhow
-    r_cnsr[i].rhoE = coeff*r_cnsr[i].rhoE
-  end
-end
-
-function poff(i, x, y, z, Nx, Ny, Nz)
-  return rexpr int3d { x = (i.x + x + Nx)%Nx, y = (i.y + y + Ny)%Ny, z = (i.z + z + Nz)%Nz } end
-end
-
-task min_rho_p( r_prim : region(ispace(int3d), primitive) )
-where
-  reads (r_prim)
-do
-  var minrho : double = r_prim[ r_prim.ispace.bounds.lo ].rho
-  for i in r_prim do
-    var rho : double = r_prim[i].rho
-    if ( rho < minrho ) then
-      minrho = rho
-    end
-  end
-  return minrho
-end
-
-task max_rho_p( r_prim : region(ispace(int3d), primitive) )
-where
-  reads (r_prim)
-do
-  var maxrho : double = r_prim[ r_prim.ispace.bounds.lo ].rho
-  for i in r_prim do
-    var rho : double = r_prim[i].rho
-    if ( rho > maxrho ) then
-      maxrho = rho
-    end
-  end
-  return maxrho
-end
-
-task min_p_p( r_prim : region(ispace(int3d), primitive) )
-where
-  reads (r_prim)
-do
-  var minp : double = r_prim[ r_prim.ispace.bounds.lo ].p
-  for i in r_prim do
-    var p : double = r_prim[i].p
-    if ( p < minp ) then
-      minp = p
-    end
-  end
-  return minp
-end
-
-task max_p_p( r_prim : region(ispace(int3d), primitive) )
-where
-  reads (r_prim)
-do
-  var maxp : double = r_prim[ r_prim.ispace.bounds.lo ].p
-  for i in r_prim do
-    var p : double = r_prim[i].p
-    if ( p > maxp ) then
-      maxp = p
-    end
-  end
-  return maxp
-end
-
-task min_rho_c( r_prim : region(ispace(int3d), conserved) )
-where
-  reads (r_prim)
-do
-  var minrho : double = r_prim[ r_prim.ispace.bounds.lo ].rho
-  for i in r_prim do
-    var rho : double = r_prim[i].rho
-    if ( rho < minrho ) then
-      minrho = rho
-    end
-  end
-  return minrho
-end
+-- task min_rho_p( r_prim : region(ispace(int3d), primitive) )
+-- where
+--   reads (r_prim)
+-- do
+--   var minrho : double = r_prim[ r_prim.ispace.bounds.lo ].rho
+--   for i in r_prim do
+--     var rho : double = r_prim[i].rho
+--     if ( rho < minrho ) then
+--       minrho = rho
+--     end
+--   end
+--   return minrho
+-- end
+-- 
+-- task max_rho_p( r_prim : region(ispace(int3d), primitive) )
+-- where
+--   reads (r_prim)
+-- do
+--   var maxrho : double = r_prim[ r_prim.ispace.bounds.lo ].rho
+--   for i in r_prim do
+--     var rho : double = r_prim[i].rho
+--     if ( rho > maxrho ) then
+--       maxrho = rho
+--     end
+--   end
+--   return maxrho
+-- end
+-- 
+-- task min_p_p( r_prim : region(ispace(int3d), primitive) )
+-- where
+--   reads (r_prim)
+-- do
+--   var minp : double = r_prim[ r_prim.ispace.bounds.lo ].p
+--   for i in r_prim do
+--     var p : double = r_prim[i].p
+--     if ( p < minp ) then
+--       minp = p
+--     end
+--   end
+--   return minp
+-- end
+-- 
+-- task max_p_p( r_prim : region(ispace(int3d), primitive) )
+-- where
+--   reads (r_prim)
+-- do
+--   var maxp : double = r_prim[ r_prim.ispace.bounds.lo ].p
+--   for i in r_prim do
+--     var p : double = r_prim[i].p
+--     if ( p > maxp ) then
+--       maxp = p
+--     end
+--   end
+--   return maxp
+-- end
+-- 
+-- task min_rho_c( r_prim : region(ispace(int3d), conserved) )
+-- where
+--   reads (r_prim)
+-- do
+--   var minrho : double = r_prim[ r_prim.ispace.bounds.lo ].rho
+--   for i in r_prim do
+--     var rho : double = r_prim[i].rho
+--     if ( rho < minrho ) then
+--       minrho = rho
+--     end
+--   end
+--   return minrho
+-- end

@@ -564,32 +564,6 @@ task main()
     -- Update time step.
     step = step + 1
 
-    if use_io then
-      if vizcond then
-        wait_for(IOtoken)
-        __demand(__parallel)
-        for i in pencil do
-          IOtoken += write_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, i)
-        end
-        vizcount = vizcount + 1
-        vizcond = false
-      end
-    end
-
-    var errors : double[5]
-    for ierr = 0,5 do
-      errors[ierr] = 0.0
-    end
-
-    -- for i in pencil do
-    --   var perrors = problem.get_errors(p_coords_y[i], p_prim_c_y[i], tsim)
-    --   for ierr = 0,5 do
-    --     if perrors[ierr] > errors[ierr] then
-    --       errors[ierr] = perrors[ierr]
-    --     end
-    --   end
-    -- end
-
     var TKE : double = 0.0
     __demand(__parallel)
     for i in pencil do
@@ -604,14 +578,26 @@ task main()
 
     if (step-1)%(config.nstats*50) == 0 then
       c.printf("\n")
-      c.printf("%6.6s |%16.16s |%16.16s |%16.16s |%16.16s |%16.16s |%16.16s |%16.16s\n", "Step","Time","Timestep","Error rho","Error u","Error p","TKE","Enstrophy")
-      c.printf("-------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|----------------\n")
+      c.printf("%6.6s |%16.16s |%16.16s |%16.16s |%16.16s\n", "Step","Time","Timestep","TKE","Enstrophy")
+      c.printf("-------|-----------------|-----------------|-----------------|----------------\n")
     end
 
     if (step-1)%config.nstats == 0 then
-      c.printf("%6d |%16.8e |%16.8e |%16.8e |%16.8e |%16.8e |%16.8e |%16.8e\n", step, tsim, dt, errors[0], errors[1], errors[4], TKE/TKE0, enstrophy/enstrophy0)
-      -- c.printf("%6d |%16.8e |%16.8e |%16.8e |%16.8e |%16.8e |%16.8e\n", step, tsim, dt, min_rho_p(r_prim_c), max_rho_p(r_prim_c), min_p_p(r_prim_c), max_p_p(r_prim_c))
+      c.printf("%6d |%16.8e |%16.8e |%16.8e |%16.8e\n", step, tsim, dt, TKE/TKE0, enstrophy/enstrophy0)
     end
+
+    if use_io then
+      if vizcond then
+        wait_for(IOtoken)
+        __demand(__parallel)
+        for i in pencil do
+          IOtoken += write_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, i)
+        end
+        vizcount = vizcount + 1
+        vizcond = false
+      end
+    end
+
   end
   
   wait_for(token)

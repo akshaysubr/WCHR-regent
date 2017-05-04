@@ -97,9 +97,6 @@ do
 
   var file_handle = c.fopen(problem.datafile, "r")
   read_grid(nx, ny, nz, file_handle)
-  c.printf("nx, ny, nz = %d %d %d\n", nx[0], ny[0], nz[0])
-  c.printf("NX, NY, NY = %d %d %d\n", problem.NX, problem.NY, problem.NZ)
-  c.printf("nx=NX, ny=NY, nz=NZ = %d %d %d\n", (nx[0] == problem.NX), (ny[0] == problem.NY), (nz[0] == problem.NZ))
 
   regentlib.assert( (nx[0] == problem.NX), "Grid size in datafile does not match problem's grid size in x" )
   regentlib.assert( (ny[0] == problem.NY), "Grid size in datafile does not match problem's grid size in y" )
@@ -108,14 +105,8 @@ do
   var bound = r_prim_c.bounds
   var counter = 0
 
-  -- c.printf("bounds.lo %d %d %d\n", bound.lo.x, bound.lo.y, bound.lo.z)
-  -- c.printf("bounds.hi %d %d %d\n", bound.hi.x, bound.hi.y, bound.hi.z)
-
   while counter < (bound.hi.x-bound.lo.x+1)*(bound.hi.y-bound.lo.y+1)*(bound.hi.z-bound.lo.z+1) do
     read_data(ix, iy, iz, u_dat, v_dat, w_dat, file_handle)
-    -- c.printf("ix, iy, iz,  %d %d %d\n", ix[0], iy[0], iz[0])
-    -- c.printf("if lo  %d %d %d\n", (ix[0] >= bound.lo.x), (iy[0] >= bound.lo.y), (iz[0] >= bound.lo.z))
-    -- c.printf("if hi  %d %d %d\n", (ix[0] <= bound.hi.x), (iy[0] <= bound.hi.y), (iz[0] <= bound.hi.z))
     if ( (iz[0] >= bound.lo.z) and (iz[0] <= bound.hi.z) ) then
       if ( (iy[0] >= bound.lo.y) and (iy[0] <= bound.hi.y) ) then
         if ( (ix[0] >= bound.lo.x) and (ix[0] <= bound.hi.x) ) then
@@ -123,22 +114,12 @@ do
           r_prim_c[{ix[0],iy[0],iz[0]}].v = problem.u_rms0 * v_dat[0]
           r_prim_c[{ix[0],iy[0],iz[0]}].w = problem.u_rms0 * w_dat[0]
           counter += 1
-          -- c.printf("counter = %d\n", counter)
         end
       end
     end
   end
 
   c.fclose(file_handle)
-
-  -- var uptr = get_base_pointer_3d(__physical(r_prim_c.u), __fields(r_prim_c.u), r_prim_c.bounds)
-  -- var vptr = get_base_pointer_3d(__physical(r_prim_c.v), __fields(r_prim_c.v), r_prim_c.bounds)
-  -- var wptr = get_base_pointer_3d(__physical(r_prim_c.w), __fields(r_prim_c.w), r_prim_c.bounds)
-
-  -- var bound = r_prim_c.bounds
-
-  -- read_velocity_data( problem.datafile, problem.NX, problem.NY, problem.NZ, problem.u_rms0,
-  --                     uptr, vptr, wptr, bound.lo.x, bound.lo.y, bound.lo.z, bound.hi.x, bound.hi.y, bound.hi.z )
 
   return 1
 end

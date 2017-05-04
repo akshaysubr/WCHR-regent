@@ -13,9 +13,7 @@ beta06CI  = 5.0/8.0
 gamma06CI = 3.0/16.0
 
 local xi = 2.0/3.0
--- local xi = 0.7
--- local xi = 1.0
-  
+ 
 local function v_index(i,is_left)
   if is_left then
     return i
@@ -63,87 +61,21 @@ end
 get_beta_l = make_get_beta(true)
 get_beta_r = make_get_beta(false)
 
-local function make_get_nonlinear_weights_JS(get_beta, is_left)
-  local get_nonlinear_weights_JS __demand(__inline) task get_nonlinear_weights_JS( values : double[6][5] )
-    var nlweights : double[4][5]
-  
-    for eq = 0, 5 do 
-      var beta = [get_beta](values, eq)
-  
-      var epsilon : double = 1.0e-40
-      
-      -- Compute the nonlinear weights
-      var d = array(1.0/4.0, 1.0/2.0, 1.0/4.0, 0.0)
-      -- var d_central = array(1.0/8.0, 3.0/8.0, 3.0/8.0, 1.0/8.0)
-      var sum : double = 0.0
-      for i = 0, 4 do
-        nlweights[eq][ [nl_index(i,is_left)] ] = d[i] / ( (beta[i] + epsilon)*(beta[i] + epsilon) )  -- Hard coded q = 2 here to avoid using power
-        sum = sum + nlweights[eq][ [nl_index(i,is_left)] ]
-      end
-  
-      for i = 0, 4 do
-        nlweights[eq][ [nl_index(i,is_left)] ] = nlweights[eq][ [nl_index(i,is_left)] ] / sum
-      end
-    end
-  
-    return nlweights
-  end
-  return get_nonlinear_weights_JS
-end
-
-local function make_get_nonlinear_weights_Z(get_beta, is_left)
-  local get_nonlinear_weights_Z __demand(__inline) task get_nonlinear_weights_Z( values : double[6][5] )
-    var nlweights : double[4][5]
-
-    for eq = 0, 5 do 
-      var beta = [get_beta](values, eq)
-
-      var epsilon : double = 1.0e-40
-
-      -- Compute the nonlinear weights
-      var d = array(1.0/4.0, 1.0/2.0, 1.0/4.0, 0.0)
-      var tau_5 = cmath.fabs(beta[0] - beta[2]);
-
-      var sum : double = 0.0
-      for i = 0, 4 do
-        nlweights[eq][ [nl_index(i,is_left)] ] = d[i]*( 1.0 + (tau_5/(beta[i] + epsilon))*(tau_5/(beta[i] + epsilon)) );
-        sum = sum + nlweights[eq][ [nl_index(i,is_left)] ]
-      end
-      
-      for i = 0, 4 do
-        nlweights[eq][ [nl_index(i,is_left)] ] = nlweights[eq][ [nl_index(i,is_left)] ] / sum
-      end
-    end
-
-    return nlweights
-  end
-  return get_nonlinear_weights_Z
-end
-
 local function make_get_nonlinear_weights_LD(get_beta, is_left)
   local get_nonlinear_weights_LD __demand(__inline) task get_nonlinear_weights_LD( values : double[6][5] )
     var nlweights : double[4][5]
   
-    -- var d_central = array(1.0/8.0, 3.0/8.0, 3.0/8.0, 1.0/8.0)
-    -- var d_upwind  = array(1.0/4.0, 1.0/2.0, 1.0/4.0, 0.0)
-
     var d_central = array((8.0*xi - 5.0)/(16.0*xi + 80.0), 45.0/(16.0*xi + 80.0), 45.0/(16.0*xi + 80.0), (8.0*xi - 5.0)/(16.0*xi + 80.0)) 
     var d_upwind  = array((8.0*xi - 5.0)/(8.0*xi + 40.0), (65.0*xi - 35.0)/(16.0*xi*xi + 72.0*xi - 40.0), (25.0*xi - 10.0)/(16.0*xi*xi + 72.0*xi - 40.0), 0.0)
  
     for eq = 0, 5 do 
       var beta = [get_beta](values, eq)
       
-      -- var C : double = 2.0e3
-      -- p = 2
-      -- q = 2
-      -- var epsilon : double = 1.0e-6
-      -- var alpha_beta : double = 40.0
-
       var C : double = 1.0e10
       -- p = 2
       -- q = 4
-      var epsilon : double = 1.0e-40
-      var alpha_beta : double = 55.0
+      var epsilon   : double = 1.0e-40
+      var alpha_tau : double = 55.0
       
       var alpha_2 : double = (values[eq][2] - values[eq][1])
       var alpha_3 : double = (values[eq][3] - values[eq][2])
@@ -158,7 +90,7 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
       var tau_6 : double = cmath.fabs(beta[3] - beta_avg)
           
       -- Compute the nonlinear weights
-      if tau_6/(beta_avg + epsilon) > alpha_beta then
+      if tau_6/(beta_avg + epsilon) > alpha_tau then
         
         var omega_central : double[4]
         var sum : double = 0.0
@@ -210,33 +142,9 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
   return get_nonlinear_weights_LD
 end
 
-get_nonlinear_weights_JS_l = make_get_nonlinear_weights_JS(get_beta_l, true )
-get_nonlinear_weights_JS_r = make_get_nonlinear_weights_JS(get_beta_r, false)
-
-get_nonlinear_weights_Z_l  = make_get_nonlinear_weights_Z(get_beta_l, true )
-get_nonlinear_weights_Z_r  = make_get_nonlinear_weights_Z(get_beta_r, false)
-
 get_nonlinear_weights_LD_l = make_get_nonlinear_weights_LD(get_beta_l, true )
 get_nonlinear_weights_LD_r = make_get_nonlinear_weights_LD(get_beta_r, false)
 
-__demand(__inline)
-task get_coefficients_CI( nlweights : double[4][5] )
-
-  var lcoeff0 = array(3.0/4.0, 1.0/4.0, 0.0/4.0,     0.0, 1.0/4.0, 3.0/4.0, 0.0/4.0, 0.0/4.0, 0.0)
-  var lcoeff1 = array(1.0/4.0, 3.0/4.0, 0.0/4.0,     0.0, 0.0/4.0, 3.0/4.0, 1.0/4.0, 0.0/4.0, 0.0)
-  var lcoeff2 = array(0.0/4.0, 3.0/4.0, 1.0/4.0,     0.0, 0.0/4.0, 1.0/4.0, 3.0/4.0, 0.0/4.0, 0.0)
-  var lcoeff3 = array(0.0/4.0, 1.0/4.0, 3.0/4.0,     0.0, 0.0/4.0, 0.0/4.0, 3.0/4.0, 1.0/4.0, 0.0)
-
-  var coeffs : double[9][5]
-
-  for eq = 0, 5 do
-    for i = 0, 9 do
-      coeffs[eq][i] = lcoeff0[i]*nlweights[eq][0] + lcoeff1[i]*nlweights[eq][1] + lcoeff2[i]*nlweights[eq][2] + lcoeff3[i]*nlweights[eq][3]
-    end
-  end
-
-  return coeffs
-end
 
 __demand(__inline)
 task get_coefficients_ECI( nlweights : double[4][5] )

@@ -349,10 +349,10 @@ function make_ddx(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
   local ComputeXRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 0, 1)
   local SolveXLU     = make_SolveXLU(r_der, privileges_r_der, f_der)
 
-  local task ddx( [r_func],
-                  [r_der],
-                  LU     : region(ispace(int3d), LU_struct) )
-  where
+  local ddx __demand(__inline) task ddx( [r_func],
+                                         [r_der],
+                                         LU     : region(ispace(int3d), LU_struct) )
+  where                            
     reads(LU), [privileges_r_func], [privileges_r_der]
   do
     [ComputeXRHS]([r_func], [r_der])
@@ -373,10 +373,10 @@ function make_ddy(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
   local ComputeYRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 1, 1)
   local SolveYLU     = make_SolveYLU(r_der, privileges_r_der, f_der)
 
-  local task ddy( [r_func],
-                  [r_der],
-                  LU     : region(ispace(int3d), LU_struct) )
-  where
+  local ddy __demand(__inline) task ddy( [r_func],
+                                         [r_der],
+                                         LU     : region(ispace(int3d), LU_struct) )
+  where                            
     reads(LU), [privileges_r_func], [privileges_r_der]
   do
     [ComputeYRHS]([r_func], [r_der])
@@ -397,10 +397,10 @@ function make_ddz(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
   local ComputeZRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 2, 1)
   local SolveZLU     = make_SolveZLU(r_der, privileges_r_der, f_der)
 
-  local task ddz( [r_func],
-                  [r_der],
-                  LU     : region(ispace(int3d), LU_struct) )
-  where
+  local ddz __demand(__inline) task ddz( [r_func],
+                                         [r_der],
+                                         LU     : region(ispace(int3d), LU_struct) )
+  where                            
     reads(LU), [privileges_r_func], [privileges_r_der]
   do
     [ComputeZRHS]([r_func], [r_der])
