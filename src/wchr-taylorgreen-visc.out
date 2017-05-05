@@ -1,0 +1,777 @@
+akshays@wheat01:~/Codes/WCHR-regent/src$ ./wchr -p 8 -ll:cpu 8 -prefix /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_
+[0 - 7f2211a69740] {4}{threads}: reservation ('CPU proc 1d00000000000002') cannot be satisfied
+======================= Problem parameters ======================
+           Nx, Ny, Nz           = 32, 32, 32
+           Lx, Ly, Lz           = 6.283185, 6.283185, 6.283185
+           dx, dy, dz           = 0.196350, 0.196350, 0.196350
+           Time stepping method = CONSTANT_CFL_NUM
+           CFL_num              = 0.600000
+           prow, pcol           = 2, 4
+           fileIO               = true
+           prefix               = /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_
+================================================================
+Finished X matrices initialization
+Finished Y matrices initialization
+Finished Z matrices initialization
+Finished LU initialization
+Finished initialization
+TKE, Enstrophy = 4096, 24576
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0000_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0000_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0000_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0000_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0000_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0000_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0000_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0000_px0001_pz0003.dat
+
+  Step |            Time |        Timestep |             TKE |       Enstrophy
+-------|-----------------|-----------------|-----------------|----------------
+     1 |  3.80412724e-03 |  3.80412724e-03 |  9.99706219e-01 |  9.99707725e-01
+     2 |  7.60825524e-03 |  3.80412800e-03 |  9.99412523e-01 |  9.99418544e-01
+     3 |  1.14123837e-02 |  3.80412842e-03 |  9.99118911e-01 |  9.99132449e-01
+     4 |  1.52165123e-02 |  3.80412861e-03 |  9.98825384e-01 |  9.98849434e-01
+     5 |  1.90206410e-02 |  3.80412870e-03 |  9.98531940e-01 |  9.98569492e-01
+     6 |  2.28247698e-02 |  3.80412880e-03 |  9.98238580e-01 |  9.98292616e-01
+     7 |  2.66288988e-02 |  3.80412904e-03 |  9.97945303e-01 |  9.98018801e-01
+     8 |  3.04330284e-02 |  3.80412955e-03 |  9.97652109e-01 |  9.97748040e-01
+     9 |  3.42371588e-02 |  3.80413043e-03 |  9.97358998e-01 |  9.97480328e-01
+    10 |  3.80412906e-02 |  3.80413180e-03 |  9.97065969e-01 |  9.97215659e-01
+    11 |  4.18454244e-02 |  3.80413376e-03 |  9.96773022e-01 |  9.96954029e-01
+    12 |  4.56495608e-02 |  3.80413640e-03 |  9.96480155e-01 |  9.96695431e-01
+    13 |  4.94537005e-02 |  3.80413977e-03 |  9.96187367e-01 |  9.96439862e-01
+    14 |  5.32578445e-02 |  3.80414395e-03 |  9.95894656e-01 |  9.96187315e-01
+    15 |  5.70619935e-02 |  3.80414897e-03 |  9.95602021e-01 |  9.95937786e-01
+    16 |  6.08661483e-02 |  3.80415486e-03 |  9.95309460e-01 |  9.95691270e-01
+    17 |  6.46703099e-02 |  3.80416161e-03 |  9.95016970e-01 |  9.95447763e-01
+    18 |  6.84744791e-02 |  3.80416922e-03 |  9.94724549e-01 |  9.95207258e-01
+    19 |  7.22786568e-02 |  3.80417766e-03 |  9.94432195e-01 |  9.94969752e-01
+    20 |  7.60828437e-02 |  3.80418689e-03 |  9.94139905e-01 |  9.94735239e-01
+    21 |  7.98870406e-02 |  3.80419686e-03 |  9.93847678e-01 |  9.94503713e-01
+    22 |  8.36912480e-02 |  3.80420748e-03 |  9.93555512e-01 |  9.94275169e-01
+    23 |  8.74954667e-02 |  3.80421869e-03 |  9.93263405e-01 |  9.94049601e-01
+    24 |  9.12996971e-02 |  3.80423039e-03 |  9.92971357e-01 |  9.93827004e-01
+    25 |  9.51039396e-02 |  3.80424250e-03 |  9.92679367e-01 |  9.93607372e-01
+    26 |  9.89081945e-02 |  3.80425491e-03 |  9.92387435e-01 |  9.93390698e-01
+    27 |  1.00000000e-01 |  1.09180548e-03 |  9.92303663e-01 |  9.93329059e-01
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0001_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0001_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0001_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0001_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0001_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0001_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0001_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0001_px0001_pz0003.dat
+    28 |  1.03804271e-01 |  3.80427118e-03 |  9.92011806e-01 |  9.93116183e-01
+    29 |  1.07608555e-01 |  3.80428393e-03 |  9.91720009e-01 |  9.92906250e-01
+    30 |  1.11412852e-01 |  3.80429667e-03 |  9.91428272e-01 |  9.92699253e-01
+    31 |  1.15217161e-01 |  3.80430931e-03 |  9.91136597e-01 |  9.92495185e-01
+    32 |  1.19021483e-01 |  3.80432178e-03 |  9.90844986e-01 |  9.92294040e-01
+    33 |  1.22825817e-01 |  3.80433400e-03 |  9.90553440e-01 |  9.92095809e-01
+    34 |  1.26630163e-01 |  3.80434590e-03 |  9.90261961e-01 |  9.91900486e-01
+    35 |  1.30434520e-01 |  3.80435745e-03 |  9.89970551e-01 |  9.91708064e-01
+    36 |  1.34238889e-01 |  3.80436859e-03 |  9.89679210e-01 |  9.91518534e-01
+    37 |  1.38043268e-01 |  3.80437930e-03 |  9.89387941e-01 |  9.91331890e-01
+    38 |  1.41847658e-01 |  3.80438957e-03 |  9.89096744e-01 |  9.91148124e-01
+    39 |  1.45652057e-01 |  3.80439939e-03 |  9.88805620e-01 |  9.90967230e-01
+    40 |  1.49456466e-01 |  3.80440876e-03 |  9.88514568e-01 |  9.90789200e-01
+    41 |  1.53260884e-01 |  3.80441771e-03 |  9.88223589e-01 |  9.90614029e-01
+    42 |  1.57065310e-01 |  3.80442625e-03 |  9.87932683e-01 |  9.90441709e-01
+    43 |  1.60869744e-01 |  3.80443444e-03 |  9.87641847e-01 |  9.90272235e-01
+    44 |  1.64674187e-01 |  3.80444230e-03 |  9.87351083e-01 |  9.90105600e-01
+    45 |  1.68478636e-01 |  3.80444989e-03 |  9.87060387e-01 |  9.89941801e-01
+    46 |  1.72283094e-01 |  3.80445727e-03 |  9.86769759e-01 |  9.89780832e-01
+    47 |  1.76087558e-01 |  3.80446448e-03 |  9.86479197e-01 |  9.89622687e-01
+    48 |  1.79892030e-01 |  3.80447160e-03 |  9.86188699e-01 |  9.89467364e-01
+    49 |  1.83696508e-01 |  3.80447867e-03 |  9.85898264e-01 |  9.89314857e-01
+    50 |  1.87500994e-01 |  3.80448577e-03 |  9.85607889e-01 |  9.89165165e-01
+
+  Step |            Time |        Timestep |             TKE |       Enstrophy
+-------|-----------------|-----------------|-----------------|----------------
+    51 |  1.91305487e-01 |  3.80449294e-03 |  9.85317574e-01 |  9.89018283e-01
+    52 |  1.95109987e-01 |  3.80450024e-03 |  9.85027317e-01 |  9.88874208e-01
+    53 |  1.98914495e-01 |  3.80450773e-03 |  9.84737117e-01 |  9.88732938e-01
+    54 |  2.00000000e-01 |  1.08550487e-03 |  9.84654327e-01 |  9.88693145e-01
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0002_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0002_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0002_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0002_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0002_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0002_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0002_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0002_px0001_pz0003.dat
+    55 |  2.03804518e-01 |  3.80451770e-03 |  9.84364197e-01 |  9.88555478e-01
+    56 |  2.07609043e-01 |  3.80452577e-03 |  9.84074121e-01 |  9.88420610e-01
+    57 |  2.11413578e-01 |  3.80453416e-03 |  9.83784097e-01 |  9.88288539e-01
+    58 |  2.15218121e-01 |  3.80454289e-03 |  9.83494124e-01 |  9.88159264e-01
+    59 |  2.19022673e-01 |  3.80455199e-03 |  9.83204200e-01 |  9.88032783e-01
+    60 |  2.22827234e-01 |  3.80456147e-03 |  9.82914325e-01 |  9.87909092e-01
+    61 |  2.26631805e-01 |  3.80457134e-03 |  9.82624496e-01 |  9.87788190e-01
+    62 |  2.30436387e-01 |  3.80458160e-03 |  9.82334711e-01 |  9.87670074e-01
+    63 |  2.34240979e-01 |  3.80459226e-03 |  9.82044969e-01 |  9.87554740e-01
+    64 |  2.38045582e-01 |  3.80460330e-03 |  9.81755266e-01 |  9.87442186e-01
+    65 |  2.41850197e-01 |  3.80461471e-03 |  9.81465600e-01 |  9.87332408e-01
+    66 |  2.45654824e-01 |  3.80462649e-03 |  9.81175969e-01 |  9.87225402e-01
+    67 |  2.49459462e-01 |  3.80463861e-03 |  9.80886367e-01 |  9.87121163e-01
+    68 |  2.53264113e-01 |  3.80465106e-03 |  9.80596793e-01 |  9.87019687e-01
+    69 |  2.57068777e-01 |  3.80466381e-03 |  9.80307243e-01 |  9.86920966e-01
+    70 |  2.60873454e-01 |  3.80467684e-03 |  9.80017713e-01 |  9.86824997e-01
+    71 |  2.64678144e-01 |  3.80469013e-03 |  9.79728199e-01 |  9.86731771e-01
+    72 |  2.68482848e-01 |  3.80470365e-03 |  9.79438698e-01 |  9.86641283e-01
+    73 |  2.72287565e-01 |  3.80471738e-03 |  9.79149207e-01 |  9.86553526e-01
+    74 |  2.76092296e-01 |  3.80473130e-03 |  9.78859723e-01 |  9.86468490e-01
+    75 |  2.79897042e-01 |  3.80474539e-03 |  9.78570244e-01 |  9.86386169e-01
+    76 |  2.83701801e-01 |  3.80475963e-03 |  9.78280767e-01 |  9.86306555e-01
+    77 |  2.87506575e-01 |  3.80477399e-03 |  9.77991291e-01 |  9.86229638e-01
+    78 |  2.91311364e-01 |  3.80478846e-03 |  9.77701816e-01 |  9.86155412e-01
+    79 |  2.95116167e-01 |  3.80480302e-03 |  9.77412339e-01 |  9.86083866e-01
+    80 |  2.98920985e-01 |  3.80481766e-03 |  9.77122863e-01 |  9.86014994e-01
+    81 |  3.00000000e-01 |  1.07901538e-03 |  9.77040770e-01 |  9.85995948e-01
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0003_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0003_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0003_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0003_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0003_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0003_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0003_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0003_px0001_pz0003.dat
+    82 |  3.03804837e-01 |  3.80483653e-03 |  9.76751293e-01 |  9.85930495e-01
+    83 |  3.07609688e-01 |  3.80485129e-03 |  9.76461818e-01 |  9.85867697e-01
+    84 |  3.11414554e-01 |  3.80486607e-03 |  9.76172345e-01 |  9.85807546e-01
+    85 |  3.15219435e-01 |  3.80488086e-03 |  9.75882876e-01 |  9.85750036e-01
+    86 |  3.19024330e-01 |  3.80489565e-03 |  9.75593412e-01 |  9.85695159e-01
+    87 |  3.22829241e-01 |  3.80491043e-03 |  9.75303955e-01 |  9.85642910e-01
+    88 |  3.26634166e-01 |  3.80492517e-03 |  9.75014506e-01 |  9.85593284e-01
+    89 |  3.30439106e-01 |  3.80493988e-03 |  9.74725068e-01 |  9.85546275e-01
+    90 |  3.34244060e-01 |  3.80495452e-03 |  9.74435642e-01 |  9.85501879e-01
+    91 |  3.38049029e-01 |  3.80496908e-03 |  9.74146228e-01 |  9.85460093e-01
+    92 |  3.41854013e-01 |  3.80498355e-03 |  9.73856828e-01 |  9.85420914e-01
+    93 |  3.45659011e-01 |  3.80499792e-03 |  9.73567444e-01 |  9.85384340e-01
+    94 |  3.49464023e-01 |  3.80501216e-03 |  9.73278076e-01 |  9.85350369e-01
+    95 |  3.53269049e-01 |  3.80502626e-03 |  9.72988724e-01 |  9.85319000e-01
+    96 |  3.57074090e-01 |  3.80504022e-03 |  9.72699389e-01 |  9.85290237e-01
+    97 |  3.60879144e-01 |  3.80505400e-03 |  9.72410073e-01 |  9.85264073e-01
+    98 |  3.64684211e-01 |  3.80506762e-03 |  9.72120775e-01 |  9.85240510e-01
+    99 |  3.68489292e-01 |  3.80508105e-03 |  9.71831496e-01 |  9.85219550e-01
+   100 |  3.72294387e-01 |  3.80509431e-03 |  9.71542237e-01 |  9.85201195e-01
+
+  Step |            Time |        Timestep |             TKE |       Enstrophy
+-------|-----------------|-----------------|-----------------|----------------
+   101 |  3.76099494e-01 |  3.80510738e-03 |  9.71252998e-01 |  9.85185445e-01
+   102 |  3.79904614e-01 |  3.80512027e-03 |  9.70963779e-01 |  9.85172301e-01
+   103 |  3.83709747e-01 |  3.80513300e-03 |  9.70674582e-01 |  9.85161766e-01
+   104 |  3.87514893e-01 |  3.80514557e-03 |  9.70385407e-01 |  9.85153848e-01
+   105 |  3.91320051e-01 |  3.80515801e-03 |  9.70096254e-01 |  9.85148534e-01
+   106 |  3.95125221e-01 |  3.80517034e-03 |  9.69807123e-01 |  9.85145831e-01
+   107 |  3.98930404e-01 |  3.80518258e-03 |  9.69518016e-01 |  9.85145739e-01
+   108 |  4.00000000e-01 |  1.06959628e-03 |  9.69436755e-01 |  9.85146184e-01
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0004_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0004_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0004_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0004_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0004_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0004_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0004_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0004_px0001_pz0003.dat
+   109 |  4.03805198e-01 |  3.80519820e-03 |  9.69147676e-01 |  9.85149440e-01
+   110 |  4.07610409e-01 |  3.80521039e-03 |  9.68858621e-01 |  9.85155307e-01
+   111 |  4.11415631e-01 |  3.80522261e-03 |  9.68569587e-01 |  9.85163786e-01
+   112 |  4.15220866e-01 |  3.80523493e-03 |  9.68280574e-01 |  9.85174873e-01
+   113 |  4.19026114e-01 |  3.80524738e-03 |  9.67991582e-01 |  9.85188568e-01
+   114 |  4.22831374e-01 |  3.80526001e-03 |  9.67702607e-01 |  9.85204869e-01
+   115 |  4.26636646e-01 |  3.80527290e-03 |  9.67413647e-01 |  9.85223770e-01
+   116 |  4.30441932e-01 |  3.80528607e-03 |  9.67124702e-01 |  9.85245270e-01
+   117 |  4.34247232e-01 |  3.80529959e-03 |  9.66835767e-01 |  9.85269364e-01
+   118 |  4.38052546e-01 |  3.80531350e-03 |  9.66546839e-01 |  9.85296046e-01
+   119 |  4.41857873e-01 |  3.80532785e-03 |  9.66257916e-01 |  9.85325312e-01
+   120 |  4.45663216e-01 |  3.80534267e-03 |  9.65968993e-01 |  9.85357156e-01
+   121 |  4.49468574e-01 |  3.80535799e-03 |  9.65680067e-01 |  9.85391571e-01
+   122 |  4.53273948e-01 |  3.80537382e-03 |  9.65391134e-01 |  9.85428552e-01
+   123 |  4.57079338e-01 |  3.80539018e-03 |  9.65102190e-01 |  9.85468091e-01
+   124 |  4.60884745e-01 |  3.80540707e-03 |  9.64813232e-01 |  9.85510181e-01
+   125 |  4.64690170e-01 |  3.80542448e-03 |  9.64524256e-01 |  9.85554815e-01
+   126 |  4.68495612e-01 |  3.80544240e-03 |  9.64235259e-01 |  9.85601986e-01
+   127 |  4.72301073e-01 |  3.80546081e-03 |  9.63946238e-01 |  9.85651687e-01
+   128 |  4.76106553e-01 |  3.80547968e-03 |  9.63657190e-01 |  9.85703911e-01
+   129 |  4.79912052e-01 |  3.80549899e-03 |  9.63368113e-01 |  9.85758651e-01
+   130 |  4.83717570e-01 |  3.80551870e-03 |  9.63079006e-01 |  9.85815899e-01
+   131 |  4.87523109e-01 |  3.80553875e-03 |  9.62789867e-01 |  9.85875650e-01
+   132 |  4.91328668e-01 |  3.80555910e-03 |  9.62500695e-01 |  9.85937897e-01
+   133 |  4.95134248e-01 |  3.80557968e-03 |  9.62211490e-01 |  9.86002634e-01
+   134 |  4.98939848e-01 |  3.80560039e-03 |  9.61922252e-01 |  9.86069856e-01
+   135 |  5.00000000e-01 |  1.06015187e-03 |  9.61841672e-01 |  9.86089024e-01
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0005_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0005_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0005_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0005_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0005_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0005_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0005_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0005_px0001_pz0003.dat
+   136 |  5.03805627e-01 |  3.80562693e-03 |  9.61552391e-01 |  9.86159414e-01
+   137 |  5.07611275e-01 |  3.80564762e-03 |  9.61263078e-01 |  9.86232278e-01
+   138 |  5.11416943e-01 |  3.80566817e-03 |  9.60973734e-01 |  9.86307610e-01
+   139 |  5.15222631e-01 |  3.80568850e-03 |  9.60684360e-01 |  9.86385407e-01
+   140 |  5.19028340e-01 |  3.80570854e-03 |  9.60394956e-01 |  9.86465665e-01
+   141 |  5.22834068e-01 |  3.80572826e-03 |  9.60105523e-01 |  9.86548382e-01
+   142 |  5.26639816e-01 |  3.80574761e-03 |  9.59816064e-01 |  9.86633553e-01
+   143 |  5.30445582e-01 |  3.80576659e-03 |  9.59526579e-01 |  9.86721178e-01
+   144 |  5.34251367e-01 |  3.80578518e-03 |  9.59237069e-01 |  9.86811253e-01
+   145 |  5.38057171e-01 |  3.80580335e-03 |  9.58947536e-01 |  9.86903776e-01
+   146 |  5.41862992e-01 |  3.80582108e-03 |  9.58657978e-01 |  9.86998747e-01
+   147 |  5.45668830e-01 |  3.80583838e-03 |  9.58368399e-01 |  9.87096164e-01
+   148 |  5.49474685e-01 |  3.80585521e-03 |  9.58078798e-01 |  9.87196025e-01
+   149 |  5.53280557e-01 |  3.80587158e-03 |  9.57789175e-01 |  9.87298329e-01
+   150 |  5.57086445e-01 |  3.80588750e-03 |  9.57499532e-01 |  9.87403076e-01
+
+  Step |            Time |        Timestep |             TKE |       Enstrophy
+-------|-----------------|-----------------|-----------------|----------------
+   151 |  5.60892347e-01 |  3.80590299e-03 |  9.57209868e-01 |  9.87510265e-01
+   152 |  5.64698266e-01 |  3.80591807e-03 |  9.56920184e-01 |  9.87619894e-01
+   153 |  5.68504198e-01 |  3.80593282e-03 |  9.56630481e-01 |  9.87731963e-01
+   154 |  5.72310146e-01 |  3.80594728e-03 |  9.56340758e-01 |  9.87846471e-01
+   155 |  5.76116107e-01 |  3.80596153e-03 |  9.56051016e-01 |  9.87963417e-01
+   156 |  5.79922083e-01 |  3.80597565e-03 |  9.55761255e-01 |  9.88082801e-01
+   157 |  5.83728073e-01 |  3.80598971e-03 |  9.55471476e-01 |  9.88204620e-01
+   158 |  5.87534076e-01 |  3.80600378e-03 |  9.55181678e-01 |  9.88328875e-01
+   159 |  5.91340094e-01 |  3.80601794e-03 |  9.54891861e-01 |  9.88455565e-01
+   160 |  5.95146127e-01 |  3.80603227e-03 |  9.54602025e-01 |  9.88584686e-01
+   161 |  5.98952173e-01 |  3.80604682e-03 |  9.54312170e-01 |  9.88716239e-01
+   162 |  6.00000000e-01 |  1.04782663e-03 |  9.54232368e-01 |  9.88752883e-01
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0006_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0006_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0006_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0006_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0006_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0006_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0006_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0006_px0001_pz0003.dat
+   163 |  6.03806066e-01 |  3.80606582e-03 |  9.53942486e-01 |  9.88887535e-01
+   164 |  6.07612147e-01 |  3.80608113e-03 |  9.53652582e-01 |  9.89024614e-01
+   165 |  6.11418244e-01 |  3.80609686e-03 |  9.53362654e-01 |  9.89164119e-01
+   166 |  6.15224357e-01 |  3.80611305e-03 |  9.53072699e-01 |  9.89306047e-01
+   167 |  6.19030487e-01 |  3.80612974e-03 |  9.52782716e-01 |  9.89450397e-01
+   168 |  6.22836634e-01 |  3.80614694e-03 |  9.52492702e-01 |  9.89597165e-01
+   169 |  6.26642798e-01 |  3.80616467e-03 |  9.52202652e-01 |  9.89746349e-01
+   170 |  6.30448981e-01 |  3.80618293e-03 |  9.51912564e-01 |  9.89897947e-01
+   171 |  6.34255183e-01 |  3.80620171e-03 |  9.51622433e-01 |  9.90051955e-01
+   172 |  6.38061404e-01 |  3.80622102e-03 |  9.51332256e-01 |  9.90208371e-01
+   173 |  6.41867645e-01 |  3.80624085e-03 |  9.51042029e-01 |  9.90367191e-01
+   174 |  6.45673906e-01 |  3.80626119e-03 |  9.50751747e-01 |  9.90528411e-01
+   175 |  6.49480188e-01 |  3.80628204e-03 |  9.50461407e-01 |  9.90692029e-01
+   176 |  6.53286491e-01 |  3.80630337e-03 |  9.50171005e-01 |  9.90858040e-01
+   177 |  6.57092816e-01 |  3.80632515e-03 |  9.49880539e-01 |  9.91026440e-01
+   178 |  6.60899164e-01 |  3.80634735e-03 |  9.49590005e-01 |  9.91197227e-01
+   179 |  6.64705534e-01 |  3.80636991e-03 |  9.49299401e-01 |  9.91370394e-01
+   180 |  6.68511927e-01 |  3.80639277e-03 |  9.49008725e-01 |  9.91545939e-01
+   181 |  6.72318342e-01 |  3.80641585e-03 |  9.48717976e-01 |  9.91723857e-01
+   182 |  6.76124781e-01 |  3.80643909e-03 |  9.48427152e-01 |  9.91904144e-01
+   183 |  6.79931244e-01 |  3.80646244e-03 |  9.48136254e-01 |  9.92086795e-01
+   184 |  6.83737730e-01 |  3.80648582e-03 |  9.47845281e-01 |  9.92271807e-01
+   185 |  6.87544239e-01 |  3.80650919e-03 |  9.47554233e-01 |  9.92459174e-01
+   186 |  6.91350771e-01 |  3.80653251e-03 |  9.47263111e-01 |  9.92648893e-01
+   187 |  6.95157327e-01 |  3.80655574e-03 |  9.46971917e-01 |  9.92840959e-01
+   188 |  6.98963906e-01 |  3.80657883e-03 |  9.46680651e-01 |  9.93035369e-01
+   189 |  7.00000000e-01 |  1.03609404e-03 |  9.46601360e-01 |  9.93088689e-01
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0007_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0007_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0007_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0007_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0007_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0007_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0007_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0007_px0001_pz0003.dat
+   190 |  7.03806608e-01 |  3.80660796e-03 |  9.46310004e-01 |  9.93286074e-01
+   191 |  7.07613239e-01 |  3.80663061e-03 |  9.46018580e-01 |  9.93485794e-01
+   192 |  7.11419892e-01 |  3.80665298e-03 |  9.45727087e-01 |  9.93687846e-01
+   193 |  7.15226567e-01 |  3.80667504e-03 |  9.45435529e-01 |  9.93892225e-01
+   194 |  7.19033263e-01 |  3.80669677e-03 |  9.45143906e-01 |  9.94098928e-01
+   195 |  7.22839982e-01 |  3.80671814e-03 |  9.44852220e-01 |  9.94307954e-01
+   196 |  7.26646721e-01 |  3.80673916e-03 |  9.44560472e-01 |  9.94519299e-01
+   197 |  7.30453481e-01 |  3.80675985e-03 |  9.44268663e-01 |  9.94732960e-01
+   198 |  7.34260261e-01 |  3.80678023e-03 |  9.43976795e-01 |  9.94948936e-01
+   199 |  7.38067061e-01 |  3.80680033e-03 |  9.43684869e-01 |  9.95167225e-01
+   200 |  7.41873881e-01 |  3.80682019e-03 |  9.43392886e-01 |  9.95387826e-01
+
+  Step |            Time |        Timestep |             TKE |       Enstrophy
+-------|-----------------|-----------------|-----------------|----------------
+   201 |  7.45680721e-01 |  3.80683984e-03 |  9.43100848e-01 |  9.95610737e-01
+   202 |  7.49487580e-01 |  3.80685929e-03 |  9.42808755e-01 |  9.95835957e-01
+   203 |  7.53294459e-01 |  3.80687855e-03 |  9.42516611e-01 |  9.96063486e-01
+   204 |  7.57101357e-01 |  3.80689763e-03 |  9.42224415e-01 |  9.96293322e-01
+   205 |  7.60908273e-01 |  3.80691653e-03 |  9.41932169e-01 |  9.96525463e-01
+   206 |  7.64715208e-01 |  3.80693528e-03 |  9.41639875e-01 |  9.96759911e-01
+   207 |  7.68522162e-01 |  3.80695389e-03 |  9.41347534e-01 |  9.96996663e-01
+   208 |  7.72329135e-01 |  3.80697243e-03 |  9.41055147e-01 |  9.97235720e-01
+   209 |  7.76136126e-01 |  3.80699094e-03 |  9.40762715e-01 |  9.97477080e-01
+   210 |  7.79943135e-01 |  3.80700951e-03 |  9.40470239e-01 |  9.97720743e-01
+   211 |  7.83750163e-01 |  3.80702820e-03 |  9.40177720e-01 |  9.97966708e-01
+   212 |  7.87557210e-01 |  3.80704709e-03 |  9.39885156e-01 |  9.98214975e-01
+   213 |  7.91364277e-01 |  3.80706621e-03 |  9.39592549e-01 |  9.98465540e-01
+   214 |  7.95171362e-01 |  3.80708562e-03 |  9.39299898e-01 |  9.98718402e-01
+   215 |  7.98978468e-01 |  3.80710534e-03 |  9.39007201e-01 |  9.98973560e-01
+   216 |  8.00000000e-01 |  1.02153236e-03 |  9.38928656e-01 |  9.99042414e-01
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0008_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0008_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0008_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0008_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0008_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0008_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0008_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0008_px0001_pz0003.dat
+   217 |  8.03807131e-01 |  3.80713078e-03 |  9.38635900e-01 |  9.99300478e-01
+   218 |  8.07614282e-01 |  3.80715119e-03 |  9.38343094e-01 |  9.99560830e-01
+   219 |  8.11421454e-01 |  3.80717192e-03 |  9.38050236e-01 |  9.99823468e-01
+   220 |  8.15228647e-01 |  3.80719297e-03 |  9.37757324e-01 |  1.00008839e+00
+   221 |  8.19035861e-01 |  3.80721438e-03 |  9.37464353e-01 |  1.00035558e+00
+   222 |  8.22843097e-01 |  3.80723618e-03 |  9.37171321e-01 |  1.00062505e+00
+   223 |  8.26650356e-01 |  3.80725840e-03 |  9.36878224e-01 |  1.00089679e+00
+   224 |  8.30457637e-01 |  3.80728108e-03 |  9.36585058e-01 |  1.00117079e+00
+   225 |  8.34264941e-01 |  3.80730424e-03 |  9.36291819e-01 |  1.00144705e+00
+   226 |  8.38072269e-01 |  3.80732789e-03 |  9.35998502e-01 |  1.00172557e+00
+   227 |  8.41879621e-01 |  3.80735199e-03 |  9.35705105e-01 |  1.00200633e+00
+   228 |  8.45686998e-01 |  3.80737652e-03 |  9.35411623e-01 |  1.00228933e+00
+   229 |  8.49494399e-01 |  3.80740142e-03 |  9.35118053e-01 |  1.00257457e+00
+   230 |  8.53301826e-01 |  3.80742661e-03 |  9.34824392e-01 |  1.00286204e+00
+   231 |  8.57109278e-01 |  3.80745204e-03 |  9.34530637e-01 |  1.00315174e+00
+   232 |  8.60916755e-01 |  3.80747765e-03 |  9.34236785e-01 |  1.00344366e+00
+   233 |  8.64724259e-01 |  3.80750339e-03 |  9.33942834e-01 |  1.00373779e+00
+   234 |  8.68531788e-01 |  3.80752923e-03 |  9.33648783e-01 |  1.00403414e+00
+   235 |  8.72339343e-01 |  3.80755516e-03 |  9.33354630e-01 |  1.00433269e+00
+   236 |  8.76146924e-01 |  3.80758116e-03 |  9.33060373e-01 |  1.00463344e+00
+   237 |  8.79954531e-01 |  3.80760722e-03 |  9.32766012e-01 |  1.00493639e+00
+   238 |  8.83762165e-01 |  3.80763331e-03 |  9.32471546e-01 |  1.00524154e+00
+   239 |  8.87569824e-01 |  3.80765943e-03 |  9.32176975e-01 |  1.00554886e+00
+   240 |  8.91377510e-01 |  3.80768553e-03 |  9.31882296e-01 |  1.00585838e+00
+   241 |  8.95185221e-01 |  3.80771161e-03 |  9.31587511e-01 |  1.00617007e+00
+   242 |  8.98992959e-01 |  3.80773763e-03 |  9.31292618e-01 |  1.00648394e+00
+   243 |  9.00000000e-01 |  1.00704107e-03 |  9.31214609e-01 |  1.00656732e+00
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0009_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0009_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0009_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0009_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0009_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0009_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0009_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0009_px0001_pz0003.dat
+   244 |  9.03807770e-01 |  3.80777040e-03 |  9.30919579e-01 |  1.00688394e+00
+   245 |  9.07615567e-01 |  3.80779619e-03 |  9.30624440e-01 |  1.00720274e+00
+   246 |  9.11423388e-01 |  3.80782185e-03 |  9.30329192e-01 |  1.00752371e+00
+   247 |  9.15231236e-01 |  3.80784735e-03 |  9.30033834e-01 |  1.00784685e+00
+   248 |  9.19039108e-01 |  3.80787265e-03 |  9.29738366e-01 |  1.00817216e+00
+   249 |  9.22847006e-01 |  3.80789772e-03 |  9.29442787e-01 |  1.00849964e+00
+   250 |  9.26654929e-01 |  3.80792252e-03 |  9.29147098e-01 |  1.00882929e+00
+
+  Step |            Time |        Timestep |             TKE |       Enstrophy
+-------|-----------------|-----------------|-----------------|----------------
+   251 |  9.30462876e-01 |  3.80794702e-03 |  9.28851299e-01 |  1.00916111e+00
+   252 |  9.34270847e-01 |  3.80797119e-03 |  9.28555390e-01 |  1.00949511e+00
+   253 |  9.38078842e-01 |  3.80799504e-03 |  9.28259372e-01 |  1.00983127e+00
+   254 |  9.41886861e-01 |  3.80801858e-03 |  9.27963246e-01 |  1.01016960e+00
+   255 |  9.45694902e-01 |  3.80804186e-03 |  9.27667013e-01 |  1.01051011e+00
+   256 |  9.49502967e-01 |  3.80806496e-03 |  9.27370674e-01 |  1.01085278e+00
+   257 |  9.53311055e-01 |  3.80808794e-03 |  9.27074232e-01 |  1.01119762e+00
+   258 |  9.57119166e-01 |  3.80811088e-03 |  9.26777688e-01 |  1.01154463e+00
+   259 |  9.60927300e-01 |  3.80813385e-03 |  9.26481044e-01 |  1.01189380e+00
+   260 |  9.64735457e-01 |  3.80815689e-03 |  9.26184303e-01 |  1.01224514e+00
+   261 |  9.68543637e-01 |  3.80818003e-03 |  9.25887466e-01 |  1.01259865e+00
+   262 |  9.72351840e-01 |  3.80820327e-03 |  9.25590536e-01 |  1.01295431e+00
+   263 |  9.76160067e-01 |  3.80822663e-03 |  9.25293515e-01 |  1.01331214e+00
+   264 |  9.79968317e-01 |  3.80825012e-03 |  9.24996405e-01 |  1.01367212e+00
+   265 |  9.83776591e-01 |  3.80827376e-03 |  9.24699206e-01 |  1.01403425e+00
+   266 |  9.87584888e-01 |  3.80829760e-03 |  9.24401919e-01 |  1.01439852e+00
+   267 |  9.91393210e-01 |  3.80832172e-03 |  9.24104546e-01 |  1.01476494e+00
+   268 |  9.95201556e-01 |  3.80834618e-03 |  9.23807086e-01 |  1.01513349e+00
+   269 |  9.99009927e-01 |  3.80837109e-03 |  9.23509539e-01 |  1.01550416e+00
+   270 |  1.00000000e+00 |  9.90072698e-04 |  9.23432171e-01 |  1.01560088e+00
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0010_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0010_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0010_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0010_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0010_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0010_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0010_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0010_px0001_pz0003.dat
+   271 |  1.00380840e+00 |  3.80840324e-03 |  9.23134513e-01 |  1.01597422e+00
+   272 |  1.00761683e+00 |  3.80842942e-03 |  9.22836766e-01 |  1.01634969e+00
+   273 |  1.01142529e+00 |  3.80845620e-03 |  9.22538929e-01 |  1.01672726e+00
+   274 |  1.01523377e+00 |  3.80848358e-03 |  9.22241000e-01 |  1.01710694e+00
+   275 |  1.01904228e+00 |  3.80851150e-03 |  9.21942976e-01 |  1.01748871e+00
+   276 |  1.02285082e+00 |  3.80853286e-03 |  9.21644855e-01 |  1.01787257e+00
+   277 |  1.02665936e+00 |  3.80854592e-03 |  9.21346638e-01 |  1.01825851e+00
+   278 |  1.03046792e+00 |  3.80855958e-03 |  9.21048319e-01 |  1.01864652e+00
+   279 |  1.03427650e+00 |  3.80857390e-03 |  9.20749898e-01 |  1.01903660e+00
+   280 |  1.03808509e+00 |  3.80858894e-03 |  9.20451372e-01 |  1.01942875e+00
+   281 |  1.04189369e+00 |  3.80860470e-03 |  9.20152739e-01 |  1.01982295e+00
+   282 |  1.04570231e+00 |  3.80862116e-03 |  9.19853995e-01 |  1.02021920e+00
+   283 |  1.04951095e+00 |  3.80863823e-03 |  9.19555140e-01 |  1.02061750e+00
+   284 |  1.05331961e+00 |  3.80865585e-03 |  9.19256171e-01 |  1.02101784e+00
+   285 |  1.05712828e+00 |  3.80867391e-03 |  9.18957086e-01 |  1.02142022e+00
+   286 |  1.06093697e+00 |  3.80869233e-03 |  9.18657884e-01 |  1.02182463e+00
+   287 |  1.06474568e+00 |  3.80871101e-03 |  9.18358562e-01 |  1.02223107e+00
+   288 |  1.06855441e+00 |  3.80872988e-03 |  9.18059120e-01 |  1.02263954e+00
+   289 |  1.07236316e+00 |  3.80874887e-03 |  9.17759556e-01 |  1.02305003e+00
+   290 |  1.07617193e+00 |  3.80876792e-03 |  9.17459869e-01 |  1.02346255e+00
+   291 |  1.07998072e+00 |  3.80878698e-03 |  9.17160057e-01 |  1.02387709e+00
+   292 |  1.08378952e+00 |  3.80880599e-03 |  9.16860120e-01 |  1.02429365e+00
+   293 |  1.08759835e+00 |  3.80882488e-03 |  9.16560056e-01 |  1.02471224e+00
+   294 |  1.09140719e+00 |  3.80884361e-03 |  9.16259864e-01 |  1.02513284e+00
+   295 |  1.09521605e+00 |  3.80886209e-03 |  9.15959543e-01 |  1.02555547e+00
+   296 |  1.09902493e+00 |  3.80888026e-03 |  9.15659093e-01 |  1.02598012e+00
+   297 |  1.10000000e+00 |  9.75067199e-04 |  9.15582158e-01 |  1.02608915e+00
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0011_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0011_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0011_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0011_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0011_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0011_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0011_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0011_px0001_pz0003.dat
+   298 |  1.10380890e+00 |  3.80890254e-03 |  9.15281544e-01 |  1.02651634e+00
+   299 |  1.10761782e+00 |  3.80891979e-03 |  9.14980799e-01 |  1.02694555e+00
+   300 |  1.11142676e+00 |  3.80893655e-03 |  9.14679922e-01 |  1.02737678e+00
+
+  Step |            Time |        Timestep |             TKE |       Enstrophy
+-------|-----------------|-----------------|-----------------|----------------
+   301 |  1.11523571e+00 |  3.80895280e-03 |  9.14378913e-01 |  1.02781003e+00
+   302 |  1.11904468e+00 |  3.80896853e-03 |  9.14077773e-01 |  1.02824531e+00
+   303 |  1.12285366e+00 |  3.80898373e-03 |  9.13776501e-01 |  1.02868260e+00
+   304 |  1.12666266e+00 |  3.80899841e-03 |  9.13475097e-01 |  1.02912191e+00
+   305 |  1.13047167e+00 |  3.80901261e-03 |  9.13173564e-01 |  1.02956323e+00
+   306 |  1.13428070e+00 |  3.80902634e-03 |  9.12871900e-01 |  1.03000657e+00
+   307 |  1.13808974e+00 |  3.80903964e-03 |  9.12570108e-01 |  1.03045192e+00
+   308 |  1.14189879e+00 |  3.80905254e-03 |  9.12268189e-01 |  1.03089927e+00
+   309 |  1.14570786e+00 |  3.80906506e-03 |  9.11966145e-01 |  1.03134863e+00
+   310 |  1.14951694e+00 |  3.80907723e-03 |  9.11663976e-01 |  1.03179998e+00
+   311 |  1.15332602e+00 |  3.80908909e-03 |  9.11361685e-01 |  1.03225333e+00
+   312 |  1.15713513e+00 |  3.80910064e-03 |  9.11059273e-01 |  1.03270866e+00
+   313 |  1.16094424e+00 |  3.80911194e-03 |  9.10756741e-01 |  1.03316597e+00
+   314 |  1.16475336e+00 |  3.80912301e-03 |  9.10454092e-01 |  1.03362525e+00
+   315 |  1.16856249e+00 |  3.80913389e-03 |  9.10151324e-01 |  1.03408650e+00
+   316 |  1.17237164e+00 |  3.80914465e-03 |  9.09848440e-01 |  1.03454971e+00
+   317 |  1.17618079e+00 |  3.80915535e-03 |  9.09545439e-01 |  1.03501486e+00
+   318 |  1.17998996e+00 |  3.80916607e-03 |  9.09242322e-01 |  1.03548195e+00
+   319 |  1.18379914e+00 |  3.80917690e-03 |  9.08939086e-01 |  1.03595096e+00
+   320 |  1.18760833e+00 |  3.80918790e-03 |  9.08635732e-01 |  1.03642190e+00
+   321 |  1.19141752e+00 |  3.80919916e-03 |  9.08332257e-01 |  1.03689475e+00
+   322 |  1.19522674e+00 |  3.80921071e-03 |  9.08028661e-01 |  1.03736950e+00
+   323 |  1.19903596e+00 |  3.80922261e-03 |  9.07724940e-01 |  1.03784614e+00
+   324 |  1.20000000e+00 |  9.64042334e-04 |  9.07648054e-01 |  1.03796707e+00
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0012_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0012_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0012_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0012_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0012_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0012_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0012_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0012_px0001_pz0003.dat
+   325 |  1.20380924e+00 |  3.80923802e-03 |  9.07344173e-01 |  1.03844606e+00
+   326 |  1.20761848e+00 |  3.80924451e-03 |  9.07040162e-01 |  1.03892694e+00
+   327 |  1.21142772e+00 |  3.80923307e-03 |  9.06736020e-01 |  1.03940967e+00
+   328 |  1.21523694e+00 |  3.80922203e-03 |  9.06431744e-01 |  1.03989426e+00
+   329 |  1.21904615e+00 |  3.80921138e-03 |  9.06127331e-01 |  1.04038069e+00
+   330 |  1.22285535e+00 |  3.80920107e-03 |  9.05822779e-01 |  1.04086897e+00
+   331 |  1.22666454e+00 |  3.80919108e-03 |  9.05518084e-01 |  1.04135908e+00
+   332 |  1.23047372e+00 |  3.80918140e-03 |  9.05213245e-01 |  1.04185103e+00
+   333 |  1.23428289e+00 |  3.80917202e-03 |  9.04908260e-01 |  1.04234479e+00
+   334 |  1.23809206e+00 |  3.80916294e-03 |  9.04603127e-01 |  1.04284038e+00
+   335 |  1.24190121e+00 |  3.80915417e-03 |  9.04297843e-01 |  1.04333779e+00
+   336 |  1.24571036e+00 |  3.80914570e-03 |  9.03992409e-01 |  1.04383702e+00
+   337 |  1.24951949e+00 |  3.80913754e-03 |  9.03686823e-01 |  1.04433806e+00
+   338 |  1.25332862e+00 |  3.80912965e-03 |  9.03381084e-01 |  1.04484091e+00
+   339 |  1.25713775e+00 |  3.80912195e-03 |  9.03075191e-01 |  1.04534558e+00
+   340 |  1.26094686e+00 |  3.80911435e-03 |  9.02769145e-01 |  1.04585206e+00
+   341 |  1.26475597e+00 |  3.80910673e-03 |  9.02462944e-01 |  1.04636035e+00
+   342 |  1.26856507e+00 |  3.80909897e-03 |  9.02156590e-01 |  1.04687045e+00
+   343 |  1.27237416e+00 |  3.80909096e-03 |  9.01850080e-01 |  1.04738236e+00
+   344 |  1.27618324e+00 |  3.80908259e-03 |  9.01543416e-01 |  1.04789607e+00
+   345 |  1.27999231e+00 |  3.80907383e-03 |  9.01236598e-01 |  1.04841160e+00
+   346 |  1.28380138e+00 |  3.80906466e-03 |  9.00929624e-01 |  1.04892893e+00
+   347 |  1.28761043e+00 |  3.80905513e-03 |  9.00622497e-01 |  1.04944807e+00
+   348 |  1.29141948e+00 |  3.80904528e-03 |  9.00315215e-01 |  1.04996901e+00
+   349 |  1.29522851e+00 |  3.80903517e-03 |  9.00007779e-01 |  1.05049176e+00
+   350 |  1.29903754e+00 |  3.80902482e-03 |  8.99700190e-01 |  1.05101631e+00
+
+  Step |            Time |        Timestep |             TKE |       Enstrophy
+-------|-----------------|-----------------|-----------------|----------------
+   351 |  1.30000000e+00 |  9.62460982e-04 |  8.99622444e-01 |  1.05114914e+00
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0013_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0013_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0013_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0013_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0013_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0013_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0013_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0013_px0001_pz0003.dat
+   352 |  1.30380901e+00 |  3.80901155e-03 |  8.99314663e-01 |  1.05167594e+00
+   353 |  1.30761801e+00 |  3.80900066e-03 |  8.99006729e-01 |  1.05220455e+00
+   354 |  1.31142700e+00 |  3.80898944e-03 |  8.98698643e-01 |  1.05273495e+00
+   355 |  1.31523598e+00 |  3.80897782e-03 |  8.98390406e-01 |  1.05326714e+00
+   356 |  1.31904495e+00 |  3.80896575e-03 |  8.98082018e-01 |  1.05380113e+00
+   357 |  1.32285390e+00 |  3.80895318e-03 |  8.97773481e-01 |  1.05433690e+00
+   358 |  1.32666284e+00 |  3.80894013e-03 |  8.97464794e-01 |  1.05487445e+00
+   359 |  1.33047177e+00 |  3.80892663e-03 |  8.97155960e-01 |  1.05541377e+00
+   360 |  1.33428068e+00 |  3.80891277e-03 |  8.96846977e-01 |  1.05595487e+00
+   361 |  1.33808958e+00 |  3.80889861e-03 |  8.96537848e-01 |  1.05649772e+00
+   362 |  1.34189846e+00 |  3.80888425e-03 |  8.96228573e-01 |  1.05704233e+00
+   363 |  1.34570733e+00 |  3.80886974e-03 |  8.95919153e-01 |  1.05758868e+00
+   364 |  1.34951619e+00 |  3.80885512e-03 |  8.95609587e-01 |  1.05813678e+00
+   365 |  1.35332503e+00 |  3.80884042e-03 |  8.95299877e-01 |  1.05868660e+00
+   366 |  1.35713385e+00 |  3.80882566e-03 |  8.94990022e-01 |  1.05923815e+00
+   367 |  1.36094266e+00 |  3.80881087e-03 |  8.94680022e-01 |  1.05979141e+00
+   368 |  1.36475146e+00 |  3.80879606e-03 |  8.94369878e-01 |  1.06034636e+00
+   369 |  1.36856024e+00 |  3.80878130e-03 |  8.94059588e-01 |  1.06090301e+00
+   370 |  1.37236901e+00 |  3.80876664e-03 |  8.93749152e-01 |  1.06146134e+00
+   371 |  1.37617776e+00 |  3.80875215e-03 |  8.93438570e-01 |  1.06202133e+00
+   372 |  1.37998650e+00 |  3.80873789e-03 |  8.93127840e-01 |  1.06258298e+00
+   373 |  1.38379522e+00 |  3.80872389e-03 |  8.92816963e-01 |  1.06314627e+00
+   374 |  1.38760393e+00 |  3.80871016e-03 |  8.92505936e-01 |  1.06371120e+00
+   375 |  1.39141263e+00 |  3.80869671e-03 |  8.92194758e-01 |  1.06427775e+00
+   376 |  1.39522131e+00 |  3.80868349e-03 |  8.91883429e-01 |  1.06484591e+00
+   377 |  1.39902998e+00 |  3.80867049e-03 |  8.91571947e-01 |  1.06541568e+00
+   378 |  1.40000000e+00 |  9.70018619e-04 |  8.91492592e-01 |  1.06556105e+00
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0014_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0014_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0014_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0014_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0014_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0014_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0014_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0014_px0001_pz0003.dat
+   379 |  1.40380865e+00 |  3.80865446e-03 |  8.91180917e-01 |  1.06613283e+00
+   380 |  1.40761730e+00 |  3.80864191e-03 |  8.90869087e-01 |  1.06670620e+00
+   381 |  1.41142593e+00 |  3.80862958e-03 |  8.90557100e-01 |  1.06728115e+00
+   382 |  1.41523454e+00 |  3.80861754e-03 |  8.90244957e-01 |  1.06785768e+00
+   383 |  1.41904315e+00 |  3.80860583e-03 |  8.89932655e-01 |  1.06843579e+00
+   384 |  1.42285174e+00 |  3.80859453e-03 |  8.89620194e-01 |  1.06901548e+00
+   385 |  1.42666033e+00 |  3.80858367e-03 |  8.89307575e-01 |  1.06959673e+00
+   386 |  1.43046890e+00 |  3.80857330e-03 |  8.88994796e-01 |  1.07017956e+00
+   387 |  1.43427746e+00 |  3.80856338e-03 |  8.88681856e-01 |  1.07076395e+00
+   388 |  1.43808602e+00 |  3.80855389e-03 |  8.88368756e-01 |  1.07134990e+00
+   389 |  1.44189456e+00 |  3.80854475e-03 |  8.88055495e-01 |  1.07193740e+00
+   390 |  1.44570310e+00 |  3.80853584e-03 |  8.87742072e-01 |  1.07252645e+00
+   391 |  1.44951163e+00 |  3.80852706e-03 |  8.87428487e-01 |  1.07311706e+00
+   392 |  1.45332014e+00 |  3.80851829e-03 |  8.87114740e-01 |  1.07370921e+00
+   393 |  1.45712865e+00 |  3.80850944e-03 |  8.86800831e-01 |  1.07430291e+00
+   394 |  1.46093715e+00 |  3.80850045e-03 |  8.86486759e-01 |  1.07489815e+00
+   395 |  1.46474565e+00 |  3.80849124e-03 |  8.86172524e-01 |  1.07549493e+00
+   396 |  1.46855413e+00 |  3.80848180e-03 |  8.85858125e-01 |  1.07609324e+00
+   397 |  1.47236260e+00 |  3.80847211e-03 |  8.85543562e-01 |  1.07669309e+00
+   398 |  1.47617106e+00 |  3.80846218e-03 |  8.85228834e-01 |  1.07729447e+00
+   399 |  1.47997951e+00 |  3.80845203e-03 |  8.84913939e-01 |  1.07789737e+00
+   400 |  1.48378795e+00 |  3.80844166e-03 |  8.84598878e-01 |  1.07850179e+00
+
+  Step |            Time |        Timestep |             TKE |       Enstrophy
+-------|-----------------|-----------------|-----------------|----------------
+   401 |  1.48759639e+00 |  3.80843109e-03 |  8.84283648e-01 |  1.07910773e+00
+   402 |  1.49140481e+00 |  3.80842030e-03 |  8.83968249e-01 |  1.07971516e+00
+   403 |  1.49521322e+00 |  3.80840926e-03 |  8.83652680e-01 |  1.08032410e+00
+   404 |  1.49902161e+00 |  3.80839795e-03 |  8.83336939e-01 |  1.08093454e+00
+   405 |  1.50000000e+00 |  9.78386462e-04 |  8.83255797e-01 |  1.08109161e+00
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0015_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0015_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0015_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0015_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0015_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0015_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0015_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0015_px0001_pz0003.dat
+   406 |  1.50380838e+00 |  3.80838332e-03 |  8.82939839e-01 |  1.08170393e+00
+   407 |  1.50761675e+00 |  3.80837133e-03 |  8.82623709e-01 |  1.08231775e+00
+   408 |  1.51142511e+00 |  3.80835904e-03 |  8.82307404e-01 |  1.08293306e+00
+   409 |  1.51523346e+00 |  3.80834650e-03 |  8.81990924e-01 |  1.08354986e+00
+   410 |  1.51904179e+00 |  3.80833373e-03 |  8.81674270e-01 |  1.08416814e+00
+   411 |  1.52285011e+00 |  3.80832077e-03 |  8.81357440e-01 |  1.08478791e+00
+   412 |  1.52665842e+00 |  3.80830764e-03 |  8.81040434e-01 |  1.08540916e+00
+   413 |  1.53046672e+00 |  3.80829434e-03 |  8.80723251e-01 |  1.08603186e+00
+   414 |  1.53427500e+00 |  3.80828088e-03 |  8.80405891e-01 |  1.08665602e+00
+   415 |  1.53808326e+00 |  3.80826722e-03 |  8.80088354e-01 |  1.08728160e+00
+   416 |  1.54189152e+00 |  3.80825336e-03 |  8.79770638e-01 |  1.08790860e+00
+   417 |  1.54569976e+00 |  3.80823930e-03 |  8.79452743e-01 |  1.08853699e+00
+   418 |  1.54950798e+00 |  3.80822505e-03 |  8.79134669e-01 |  1.08916676e+00
+   419 |  1.55331619e+00 |  3.80821066e-03 |  8.78816417e-01 |  1.08979789e+00
+   420 |  1.55712439e+00 |  3.80819618e-03 |  8.78497985e-01 |  1.09043037e+00
+   421 |  1.56093257e+00 |  3.80818166e-03 |  8.78179374e-01 |  1.09106419e+00
+   422 |  1.56474074e+00 |  3.80816714e-03 |  8.77860584e-01 |  1.09169932e+00
+   423 |  1.56854889e+00 |  3.80815268e-03 |  8.77541614e-01 |  1.09233577e+00
+   424 |  1.57235703e+00 |  3.80813830e-03 |  8.77222465e-01 |  1.09297352e+00
+   425 |  1.57616515e+00 |  3.80812403e-03 |  8.76903137e-01 |  1.09361255e+00
+   426 |  1.57997326e+00 |  3.80810991e-03 |  8.76583629e-01 |  1.09425287e+00
+   427 |  1.58378136e+00 |  3.80809602e-03 |  8.76263941e-01 |  1.09489446e+00
+   428 |  1.58758944e+00 |  3.80808243e-03 |  8.75944074e-01 |  1.09553731e+00
+   429 |  1.59139751e+00 |  3.80806925e-03 |  8.75624026e-01 |  1.09618143e+00
+   430 |  1.59520557e+00 |  3.80805658e-03 |  8.75303798e-01 |  1.09682680e+00
+   431 |  1.59901361e+00 |  3.80804453e-03 |  8.74983391e-01 |  1.09747345e+00
+   432 |  1.60000000e+00 |  9.86388182e-04 |  8.74900368e-01 |  1.09764116e+00
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0016_px0000_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0016_px0001_pz0000.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0016_px0000_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0016_px0001_pz0001.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0016_px0000_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0016_px0001_pz0002.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0016_px0000_pz0003.dat
+
+Writing visualization file /farmshare/user_data/akshays/2017_AIAA_AVIATION_DATA/TGV-visc/N0032/WCHR/TGV_0016_px0001_pz0003.dat
+   433 |  1.60380803e+00 |  3.80803033e-03 |  8.74579736e-01 |  1.09828942e+00
+   434 |  1.60761605e+00 |  3.80801986e-03 |  8.74258926e-01 |  1.09893894e+00
+   435 |  1.61142406e+00 |  3.80801010e-03 |  8.73937936e-01 |  1.09958973e+00
+   436 |  1.61523206e+00 |  3.80800098e-03 |  8.73616766e-01 |  1.10024178e+00
+   437 |  1.61904005e+00 |  3.80799244e-03 |  8.73295416e-01 |  1.10089508e+00
+   438 |  1.62284804e+00 |  3.80798439e-03 |  8.72973886e-01 |  1.10154963e+00
+   439 |  1.62665601e+00 |  3.80797675e-03 |  8.72652175e-01 |  1.10220542e+00
+   440 |  1.63046398e+00 |  3.80796942e-03 |  8.72330283e-01 |  1.10286247e+00
+   441 |  1.63427195e+00 |  3.80796233e-03 |  8.72008209e-01 |  1.10352076e+00
+   442 |  1.63807990e+00 |  3.80795538e-03 |  8.71685955e-01 |  1.10418029e+00
+   443 |  1.64188785e+00 |  3.80794846e-03 |  8.71363518e-01 |  1.10484106e+00
+   444 |  1.64569579e+00 |  3.80794148e-03 |  8.71040899e-01 |  1.10550306e+00
+   445 |  1.64950373e+00 |  3.80793434e-03 |  8.70718096e-01 |  1.10616627e+00
+   446 |  1.65331165e+00 |  3.80792696e-03 |  8.70395111e-01 |  1.10683071e+00
+   447 |  1.65711957e+00 |  3.80791933e-03 |  8.70071942e-01 |  1.10749636e+00
+   448 |  1.66092748e+00 |  3.80791146e-03 |  8.69748589e-01 |  1.10816321e+00
+   449 |  1.66473539e+00 |  3.80790343e-03 |  8.69425052e-01 |  1.10883127e+00
+   450 |  1.66854328e+00 |  3.80789536e-03 |  8.69101331e-01 |  1.10950053e+00
+
+  Step |            Time |        Timestep |             TKE |       Enstrophy
+-------|-----------------|-----------------|-----------------|----------------
+   451 |  1.67235117e+00 |  3.80788734e-03 |  8.68777426e-01 |  1.11017100e+00
+   452 |  1.67615905e+00 |  3.80787941e-03 |  8.68453337e-01 |  1.11084266e+00
+   453 |  1.67996692e+00 |  3.80787158e-03 |  8.68129063e-01 |  1.11151551e+00
+   454 |  1.68377478e+00 |  3.80786379e-03 |  8.67804605e-01 |  1.11218955e+00
+   455 |  1.68758264e+00 |  3.80785594e-03 |  8.67479962e-01 |  1.11286477e+00
+   456 |  1.69139049e+00 |  3.80784787e-03 |  8.67155133e-01 |  1.11354116e+00
+   457 |  1.69519833e+00 |  3.80783944e-03 |  8.66830118e-01 |  1.11421869e+00
+Segmentation fault (core dumped)

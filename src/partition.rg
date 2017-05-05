@@ -141,10 +141,30 @@ partition_xpencil_cnsr = make_partition_xpencil(r_cnsr)
 partition_ypencil_cnsr = make_partition_ypencil(r_cnsr)
 partition_zpencil_cnsr = make_partition_zpencil(r_cnsr)
 
+local r_aux   = regentlib.newsymbol(region(ispace(int3d), auxiliary), "r_aux")
+partition_xpencil_aux = make_partition_xpencil(r_aux)
+partition_ypencil_aux = make_partition_ypencil(r_aux)
+partition_zpencil_aux = make_partition_zpencil(r_aux)
+
+local r_visc   = regentlib.newsymbol(region(ispace(int3d), transport_coeffs), "r_visc")
+partition_xpencil_visc = make_partition_xpencil(r_visc)
+partition_ypencil_visc = make_partition_ypencil(r_visc)
+partition_zpencil_visc = make_partition_zpencil(r_visc)
+
+local r_vect   = regentlib.newsymbol(region(ispace(int3d), vect), "r_vect")
+partition_xpencil_vect = make_partition_xpencil(r_vect)
+partition_ypencil_vect = make_partition_ypencil(r_vect)
+partition_zpencil_vect = make_partition_zpencil(r_vect)
+
 local r_tnsr2  = regentlib.newsymbol(region(ispace(int3d), tensor2), "r_tnsr2")
 partition_xpencil_tnsr2 = make_partition_xpencil(r_tnsr2)
 partition_ypencil_tnsr2 = make_partition_ypencil(r_tnsr2)
 partition_zpencil_tnsr2 = make_partition_zpencil(r_tnsr2)
+
+local r_tnsr2symm  = regentlib.newsymbol(region(ispace(int3d), tensor2symm), "r_tnsr2symm")
+partition_xpencil_tnsr2symm = make_partition_xpencil(r_tnsr2symm)
+partition_ypencil_tnsr2symm = make_partition_ypencil(r_tnsr2symm)
+partition_zpencil_tnsr2symm = make_partition_zpencil(r_tnsr2symm)
 
 local slu = regentlib.newsymbol(region(ispace(int2d), superlu.c.superlu_vars_t), "slu")
 partition_slu = make_partition2D(slu)
