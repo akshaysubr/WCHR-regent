@@ -11,14 +11,14 @@ local problem = {}
 -- Problem specific parameters
 problem.gamma    = 1.4
 problem.x_shock  = 0.
-problem.M_v      = 0.25
+problem.M_v      = 1.
 problem.x_vortex = 4.
 problem.y_vortex = 0.
 problem.R_vortex = 1.
 
 -- Grid dimensions
-problem.NX = 512
-problem.NY = 256
+problem.NX = 1024
+problem.NY = 512
 problem.NZ = 1
 
 -- Domain size

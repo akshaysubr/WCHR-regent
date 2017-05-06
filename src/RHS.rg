@@ -107,6 +107,7 @@ do
 
   if (nx >= 8) then
     WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_l_x, slu_r_x, Nx, Ny, Nz )
+    positivity_enforcer_x( r_prim_c, r_prim_l_x, r_prim_r_x, Nx, Ny, Nz )
     HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
     get_xfluxes_r( r_prim_c, r_cnsr, r_flux_c )
    
@@ -153,6 +154,7 @@ do
 
   if (ny >= 8) then
     WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y, r_rhs_l_y, r_rhs_r_y, matrix_l_y, matrix_r_y, slu_l_y, slu_r_y, Nx, Ny, Nz )
+    positivity_enforcer_y( r_prim_c, r_prim_l_y, r_prim_r_y, Nx, Ny, Nz )
     HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
     get_yfluxes_r( r_prim_c, r_cnsr, r_flux_c )
     
@@ -199,6 +201,7 @@ do
 
   if (nz >= 8) then
     WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z, r_rhs_l_z, r_rhs_r_z, matrix_l_z, matrix_r_z, slu_l_z, slu_r_z, Nx, Ny, Nz )
+    positivity_enforcer_z( r_prim_c, r_prim_l_z, r_prim_r_z, Nx, Ny, Nz )
     HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
     get_zfluxes_r( r_prim_c, r_cnsr, r_flux_c )
 

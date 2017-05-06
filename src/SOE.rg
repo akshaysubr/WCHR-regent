@@ -627,3 +627,120 @@ do
     -- r_flux_e_z[i].rhoE = switch_L * F_L[4] + switch_R * F_R[4] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[4] - s_L*F_R[4] + s_R*s_L * ( Q_R[4] - Q_L[4] ) ) / (s_R - s_L)
   end
 end
+
+__demand(__inline)
+task positivity_enforcer_x( r_prim_c   : region(ispace(int3d), primitive),
+                            r_prim_l_x : region(ispace(int3d), primitive),
+                            r_prim_r_x : region(ispace(int3d), primitive),
+                            Nx         : int64,
+                            Ny         : int64,
+                            Nz         : int64 )
+where
+  reads(r_prim_c), reads writes(r_prim_l_x, r_prim_r_x)
+do
+  var counter : int64 = 0
+  for i in r_prim_l_x do
+    
+    if (r_prim_l_x[i].rho <= 0) or (r_prim_r_x[i].rho <= 0) or (r_prim_l_x[i].p <= 0) or (r_prim_r_x[i].p <= 0) then
+      var idxm1 = [poff(i, -1, 0, 0, Nx, Ny, Nz)]
+      var idxp1 = [poff(i,  0, 0, 0, Nx, Ny, Nz)]
+
+      r_prim_l_x[i].rho = r_prim_c[idxm1].rho
+      r_prim_l_x[i].u   = r_prim_c[idxm1].u
+      r_prim_l_x[i].v   = r_prim_c[idxm1].v
+      r_prim_l_x[i].w   = r_prim_c[idxm1].w
+      r_prim_l_x[i].p   = r_prim_c[idxm1].p
+
+      r_prim_r_x[i].rho = r_prim_c[idxp1].rho
+      r_prim_r_x[i].u   = r_prim_c[idxp1].u
+      r_prim_r_x[i].v   = r_prim_c[idxp1].v
+      r_prim_r_x[i].w   = r_prim_c[idxp1].w
+      r_prim_r_x[i].p   = r_prim_c[idxp1].p
+
+      counter += 1
+    end
+
+  end
+
+  if counter > 0 then
+    c.printf("WARNING: Positivity enforcer was used in X %d times!\n", counter)
+  end
+end
+
+__demand(__inline)
+task positivity_enforcer_y( r_prim_c   : region(ispace(int3d), primitive),
+                            r_prim_l_y : region(ispace(int3d), primitive),
+                            r_prim_r_y : region(ispace(int3d), primitive),
+                            Nx         : int64,
+                            Ny         : int64,
+                            Nz         : int64 )
+where
+  reads(r_prim_c), reads writes(r_prim_l_y, r_prim_r_y)
+do
+  var counter : int64 = 0
+  for i in r_prim_l_y do
+    
+    if (r_prim_l_y[i].rho <= 0) or (r_prim_r_y[i].rho <= 0) or (r_prim_l_y[i].p <= 0) or (r_prim_r_y[i].p <= 0) then
+      var idxm1 = [poff(i, 0, -1, 0, Nx, Ny, Nz)]
+      var idxp1 = [poff(i, 0,  0, 0, Nx, Ny, Nz)]
+
+      r_prim_l_y[i].rho = r_prim_c[idxm1].rho
+      r_prim_l_y[i].u   = r_prim_c[idxm1].u
+      r_prim_l_y[i].v   = r_prim_c[idxm1].v
+      r_prim_l_y[i].w   = r_prim_c[idxm1].w
+      r_prim_l_y[i].p   = r_prim_c[idxm1].p
+
+      r_prim_r_y[i].rho = r_prim_c[idxp1].rho
+      r_prim_r_y[i].u   = r_prim_c[idxp1].u
+      r_prim_r_y[i].v   = r_prim_c[idxp1].v
+      r_prim_r_y[i].w   = r_prim_c[idxp1].w
+      r_prim_r_y[i].p   = r_prim_c[idxp1].p
+
+      counter += 1
+    end
+
+  end
+
+  if counter > 0 then
+    c.printf("WARNING: Positivity enforcer was used in Y %d times!\n", counter)
+  end
+end
+
+__demand(__inline)
+task positivity_enforcer_z( r_prim_c   : region(ispace(int3d), primitive),
+                            r_prim_l_z : region(ispace(int3d), primitive),
+                            r_prim_r_z : region(ispace(int3d), primitive),
+                            Nx         : int64,
+                            Ny         : int64,
+                            Nz         : int64 )
+where
+  reads(r_prim_c), reads writes(r_prim_l_z, r_prim_r_z)
+do
+  var counter : int64 = 0
+  for i in r_prim_l_z do
+    
+    if (r_prim_l_z[i].rho <= 0) or (r_prim_r_z[i].rho <= 0) or (r_prim_l_z[i].p <= 0) or (r_prim_r_z[i].p <= 0) then
+      var idxm1 = [poff(i, 0, 0, -1, Nx, Ny, Nz)]
+      var idxp1 = [poff(i, 0, 0,  0, Nx, Ny, Nz)]
+
+      r_prim_l_z[i].rho = r_prim_c[idxm1].rho
+      r_prim_l_z[i].u   = r_prim_c[idxm1].u
+      r_prim_l_z[i].v   = r_prim_c[idxm1].v
+      r_prim_l_z[i].w   = r_prim_c[idxm1].w
+      r_prim_l_z[i].p   = r_prim_c[idxm1].p
+
+      r_prim_r_z[i].rho = r_prim_c[idxp1].rho
+      r_prim_r_z[i].u   = r_prim_c[idxp1].u
+      r_prim_r_z[i].v   = r_prim_c[idxp1].v
+      r_prim_r_z[i].w   = r_prim_c[idxp1].w
+      r_prim_r_z[i].p   = r_prim_c[idxp1].p
+
+      counter += 1
+    end
+
+  end
+
+  if counter > 0 then
+    c.printf("WARNING: Positivity enforcer was used in Z %d times!\n", counter)
+  end
+end
