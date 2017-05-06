@@ -1,1 +1,1 @@
-problems/CHIT_problem.rg
+problems/shock_vortex_problem.rg
