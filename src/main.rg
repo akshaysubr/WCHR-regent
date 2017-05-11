@@ -84,6 +84,11 @@ task main()
   else
     c.printf("           fileIO               = false\n")
   end
+  if config.restart then
+    c.printf("          restart               = true\n")
+  else
+    c.printf("          restart               = false\n")
+  end
 
   c.printf("================================================================\n")
 
@@ -397,12 +402,32 @@ task main()
   wait_for(token)
   c.printf("Finished LU initialization\n")
 
-  __demand(__parallel)
-  for i in pencil do
-    -- Initialize everything in y decomposition.
-    token += problem.initialize(p_coords_y[i], p_prim_c_y[i], dx, dy, dz)
+  if config.restart then
+    -- Restart the simulation from the latest viz dump
+    c.printf("Restarting using viz dump\n")
+    __demand(__parallel)
+    for i in pencil do
+      read_coords(p_coords_y[i], config.filename_prefix, i)
+    end
+    c.printf("Finished reading in coords\n")
+
+    vizcount = config.restart_count
+    __demand(__parallel)
+    for i in pencil do
+      read_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, i)
+    end
+    c.printf("Finished restarting using viz dump %d\n", vizcount)
+    tsim = tviz*vizcount
+    vizcount += 1
+  else
+    -- If not restarting, then initialize from the problem initialization task
+    __demand(__parallel)
+    for i in pencil do
+      -- Initialize everything in y decomposition.
+      token += problem.initialize(p_coords_y[i], p_prim_c_y[i], dx, dy, dz)
+    end
+    c.printf("Finished initialization\n")
   end
-  c.printf("Finished initialization\n")
 
   __demand(__parallel)
   for i in pencil do
@@ -438,7 +463,7 @@ task main()
   c.printf("TKE, Enstrophy = %g, %g", TKE0, enstrophy0)
 
   var IOtoken = 0
-  if use_io then
+  if (use_io and (not config.restart)) then
     __demand(__parallel)
     for i in pencil do
       IOtoken += write_coords(p_coords_y[i], config.filename_prefix, i)
@@ -463,7 +488,7 @@ task main()
     token += get_conserved_r(p_prim_c_y[i], p_cnsr_y[i])
   end
 
-  if use_io then
+  if (use_io and (not config.restart)) then
     wait_for(IOtoken)
     __demand(__parallel)
     for i in pencil do

@@ -49,7 +49,7 @@ problem.ONEBYDZ = 1.0 / problem.DZ
 problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
 problem.dt_or_CFL_num        = 0.5
 problem.tstop                = 4.0 * problem.tau
-problem.tviz                 = 0.1 * problem.tau
+problem.tviz                 = 0.02 * problem.tau
 
 terra read_grid( nx : &int64, ny : &int64, nz : &int64, f : &c.FILE )
   c.fscanf(f, "%d", nx)

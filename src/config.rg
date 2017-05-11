@@ -11,6 +11,8 @@ struct Config
   prow            : int,
   pcol            : int,
   nstats          : int,
+  restart         : bool,
+  restart_count   : int,
 }
 
 local cstring = terralib.includec("string.h")
@@ -18,12 +20,13 @@ local cstring = terralib.includec("string.h")
 terra print_usage_and_abort()
   c.printf("Usage: regent.py main.rg [OPTIONS]\n")
   c.printf("OPTIONS\n")
-  c.printf("  -h               : Print the usage and exit.\n")
-  c.printf("  -prefix {prefix} : Use {prefix} as prefix for file I/O.\n")
-  c.printf("  -stats {nstats}  : Print stats only every {nstats} steps.\n")
-  c.printf("  -p {value}       : Set the number of parallel tasks to {value} (Default = 1).\n")
-  c.printf("  -prow {value}    : [Optional] Set the number of parallel tasks in x decomposition to {value}.\n")
-  c.printf("  -pcol {value}    : [Optional] Set the number of parallel tasks in z decomposition to {value}.\n")
+  c.printf("  -h                 : Print the usage and exit.\n")
+  c.printf("  -prefix {prefix}   : Use {prefix} as prefix for file I/O.\n")
+  c.printf("  -restart {vizdump} : Use {prefix} and restart from viz dump. (Should have same prow and pcol as the original run)\n")
+  c.printf("  -stats {nstats}    : Print stats only every {nstats} steps.\n")
+  c.printf("  -p {value}         : Set the number of parallel tasks to {value} (Default = 1).\n")
+  c.printf("  -prow {value}      : [Optional] Set the number of parallel tasks in x decomposition to {value}.\n")
+  c.printf("  -pcol {value}      : [Optional] Set the number of parallel tasks in z decomposition to {value}.\n")
   c.abort()
 end
 
@@ -54,6 +57,8 @@ terra Config:initialize_from_command( nx : int, ny : int, nz : int )
   cstring.strcpy(self.filename_prefix, "")
   self.parallelism = 1
   self.nstats = 1
+  self.restart = false
+  self.restart_count = 0
 
   var use_prow : bool = false
   var use_pcol : bool = false
@@ -67,6 +72,10 @@ terra Config:initialize_from_command( nx : int, ny : int, nz : int )
       i = i + 1
       cstring.strcpy(self.filename_prefix, args.argv[i])
       self.fileIO = true
+    elseif cstring.strcmp(args.argv[i], "-restart") == 0 then
+      i = i + 1
+      self.restart = true
+      self.restart_count = c.atoi(args.argv[i])
     elseif cstring.strcmp(args.argv[i], "-stats") == 0 then
       i = i + 1
       self.nstats = c.atoi(args.argv[i])
