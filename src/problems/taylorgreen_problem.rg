@@ -9,7 +9,10 @@ require("fields")
 local problem = {}
 
 -- Problem specific parameters
-problem.gamma = 5.0/3.0
+problem.gamma = 1.4
+problem.Rgas  = 1.0
+problem.Re    = 100.
+problem.Pr    = 1.
 
 -- Grid dimensions
 problem.NX = 32 
@@ -56,10 +59,25 @@ do
     r_prim_c[i].u   = cmath.sin(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.cos(coords[i].z_c)
     r_prim_c[i].v   =-cmath.cos(coords[i].x_c) * cmath.sin(coords[i].y_c) * cmath.cos(coords[i].z_c) 
     r_prim_c[i].w   = 0.0
-    r_prim_c[i].p   = 100.0 + (1.0/16.0)*( (cmath.cos(2.0*coords[i].z_c) +2.0)*(cmath.cos(2.0*coords[i].x_c) + cmath.cos(2.0*coords[i].y_c)) - 2.0)
+    r_prim_c[i].p   = 100.0/problem.gamma + (1.0/16.0)*( (cmath.cos(2.0*coords[i].z_c) +2.0)*(cmath.cos(2.0*coords[i].x_c) + cmath.cos(2.0*coords[i].y_c)) - 2.0)
   end
 
   return 1
+end
+
+task problem.get_transport_coeffs( r_prim : region(ispace(int3d), primitive),
+                                   r_aux  : region(ispace(int3d), auxiliary),
+                                   r_visc : region(ispace(int3d), transport_coeffs) )
+where
+  reads(r_prim.{}, r_aux.T), writes(r_visc)
+do
+  var mu_s  : double = 1. / problem.Re
+  var kappa : double = problem.Pr * (problem.gamma / (problem.gamma - 1.)) * problem.Rgas * mu_s
+  for i in r_visc do
+    r_visc[i].mu_s  = mu_s
+    r_visc[i].mu_b  = 0.
+    r_visc[i].kappa = kappa
+  end
 end
 
 task problem.get_errors( coords     : region(ispace(int3d), coordinates),

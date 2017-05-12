@@ -248,6 +248,18 @@ do
   return 1
 end
 
+task get_temperature_r( r_prim : region(ispace(int3d), primitive),
+                       r_aux  : region(ispace(int3d), auxiliary) )
+where
+  reads(r_prim.{rho, p}), writes(r_aux.T)
+do
+  for i in r_aux do
+    r_aux[i].T = get_temperature( r_prim[i].rho, r_prim[i].p )
+  end
+
+  return 1
+end
+
 task get_conserved_r( r_prim : region(ispace(int3d), primitive),
                       r_cnsr : region(ispace(int3d), conserved) )
 where

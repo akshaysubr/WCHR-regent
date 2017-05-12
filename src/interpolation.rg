@@ -8,12 +8,12 @@ require("IO")
 require("SOE")
 local superlu = require("superlu_util")
 
-alpha06CI = 3.0/16.0
-beta06CI  = 5.0/8.0
-gamma06CI = 3.0/16.0
-
 local xi = 2.0/3.0
  
+alpha06CI = - 45.*( xi - 1. ) / ( 16.*(xi + 5) )
+beta06CI  = ( 53.*xi - 5. ) / ( 8.*(xi + 5) )
+gamma06CI = - 45.*( xi - 1. ) / ( 16.*(xi + 5) )
+
 local function v_index(i,is_left)
   if is_left then
     return i

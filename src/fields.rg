@@ -17,12 +17,28 @@ fspace primitive {
   p   : double,
 }
 
+fspace auxiliary {
+  T   : double,
+}
+
 fspace conserved {
   rho  : double,
   rhou : double,
   rhov : double,
   rhow : double,
   rhoE : double,
+}
+
+fspace transport_coeffs {
+  mu_s  : double,
+  mu_b  : double,
+  kappa : double,
+}
+
+fspace vect {
+  _1  : double,
+  _2  : double,
+  _3  : double,
 }
 
 fspace tensor2 {
@@ -34,6 +50,15 @@ fspace tensor2 {
   _23 : double,
   _31 : double,
   _32 : double,
+  _33 : double,
+}
+
+fspace tensor2symm {
+  _11 : double,
+  _12 : double,
+  _13 : double,
+  _22 : double,
+  _23 : double,
   _33 : double,
 }
 

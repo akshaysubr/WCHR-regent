@@ -10,13 +10,18 @@ local problem = {}
 
 -- Problem specific parameters
 problem.gamma = 1.4  -- Ratio of specific heats
+problem.Rgas  = 1.0  -- Gas constant
 problem.Mt = 0.6     -- Initial turbulent Mach number
 problem.k0 = 4.0     -- Inital peak energy wavenumber
+problem.Re = 100.    -- Initial Taylor scale Reynolds number
+problem.Pr = 0.7     -- Prandtl number
 problem.datafile = "/home/akshays/Data/WCHR/CHIT/setup/CHIT-velocity-k04-N0064.dat"  -- Data file containing initial velocities
 
 problem.u_rms0  = problem.Mt / cmath.sqrt(3)        -- Initial RMS velocity
 problem.lambda0 = 2.0 / problem.k0                  -- Initial Taylor microscale
 problem.tau     = problem.lambda0 / problem.u_rms0  -- Eddy turnover time scale
+problem.T_ref   = (1.0 / problem.gamma) / problem.Rgas
+problem.mu_ref  =  problem.u_rms0 * problem.lambda0 / problem.Re -- Reference viscosity
 
 -- Grid dimensions
 problem.NX = 64 
@@ -44,7 +49,7 @@ problem.ONEBYDZ = 1.0 / problem.DZ
 problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
 problem.dt_or_CFL_num        = 0.5
 problem.tstop                = 4.0 * problem.tau
-problem.tviz                 = 0.1 * problem.tau
+problem.tviz                 = 0.02 * problem.tau
 
 terra read_grid( nx : &int64, ny : &int64, nz : &int64, f : &c.FILE )
   c.fscanf(f, "%d", nx)
@@ -122,6 +127,20 @@ do
   c.fclose(file_handle)
 
   return 1
+end
+
+task problem.get_transport_coeffs( r_prim : region(ispace(int3d), primitive),
+                                   r_aux  : region(ispace(int3d), auxiliary),
+                                   r_visc : region(ispace(int3d), transport_coeffs) )
+where
+  reads(r_prim.{}, r_aux.T), writes(r_visc)
+do
+  for i in r_visc do
+    var mu_s : double  = problem.mu_ref * cmath.pow( r_aux[i].T / problem.T_ref, 3./4. ) -- Power law for mu
+    r_visc[i].mu_s  = mu_s -- Power law for mu
+    r_visc[i].mu_b  = 0.
+    r_visc[i].kappa = problem.Pr * (problem.gamma / (problem.gamma - 1.)) * problem.Rgas * mu_s
+  end
 end
 
 task problem.get_errors( coords     : region(ispace(int3d), coordinates),
