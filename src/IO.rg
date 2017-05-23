@@ -2,6 +2,25 @@ import "regent"
 
 local use_io = os.getenv('USE_IO') == '1' or false
 if not use_io then
+  task read_primitive( r_prim     : region(ispace(int3d), primitive),
+                       fileprefix : rawstring,
+                       vizcount   : int32,
+                       pencil     : int2d )
+  where
+    writes( r_prim )
+  do
+    return 1
+  end
+
+  task read_coords( r_coords   : region(ispace(int3d), coordinates),
+                    fileprefix : rawstring,
+                    pencil     : int2d )
+  where
+    writes( r_coords )
+  do
+    return 1
+  end
+
   task write_primitive( r_prim     : region(ispace(int3d), primitive),
                         fileprefix : rawstring,
                         vizcount   : int32,

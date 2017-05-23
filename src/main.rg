@@ -23,6 +23,10 @@ terra wait_for(x : int)
   return x
 end
 
+terra wait_for_double(x : double)
+  return x
+end
+
 task main()
   var Nx : int64 = problem.NX
   var Ny : int64 = problem.NY
@@ -450,15 +454,23 @@ task main()
   end
  
   var TKE0 : double = 0.0
-  __demand(__parallel)
-  for i in pencil do
-    TKE0 += problem.TKE(p_prim_c_y[i])
+  do
+    var t : double = 0.0
+    __demand(__parallel)
+    for i in pencil do
+      t += problem.TKE(p_prim_c_y[i])
+    end
+    TKE0 = wait_for_double(t)
   end
 
   var enstrophy0 : double = 0.0
-  __demand(__parallel)
-  for i in pencil do
-    enstrophy0 += problem.enstrophy( p_gradu_y[i] )
+  do
+    var e : double = 0.0
+    __demand(__parallel)
+    for i in pencil do
+      e += problem.enstrophy( p_gradu_y[i] )
+    end
+    enstrophy0 = wait_for_double(e)
   end
   c.printf("TKE, Enstrophy = %g, %g", TKE0, enstrophy0)
 
@@ -505,24 +517,24 @@ task main()
 
     if useCFL then
       -- Get stable dt.
-      dt = 1.0e+100
+      var new_dt = 1.0e+100
       if Nz >= 8 then
         __demand(__parallel)
         for i in pencil do
-          dt min= get_max_stable_dt_3d(p_prim_c_y[i], dx, dy, dz)
+          new_dt min= get_max_stable_dt_3d(p_prim_c_y[i], dx, dy, dz)
         end
       elseif Ny >= 8 then
         __demand(__parallel)
         for i in pencil do
-          dt min= get_max_stable_dt_2d(p_prim_c_y[i], dx, dy)
+          new_dt min= get_max_stable_dt_2d(p_prim_c_y[i], dx, dy)
         end
       else
         __demand(__parallel)
         for i in pencil do
-          dt min= get_max_stable_dt_1d(p_prim_c_y[i], dx)
+          new_dt min= get_max_stable_dt_1d(p_prim_c_y[i], dx)
         end
       end
-      dt *= CFL_num
+      dt = wait_for_double(new_dt) * CFL_num
     else
       dt = dt_fix
     end
@@ -637,18 +649,6 @@ task main()
     -- Update time step.
     step = step + 1
 
-    var TKE : double = 0.0
-    __demand(__parallel)
-    for i in pencil do
-      TKE += problem.TKE(p_prim_c_y[i])
-    end
-
-    var enstrophy : double = 0.0
-    __demand(__parallel)
-    for i in pencil do
-      enstrophy += problem.enstrophy( p_gradu_y[i] )
-    end
-
     if (step-1)%(config.nstats*50) == 0 then
       c.printf("\n")
       c.printf("%6.6s |%16.16s |%16.16s |%16.16s |%16.16s\n", "Step","Time","Timestep","TKE","Enstrophy")
@@ -656,7 +656,23 @@ task main()
     end
 
     if (step-1)%config.nstats == 0 then
-      c.printf("%6d |%16.8e |%16.8e |%16.8e |%16.8e\n", step, tsim, dt, TKE/TKE0, enstrophy/enstrophy0)
+      var TKE : double = 0.0
+      __demand(__parallel)
+      for i in pencil do
+        TKE += problem.TKE(p_prim_c_y[i])
+      end
+
+      var enstrophy : double = 0.0
+      __demand(__parallel)
+      for i in pencil do
+        enstrophy += problem.enstrophy( p_gradu_y[i] )
+      end
+
+      do
+        var TKE = wait_for_double(TKE)
+        var enstrophy = wait_for_double(enstrophy)
+        c.printf("%6d |%16.8e |%16.8e |%16.8e |%16.8e\n", step, tsim, dt, TKE/TKE0, enstrophy/enstrophy0)
+      end
     end
 
     if use_io then
@@ -739,10 +755,10 @@ if os.getenv('SAVEOBJ') == '1' then
   local superlu_root = os.getenv('SUPERLU_PATH') or "/opt/SuperLU_5.2.1"
   local superlu_lib_dir = superlu_root .. "/lib"
   local superlu_include_dir = superlu_root .. "/include"
-  local hdf_root = os.getenv('HDF_ROOT')
-  local hdf_lib_dir = hdf_root .. "/lib"
   local link_flags = {}
   if use_io then
+    local hdf_root = os.getenv('HDF_ROOT')
+    local hdf_lib_dir = hdf_root .. "/lib"
     link_flags = {"-L" .. root_dir, "-L" .. superlu_lib_dir, "-L" .. hdf_lib_dir, "-lhdf5", "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
   else
     link_flags = {"-L" .. root_dir, "-L" .. superlu_lib_dir, "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
