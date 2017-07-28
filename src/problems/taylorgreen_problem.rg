@@ -15,9 +15,9 @@ problem.Re    = 100.
 problem.Pr    = 1.
 
 -- Grid dimensions
-problem.NX = 32 
-problem.NY = 32 
-problem.NZ = 32 
+problem.NX = 64 
+problem.NY = 64 
+problem.NZ = 64 
 
 -- Domain size
 problem.LX = 2.0*PI

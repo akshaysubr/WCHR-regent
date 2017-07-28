@@ -1,1 +1,1 @@
-problems/shock_vortex_problem.rg
+problems/taylorgreen_problem.rg
