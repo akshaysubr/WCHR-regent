@@ -19,6 +19,11 @@ problem.NX = 64
 problem.NY = 64 
 problem.NZ = 64 
 
+-- Periodicity
+problem.periodic_x = true
+problem.periodic_y = true
+problem.periodic_z = true
+
 -- Domain size
 problem.LX = 2.0*PI
 problem.LY = 2.0*PI

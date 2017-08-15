@@ -7,9 +7,6 @@ local PI    = cmath.M_PI
 require("fields")
 require("IO")
 require("interpolation")
-local superlu = require("superlu_util")
-
-local csuperlu_mapper = require("superlu_mapper")
 
 -- Grid dimensions
 local NX = 80
@@ -136,55 +133,31 @@ task main()
   var r_prim_l_z = region(grid_e_z, primitive)  -- Primitive variables at left z cell edge
   var r_prim_r_z = region(grid_e_z, primitive)  -- Primitive variables at right z cell edge
   
-  var r_rhs_l_x  = region(grid_e_x, primitive)  -- RHS for left biased interpolation x cell edge
-  var r_rhs_r_x  = region(grid_e_x, primitive)  -- RHS for right biased interpolation x cell edge
-
   var pgrid_x    = ispace(int2d, {x = 1, y = 1}) -- Processor grid in x
-
-  var slu_l_x    = region(pgrid_x, superlu.c.superlu_vars_t) -- Super LU data structure for x interpolation
-  var slu_r_x    = region(pgrid_x, superlu.c.superlu_vars_t) -- Super LU data structure for x interpolation
-
-  var matrix_l_x = region(pgrid_x, superlu.CSR_matrix) -- matrix data structure for x left interpolation
-  var matrix_r_x = region(pgrid_x, superlu.CSR_matrix) -- matrix data structure for x right interpolation
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
-  -- Initialize SuperLU stuff
-  -- matrix_l_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  -- matrix_r_x[{0,0}] = superlu.initialize_matrix_char_x(alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  -- 
-  -- superlu.initialize_superlu_vars( matrix_l_x[{0,0}], 5*(Nx+1)*Ny*Nz, r_rhs_l_x, r_prim_l_x, slu_x )
-
-  superlu.initialize_matrix_char_x(matrix_l_x, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-  superlu.initialize_matrix_char_x(matrix_r_x, alpha06CI, beta06CI, gamma06CI, Nx, Ny, Nz)
-
-  fill( r_rhs_l_x.{rho,u,v,w,p}, 0.0 )
-  superlu.init_superlu_vars( matrix_l_x, 5*(Nx+1)*Ny*Nz, r_rhs_l_x, r_prim_l_x, slu_l_x ) 
-
-  fill( r_rhs_r_x.{rho,u,v,w,p}, 0.0 )
-  superlu.init_superlu_vars( matrix_r_x, 5*(Nx+1)*Ny*Nz, r_rhs_r_x, r_prim_r_x, slu_r_x ) 
+  fill( r_prim_l_x.{rho,u,v,w,p}, 0.0 )
+  fill( r_prim_r_x.{rho,u,v,w,p}, 0.0 )
 
   var token = initialize(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z, dx, dy, dz)
   wait_for(token)
 
   var t_start = c.legion_get_current_time_in_micros()
-  token += WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_l_x, slu_r_x, Nx, Ny, Nz )
+  token += WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, Nx, Ny, Nz )
   wait_for(token)
   var t_WCHR = c.legion_get_current_time_in_micros() - t_start
   c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_WCHR)*1e-6)
 
-  superlu.destroy_superlu_vars( slu_l_x )
-  superlu.destroy_superlu_vars( slu_r_x )
-
-  -- var IOtoken = 0
-  -- IOtoken += write_coords(coords)
-  -- wait_for(IOtoken)
-  -- IOtoken += write_primitive(r_prim_c, "cell_primitive", 0)
-  -- wait_for(IOtoken)
-  -- IOtoken += write_primitive(r_prim_l_x, "edge_primitive_l_x", 0)
-  -- wait_for(IOtoken)
-  -- IOtoken += write_primitive(r_prim_r_x, "edge_primitive_r_x", 0)
-  -- wait_for(IOtoken)
+  var IOtoken = 0
+  IOtoken += write_coords(coords, "interpolation_x_", {0,0})
+  wait_for(IOtoken)
+  IOtoken += write_primitive(r_prim_c, "cell_primitive", 0, {0,0})
+  wait_for(IOtoken)
+  IOtoken += write_primitive(r_prim_l_x, "edge_primitive_l_x", 0, {0,0})
+  wait_for(IOtoken)
+  IOtoken += write_primitive(r_prim_r_x, "edge_primitive_r_x", 0, {0,0})
+  wait_for(IOtoken)
 end
 
-regentlib.start(main, csuperlu_mapper.register_mappers)
+regentlib.start(main)

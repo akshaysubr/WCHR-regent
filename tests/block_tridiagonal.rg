@@ -19,9 +19,9 @@ local cmath   = terralib.includec("math.h")
 local cstdlib = terralib.includec("stdlib.h")
 
 fspace coeffs {
+  _0 : double,
   _1 : double,
   _2 : double,
-  _3 : double,
 }
 
 fspace primitive {
@@ -139,7 +139,7 @@ do
 
       -- Forward substitution
       get_Rinv( rho_avg[{0,j,k}], sos_avg[{0,j,k}], d[{0,j,k}] )
-      multiply_diagonal_l( d[{0,j,k}], beta[{0,j,k}]._1, beta[{0,j,k}]._2, beta[{0,j,k}]._3 )
+      multiply_diagonal_l( d[{0,j,k}], beta[{0,j,k}]._0, beta[{0,j,k}]._1, beta[{0,j,k}]._2 )
       invert_matrix( d[{0,j,k}] )
 
       sol[{0,j,k}].rho = -sol[{0,j,k}].rho
@@ -152,13 +152,13 @@ do
 
         var mat : double[9]
         mult_matrix_matrix( Rinv_i, d[{i-1,j,k}], mat )
-        multiply_diagonal_l( mat, alpha[{i,j,k}]._1, alpha[{i,j,k}]._2, alpha[{i,j,k}]._3 )
+        multiply_diagonal_l( mat, alpha[{i,j,k}]._0, alpha[{i,j,k}]._1, alpha[{i,j,k}]._2 )
 
         var gammaRinv_im1 : double[9]
         get_Rinv( rho_avg[{i-1,j,k}], sos_avg[{i-1,j,k}], gammaRinv_im1 ) -- Get Rinv at i-1
-        multiply_diagonal_l( gammaRinv_im1, gamma[{i-1,j,k}]._1, gamma[{i-1,j,k}]._2, gamma[{i-1,j,k}]._3 )
+        multiply_diagonal_l( gammaRinv_im1, gamma[{i-1,j,k}]._0, gamma[{i-1,j,k}]._1, gamma[{i-1,j,k}]._2 )
 
-        multiply_diagonal_l( Rinv_i, beta[{i,j,k}]._1, beta[{i,j,k}]._2, beta[{i,j,k}]._3 )
+        multiply_diagonal_l( Rinv_i, beta[{i,j,k}]._0, beta[{i,j,k}]._1, beta[{i,j,k}]._2 )
 
         mult_matrix_matrix( mat, gammaRinv_im1, d[{i,j,k}] )
         axpby( d[{i,j,k}], Rinv_i, -1., 1., 9 ) -- Delta_i = beta_i - alpha_i Delta_i gamma_i-1
@@ -182,7 +182,7 @@ do
       for i = N-1,0,-1 do
         var gammaRinv_im1 : double[9]
         get_Rinv( rho_avg[{i-1,j,k}], sos_avg[{i-1,j,k}], gammaRinv_im1 ) -- Get Rinv at i-1
-        multiply_diagonal_l( gammaRinv_im1, gamma[{i-1,j,k}]._1, gamma[{i-1,j,k}]._2, gamma[{i-1,j,k}]._3 )
+        multiply_diagonal_l( gammaRinv_im1, gamma[{i-1,j,k}]._0, gamma[{i-1,j,k}]._1, gamma[{i-1,j,k}]._2 )
 
         prim = array( sol[{i,j,k}].rho, sol[{i,j,k}].u, sol[{i,j,k}].p )
         cprime = mult_matrix_vector( gammaRinv_im1, prim )    
@@ -240,9 +240,9 @@ task main()
   var beta  = region( ispace(int3d, {x = nx, y = ny, z = nz}), coeffs )
   var gamma = region( ispace(int3d, {x = nx, y = ny, z = nz}), coeffs )
 
-  fill(alpha.{_1,_2,_3}, 3./16.)
-  fill(beta.{_1,_2,_3}, 5./8.)
-  fill(gamma.{_1,_2,_3}, 3./16.)
+  fill(alpha.{_0,_1,_2}, 3./16.)
+  fill(beta.{_0,_1,_2}, 5./8.)
+  fill(gamma.{_0,_1,_2}, 3./16.)
 
   var sol = region( ispace(int3d, {x = nx, y = ny, z = nz}), primitive )
   for i in sol do
