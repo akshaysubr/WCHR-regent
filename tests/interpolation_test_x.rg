@@ -9,9 +9,9 @@ require("IO")
 require("interpolation")
 
 -- Grid dimensions
-local NX = 80
-local NY = 5
-local NZ = 5
+local NX = 64
+local NY = 64
+local NZ = 64
 
 -- Domain size
 -- local LX = 2.0*math.pi
