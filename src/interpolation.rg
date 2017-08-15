@@ -167,6 +167,10 @@ task get_coefficients_ECI( nlweights : double[4][5] )
   return coeffs
 end
 
+terra wait_for(x : int)
+  return x
+end
+
 __demand(__inline)
 task WCHR_interpolation_x( r_prim_c : region(ispace(int3d), primitive),
                            r_prim_l : region(ispace(int3d), primitive),
@@ -177,6 +181,9 @@ task WCHR_interpolation_x( r_prim_c : region(ispace(int3d), primitive),
 where
   reads(r_prim_c), reads writes(r_prim_l, r_prim_r)
 do
+
+  var t_start = c.legion_get_current_time_in_micros()
+  var token : int = 0
 
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
   var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
@@ -201,16 +208,22 @@ do
   var rho_avg = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double )
   var sos_avg = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double )
 
-  var block_d    = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), &double )
-  var block_Uinv = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), &double )
-  for i in block_d do
-    block_d[i] = allocate_double(9)
-  end
-  if problem.periodic_x then
-    for i in block_Uinv do
-      block_Uinv[i] = allocate_double(9)
-    end
-  end
+  var block_d    = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double[9] )
+  var block_Uinv = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double[9] )
+  -- var block_d    = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), &double )
+  -- var block_Uinv = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), &double )
+  -- for i in block_d do
+  --   block_d[i] = allocate_double(9)
+  --   token += 1
+  -- end
+  -- if problem.periodic_x then
+  --   for i in block_Uinv do
+  --     block_Uinv[i] = allocate_double(9)
+  --     token += 1
+  --   end
+  -- end
+  wait_for(token)
+  var t_alloc = c.legion_get_current_time_in_micros()
 
   for i in r_prim_c do
     var rhosos_avg : double[2] = get_rho_sos_avg_x( r_prim_c, i, Nx, Ny, Nz )
@@ -308,10 +321,14 @@ do
                     + coeffs_r[4][7] * char_values[4][4]
                     + coeffs_r[4][8] * char_values[4][5]
 
-    end
+  end
+  var t_weights = c.legion_get_current_time_in_micros()
 
-  solve_block_tridiagonal_x( alpha_l, beta_l, gamma_l, rho_avg, sos_avg, r_prim_l, block_d, block_Uinv )
-  solve_block_tridiagonal_x( alpha_r, beta_r, gamma_r, rho_avg, sos_avg, r_prim_r, block_d, block_Uinv )
+  token += solve_block_tridiagonal_x( alpha_l, beta_l, gamma_l, rho_avg, sos_avg, r_prim_l, block_d, block_Uinv )
+  token += solve_block_tridiagonal_x( alpha_r, beta_r, gamma_r, rho_avg, sos_avg, r_prim_r, block_d, block_Uinv )
+  wait_for(token)
+
+  var t_block = c.legion_get_current_time_in_micros()
 
   __delete(alpha_l)
   __delete(beta_l)
@@ -324,17 +341,23 @@ do
   __delete(rho_avg)
   __delete(sos_avg)
 
-  for i in block_d do
-    deallocate_double(block_d[i])
-  end
+  -- for i in block_d do
+  --   deallocate_double(block_d[i])
+  -- end
   __delete(block_d)
-  if problem.periodic_x then
-    for i in block_Uinv do
-      deallocate_double(block_Uinv[i])
-    end
-  end
+  -- if problem.periodic_x then
+  --   for i in block_Uinv do
+  --     deallocate_double(block_Uinv[i])
+  --   end
+  -- end
   __delete(block_Uinv)
 
+  var t_end = c.legion_get_current_time_in_micros()
+  c.printf("Time to allocate regions: %12.5e\n", (t_alloc-t_start)*1e-6)
+  c.printf("Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
+  c.printf("Time for block tridiagonal solves: %12.5e\n", (t_block-t_weights)*1e-6)
+  c.printf("Time to deallocate regions: %12.5e\n", (t_end-t_block)*1e-6)
+  c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
  return 1
 end
 

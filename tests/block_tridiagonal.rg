@@ -38,6 +38,16 @@ terra get_Rinv( rho : double, sos : double, Rinv : &double )
   Rinv[2 + 3*0] = 0.; Rinv[2 + 3*1] =  0.5*rho*sos; Rinv[2 + 3*2] = 0.5;
 end
 
+__demand(__inline)
+task get_Rinv_r( rho : double, sos : double, r : region(ispace(int3d), double[9]), i : int3d(double[9], r) )
+where
+  reads writes (r)
+do
+  (r[i])[0 + 3*0] = 0.; (r[i])[0 + 3*1] = -0.5*rho*sos; (r[i])[0 + 3*2] = 0.5;
+  (r[i])[1 + 3*0] = 1.; (r[i])[1 + 3*1] = 0.;           (r[i])[1 + 3*2] = -1./(sos*sos);
+  (r[i])[2 + 3*0] = 0.; (r[i])[2 + 3*1] =  0.5*rho*sos; (r[i])[2 + 3*2] = 0.5;
+end
+
 local terra multiply_diagonal_l( matrix : &double, d0 : double, d1 : double, d2 : double )
   matrix[0 + 3*0] = d0*matrix[0 + 3*0]; matrix[0 + 3*1] = d0*matrix[0 + 3*1]; matrix[0 + 3*2] = d0*matrix[0 + 3*2];
   matrix[1 + 3*0] = d1*matrix[1 + 3*0]; matrix[1 + 3*1] = d1*matrix[1 + 3*1]; matrix[1 + 3*2] = d1*matrix[1 + 3*2];
@@ -90,6 +100,37 @@ local terra invert_matrix( matrix : &double )
 
   lapack.dgetri_(N,matrix,N,ipiv,work,lwork,info);
   regentlib.assert(info[0] == 0, "DGETRI did not work as expected. Check for errors.")
+end
+
+
+local __demand(__inline) task invert_matrix_r( r : region(ispace(int3d), double[9]), i : int3d(double[9], r) )
+where
+  reads writes(r)
+do
+
+  var inv_det = (r[i])[0 + 3*0]*((r[i])[1 + 3*1]*(r[i])[2 + 3*2]-(r[i])[1 + 3*2]*(r[i])[2 + 3*1]) 
+              - (r[i])[0 + 3*1]*((r[i])[1 + 3*0]*(r[i])[2 + 3*2]-(r[i])[2 + 3*0]*(r[i])[1 + 3*2]) 
+              + (r[i])[0 + 3*2]*((r[i])[1 + 3*0]*(r[i])[2 + 3*1]-(r[i])[2 + 3*0]*(r[i])[1 + 3*1])
+  inv_det = 1. / inv_det
+
+  var inv : double[9]
+
+  inv[0 + 3*0] = ((r[i])[1 + 3*1]*(r[i])[2 + 3*2]-(r[i])[1 + 3*2]*(r[i])[2 + 3*1])
+  inv[1 + 3*0] = ((r[i])[1 + 3*2]*(r[i])[2 + 3*0]-(r[i])[1 + 3*0]*(r[i])[2 + 3*2])
+  inv[2 + 3*0] = ((r[i])[1 + 3*0]*(r[i])[2 + 3*1]-(r[i])[1 + 3*1]*(r[i])[2 + 3*0])
+
+  inv[0 + 3*1] = ((r[i])[0 + 3*2]*(r[i])[2 + 3*1]-(r[i])[0 + 3*1]*(r[i])[2 + 3*2])
+  inv[1 + 3*1] = ((r[i])[0 + 3*0]*(r[i])[2 + 3*2]-(r[i])[0 + 3*2]*(r[i])[2 + 3*0])
+  inv[2 + 3*1] = ((r[i])[0 + 3*1]*(r[i])[2 + 3*0]-(r[i])[0 + 3*0]*(r[i])[2 + 3*1])
+
+  inv[0 + 3*2] = ((r[i])[0 + 3*1]*(r[i])[1 + 3*2]-(r[i])[0 + 3*2]*(r[i])[1 + 3*1])
+  inv[1 + 3*2] = ((r[i])[0 + 3*2]*(r[i])[1 + 3*0]-(r[i])[0 + 3*0]*(r[i])[1 + 3*2])
+  inv[2 + 3*2] = ((r[i])[0 + 3*0]*(r[i])[1 + 3*1]-(r[i])[0 + 3*1]*(r[i])[1 + 3*0])
+
+  for ii = 0,9 do
+    (r[i])[ii] = inv[ii] * inv_det
+  end
+
 end
 
 local terra print_vector( vector : &double )
@@ -233,8 +274,8 @@ end
 task main()
 
   var nx : int = 8
-  var ny : int = 8
-  var nz : int = 8
+  var ny : int = 1
+  var nz : int = 1
 
   var alpha = region( ispace(int3d, {x = nx, y = ny, z = nz}), coeffs )
   var beta  = region( ispace(int3d, {x = nx, y = ny, z = nz}), coeffs )
@@ -271,13 +312,22 @@ task main()
   end
   c.printf("\b\b])\n\n")
 
-  var d = region( ispace(int3d, {x = nx, y = ny, z = nz}), &double )
+  var d = region( ispace(int3d, {x = nx, y = ny, z = nz}), double[9] )
+
   for i in d do
-    d[i] = allocate_double(9)
+    var Rinv : double[9]
+    get_Rinv( rho_avg[i], sos_avg[i], Rinv )
+    print_matrix( Rinv )
+    get_Rinv_r( rho_avg[i], sos_avg[i], d, i )
+    print_matrix( d[i] )
+    invert_matrix( Rinv )
+    print_matrix( Rinv )
+    invert_matrix_r( d, i )
+    print_matrix( d[i] )
   end
 
-  solve_block_tridiagonal( alpha, beta, gamma, rho_avg, sos_avg, sol, d )
-  print_sol( sol )
+  -- solve_block_tridiagonal( alpha, beta, gamma, rho_avg, sos_avg, sol, d )
+  -- print_sol( sol )
 end
 
 regentlib.start(main)

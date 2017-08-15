@@ -143,11 +143,11 @@ task main()
   var token = initialize(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z, dx, dy, dz)
   wait_for(token)
 
-  var t_start = c.legion_get_current_time_in_micros()
+  -- var t_start = c.legion_get_current_time_in_micros()
   token += WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, Nx, Ny, Nz )
-  wait_for(token)
-  var t_WCHR = c.legion_get_current_time_in_micros() - t_start
-  c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_WCHR)*1e-6)
+  -- wait_for(token)
+  -- var t_WCHR = c.legion_get_current_time_in_micros() - t_start
+  -- c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_WCHR)*1e-6)
 
   var IOtoken = 0
   IOtoken += write_coords(coords, "interpolation_x_", {0,0})
