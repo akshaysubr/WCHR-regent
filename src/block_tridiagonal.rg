@@ -226,7 +226,7 @@ local terra random_number()
   return ( [double](cstdlib.rand()) / [double](cstdlib.RAND_MAX + 1.) )
 end
 
-__demand(__inline)
+-- __demand(__inline)
 task solve_block_tridiagonal_x( alpha   : region( ispace(int3d), coeffs ),
                                 beta    : region( ispace(int3d), coeffs ),
                                 gamma   : region( ispace(int3d), coeffs ),
