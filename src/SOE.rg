@@ -56,13 +56,14 @@ end
 get_Rinv:setinlined(true)
 
 __demand(__inline)
-task get_Rinv_r( rho : double, sos : double, r : region(ispace(int3d), double[9]), i : int3d(double[9], r) )
+--task get_Rinv_r( rho : double, sos : double, r : region(ispace(int3d), double[9]), i : int3d(double[9], r) )
+task get_Rinv_r( rho : double, sos : double, r : region(ispace(int3d), double[9]), i : int3d )
 where
   reads writes (r)
 do
-  (@i)[0 + 3*0] = 0.; (@i)[0 + 3*1] = -0.5*rho*sos; (@i)[0 + 3*2] = 0.5;
-  (@i)[1 + 3*0] = 1.; (@i)[1 + 3*1] = 0.;           (@i)[1 + 3*2] = -1./(sos*sos);
-  (@i)[2 + 3*0] = 0.; (@i)[2 + 3*1] =  0.5*rho*sos; (@i)[2 + 3*2] = 0.5;
+  r[i][0 + 3*0] = 0.; r[i][0 + 3*1] = -0.5*rho*sos; r[i][0 + 3*2] = 0.5;
+  r[i][1 + 3*0] = 1.; r[i][1 + 3*1] = 0.;           r[i][1 + 3*2] = -1./(sos*sos);
+  r[i][2 + 3*0] = 0.; r[i][2 + 3*1] =  0.5*rho*sos; r[i][2 + 3*2] = 0.5;
 end
 
 __demand(__inline)

@@ -48,13 +48,14 @@ end
 multiply_diagonal_l:setinlined(true)
 
 
-local __demand(__inline) task multiply_diagonal_l_r( r : region(ispace(int3d), double[9]), i : int3d(double[9], r), d0 : double, d1 : double, d2 : double )
+--local __demand(__inline) task multiply_diagonal_l_r( r : region(ispace(int3d), double[9]), i : int3d(double[9], r), d0 : double, d1 : double, d2 : double )
+local __demand(__inline) task multiply_diagonal_l_r( r : region(ispace(int3d), double[9]), i : int3d, d0 : double, d1 : double, d2 : double )
 where
   reads writes (r)
 do
-  (@i)[0 + 3*0] = d0*((@i)[0 + 3*0]); (@i)[0 + 3*1] = d0*((@i)[0 + 3*1]); (@i)[0 + 3*2] = d0*((@i)[0 + 3*2]);
-  (@i)[1 + 3*0] = d1*((@i)[1 + 3*0]); (@i)[1 + 3*1] = d1*((@i)[1 + 3*1]); (@i)[1 + 3*2] = d1*((@i)[1 + 3*2]);
-  (@i)[2 + 3*0] = d2*((@i)[2 + 3*0]); (@i)[2 + 3*1] = d2*((@i)[2 + 3*1]); (@i)[2 + 3*2] = d2*((@i)[2 + 3*2]);
+  r[i][0 + 3*0] = d0*(r[i][0 + 3*0]); r[i][0 + 3*1] = d0*(r[i][0 + 3*1]); r[i][0 + 3*2] = d0*(r[i][0 + 3*2]);
+  r[i][1 + 3*0] = d1*(r[i][1 + 3*0]); r[i][1 + 3*1] = d1*(r[i][1 + 3*1]); r[i][1 + 3*2] = d1*(r[i][1 + 3*2]);
+  r[i][2 + 3*0] = d2*(r[i][2 + 3*0]); r[i][2 + 3*1] = d2*(r[i][2 + 3*1]); r[i][2 + 3*2] = d2*(r[i][2 + 3*2]);
 end
 
 local terra multiply_diagonal_r( matrix : &double, d0 : double, d1 : double, d2 : double )
@@ -92,7 +93,7 @@ end
 mult_matrix_matrix:setinlined(true)
 
 
-local __demand(__inline) task mult_matrix_matrix_r( matrix1 : &double, matrix2 : &double, r : region(ispace(int3d), double[9]), ii : int3d(double[9], r) )
+local __demand(__inline) task mult_matrix_matrix_r( matrix1 : &double, matrix2 : &double, r : region(ispace(int3d), double[9]), ii : int3d )
 where
   reads writes (r)
 do
@@ -168,32 +169,33 @@ end
 invert_matrix:setinlined(true)
 
 
-local __demand(__inline) task invert_matrix_r( r : region(ispace(int3d), double[9]), i : int3d(double[9], r) )
+--local __demand(__inline) task invert_matrix_r( r : region(ispace(int3d), double[9]), i : int3d(double[9], r) )
+local __demand(__inline) task invert_matrix_r( r : region(ispace(int3d), double[9]), i : int3d )
 where
   reads writes(r)
 do
 
-  var inv_det = ((@i)[0 + 3*0]) * ( ((@i)[1 + 3*1]) * ((@i)[2 + 3*2]) - ((@i)[1 + 3*2]) * ((@i)[2 + 3*1]) ) 
-              - ((@i)[0 + 3*1]) * ( ((@i)[1 + 3*0]) * ((@i)[2 + 3*2]) - ((@i)[2 + 3*0]) * ((@i)[1 + 3*2]) ) 
-              + ((@i)[0 + 3*2]) * ( ((@i)[1 + 3*0]) * ((@i)[2 + 3*1]) - ((@i)[2 + 3*0]) * ((@i)[1 + 3*1]) )
+  var inv_det = (r[i][0 + 3*0]) * ( (r[i][1 + 3*1]) * (r[i][2 + 3*2]) - (r[i][1 + 3*2]) * (r[i][2 + 3*1]) ) 
+              - (r[i][0 + 3*1]) * ( (r[i][1 + 3*0]) * (r[i][2 + 3*2]) - (r[i][2 + 3*0]) * (r[i][1 + 3*2]) ) 
+              + (r[i][0 + 3*2]) * ( (r[i][1 + 3*0]) * (r[i][2 + 3*1]) - (r[i][2 + 3*0]) * (r[i][1 + 3*1]) )
   inv_det = 1. / inv_det
 
   var inv : double[9]
 
-  inv[0 + 3*0] = ((@i)[1 + 3*1]*(@i)[2 + 3*2]-(@i)[1 + 3*2]*(@i)[2 + 3*1])
-  inv[1 + 3*0] = ((@i)[1 + 3*2]*(@i)[2 + 3*0]-(@i)[1 + 3*0]*(@i)[2 + 3*2])
-  inv[2 + 3*0] = ((@i)[1 + 3*0]*(@i)[2 + 3*1]-(@i)[1 + 3*1]*(@i)[2 + 3*0])
+  inv[0 + 3*0] = (r[i][1 + 3*1]*r[i][2 + 3*2]-r[i][1 + 3*2]*r[i][2 + 3*1])
+  inv[1 + 3*0] = (r[i][1 + 3*2]*r[i][2 + 3*0]-r[i][1 + 3*0]*r[i][2 + 3*2])
+  inv[2 + 3*0] = (r[i][1 + 3*0]*r[i][2 + 3*1]-r[i][1 + 3*1]*r[i][2 + 3*0])
 
-  inv[0 + 3*1] = ((@i)[0 + 3*2]*(@i)[2 + 3*1]-(@i)[0 + 3*1]*(@i)[2 + 3*2])
-  inv[1 + 3*1] = ((@i)[0 + 3*0]*(@i)[2 + 3*2]-(@i)[0 + 3*2]*(@i)[2 + 3*0])
-  inv[2 + 3*1] = ((@i)[0 + 3*1]*(@i)[2 + 3*0]-(@i)[0 + 3*0]*(@i)[2 + 3*1])
+  inv[0 + 3*1] = (r[i][0 + 3*2]*r[i][2 + 3*1]-r[i][0 + 3*1]*r[i][2 + 3*2])
+  inv[1 + 3*1] = (r[i][0 + 3*0]*r[i][2 + 3*2]-r[i][0 + 3*2]*r[i][2 + 3*0])
+  inv[2 + 3*1] = (r[i][0 + 3*1]*r[i][2 + 3*0]-r[i][0 + 3*0]*r[i][2 + 3*1])
 
-  inv[0 + 3*2] = ((@i)[0 + 3*1]*(@i)[1 + 3*2]-(@i)[0 + 3*2]*(@i)[1 + 3*1])
-  inv[1 + 3*2] = ((@i)[0 + 3*2]*(@i)[1 + 3*0]-(@i)[0 + 3*0]*(@i)[1 + 3*2])
-  inv[2 + 3*2] = ((@i)[0 + 3*0]*(@i)[1 + 3*1]-(@i)[0 + 3*1]*(@i)[1 + 3*0])
+  inv[0 + 3*2] = (r[i][0 + 3*1]*r[i][1 + 3*2]-r[i][0 + 3*2]*r[i][1 + 3*1])
+  inv[1 + 3*2] = (r[i][0 + 3*2]*r[i][1 + 3*0]-r[i][0 + 3*0]*r[i][1 + 3*2])
+  inv[2 + 3*2] = (r[i][0 + 3*0]*r[i][1 + 3*1]-r[i][0 + 3*1]*r[i][1 + 3*0])
 
   for ii = 0,9 do
-    (@i)[ii] = inv[ii] * inv_det
+    r[i][ii] = inv[ii] * inv_det
   end
 
 end
@@ -205,12 +207,13 @@ local terra axpby( x : &double, y : &double, a : double, b : double, N : int )
 end
 axpby:setinlined(true)
 
-local __demand(__inline) task axpby_r( r : region(ispace(int3d), double[9]), ii : int3d(double[9], r), y : &double, a : double, b : double, N : int )
+--local __demand(__inline) task axpby_r( r : region(ispace(int3d), double[9]), ii : int3d(double[9], r), y : &double, a : double, b : double, N : int )
+local __demand(__inline) task axpby_r( r : region(ispace(int3d), double[9]), ii : int3d, y : &double, a : double, b : double, N : int )
 where
   reads writes (r)
 do
   for i = 0,N do
-    (@ii)[i] = a*(@ii)[i] + b*y[i]
+    r[ii][i] = a*r[ii][i] + b*y[i]
   end
 end
 
@@ -263,17 +266,22 @@ do
       end
 
       -- Forward elimination
-      get_Rinv_r( rho_avg[{0,j,k}], sos_avg[{0,j,k}], d, unsafe_cast(int3d(double[9], d), int3d {0,j,k}) )
-      multiply_diagonal_l_r( d, unsafe_cast(int3d(double[9], d), int3d {0,j,k}), beta[{0,j,k}]._0, beta[{0,j,k}]._1, beta[{0,j,k}]._4 )
-      invert_matrix_r( d, unsafe_cast(int3d(double[9], d), int3d {0,j,k}) )
+      --get_Rinv_r( rho_avg[{0,j,k}], sos_avg[{0,j,k}], d, unsafe_cast(int3d(double[9], d), int3d {0,j,k}) )
+      get_Rinv_r( rho_avg[{0,j,k}], sos_avg[{0,j,k}], d, int3d {0,j,k} )
+      --multiply_diagonal_l_r( d, unsafe_cast(int3d(double[9], d), int3d {0,j,k}), beta[{0,j,k}]._0, beta[{0,j,k}]._1, beta[{0,j,k}]._4 )
+      multiply_diagonal_l_r( d, int3d {0,j,k}, beta[{0,j,k}]._0, beta[{0,j,k}]._1, beta[{0,j,k}]._4 )
+      --invert_matrix_r( d, unsafe_cast(int3d(double[9], d), int3d {0,j,k}) )
+      invert_matrix_r( d, int3d {0,j,k} )
 
       sol[{0,j,k}].rho = -sol[{0,j,k}].rho
       sol[{0,j,k}].u   = -sol[{0,j,k}].u
       sol[{0,j,k}].p   = -sol[{0,j,k}].p
 
       if periodic_x then
-        get_Rinv_r( rho_avg[{0,j,k}], sos_avg[{0,j,k}], Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {0,j,k}) )
-        multiply_diagonal_l_r( Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {0,j,k}), alpha[{0,j,k}]._0, alpha[{0,j,k}]._1, alpha[{0,j,k}]._4 )
+        --get_Rinv_r( rho_avg[{0,j,k}], sos_avg[{0,j,k}], Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {0,j,k}) )
+        get_Rinv_r( rho_avg[{0,j,k}], sos_avg[{0,j,k}], Uinv, int3d {0,j,k} )
+        --multiply_diagonal_l_r( Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {0,j,k}), alpha[{0,j,k}]._0, alpha[{0,j,k}]._1, alpha[{0,j,k}]._4 )
+        multiply_diagonal_l_r( Uinv, int3d {0,j,k}, alpha[{0,j,k}]._0, alpha[{0,j,k}]._1, alpha[{0,j,k}]._4 )
       end
 
       for i = 1,N do
@@ -290,9 +298,12 @@ do
 
         multiply_diagonal_l( Rinv_i, beta[{i,j,k}]._0, beta[{i,j,k}]._1, beta[{i,j,k}]._4 )
 
-        mult_matrix_matrix_r( mat, gammaRinv_im1, d, unsafe_cast(int3d(double[9], d), int3d {i,j,k}) )
-        axpby_r( d, unsafe_cast(int3d(double[9], d), int3d {i,j,k}), Rinv_i, -1., 1., 9 ) -- Delta_i = beta_i - alpha_i Delta_i gamma_i-1
-        invert_matrix_r( d, unsafe_cast(int3d(double[9], d), int3d {i,j,k}) )
+        --mult_matrix_matrix_r( mat, gammaRinv_im1, d, unsafe_cast(int3d(double[9], d), int3d {i,j,k}) )
+        mult_matrix_matrix_r( mat, gammaRinv_im1, d, int3d {i,j,k} )
+        --axpby_r( d, unsafe_cast(int3d(double[9], d), int3d {i,j,k}), Rinv_i, -1., 1., 9 ) -- Delta_i = beta_i - alpha_i Delta_i gamma_i-1
+        axpby_r( d, int3d {i,j,k}, Rinv_i, -1., 1., 9 ) -- Delta_i = beta_i - alpha_i Delta_i gamma_i-1
+        --invert_matrix_r( d, unsafe_cast(int3d(double[9], d), int3d {i,j,k}) )
+        invert_matrix_r( d, int3d {i,j,k} )
 
         var prim : double[3] = array( sol[{i-1,j,k}].rho, sol[{i-1,j,k}].u, sol[{i-1,j,k}].p )
         var cprime = mult_matrix_vector( mat, prim )
@@ -301,8 +312,10 @@ do
         sol[{i,j,k}].p   = -sol[{i,j,k}].p   - cprime[2]
 
         if periodic_x then
-          mult_matrix_matrix_r( mat, Uinv[{i-1,j,k}], Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,j,k}) )
-          multiply_diagonal_l_r( Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,j,k}), -1., -1., -1. )
+          --mult_matrix_matrix_r( mat, Uinv[{i-1,j,k}], Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,j,k}) )
+          mult_matrix_matrix_r( mat, Uinv[{i-1,j,k}], Uinv, int3d {i,j,k} )
+          --multiply_diagonal_l_r( Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,j,k}), -1., -1., -1. )
+          multiply_diagonal_l_r( Uinv, int3d {i,j,k}, -1., -1., -1. )
         end
       end
 
@@ -310,7 +323,8 @@ do
         var Rinv : double[9]
         get_Rinv( rho_avg[{N-1,j,k}], sos_avg[{N-1,j,k}], Rinv ) -- Get Rinv
         multiply_diagonal_l( Rinv, gamma[{N-1,j,k}]._0, gamma[{N-1,j,k}]._1, gamma[{N-1,j,k}]._4 )
-        axpby_r( Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {N-1,j,k}), Rinv, 1., -1., 9 )
+        --axpby_r( Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {N-1,j,k}), Rinv, 1., -1., 9 )
+        axpby_r( Uinv, int3d {N-1,j,k}, Rinv, 1., -1., 9 )
       end
 
       -- Back substitution
@@ -348,7 +362,8 @@ do
           var tmp : double[9]
           mult_matrix_matrix( gammaRinv_im1, Uinv[{i,j,k}], tmp )
           axpby( tmp, Uinv[{i-1,j,k}], -1., -1., 9 )
-          mult_matrix_matrix_r( d[{i-1,j,k}], tmp, Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i-1,j,k}) )
+          --mult_matrix_matrix_r( d[{i-1,j,k}], tmp, Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i-1,j,k}) )
+          mult_matrix_matrix_r( d[{i-1,j,k}], tmp, Uinv, int3d {i-1,j,k} )
         end -- periodic
       end
 
