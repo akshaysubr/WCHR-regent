@@ -171,7 +171,7 @@ terra wait_for(x : int)
   return x
 end
 
--- __demand(__inline)
+__demand(__inline)
 task WCHR_interpolation_x( r_prim_c : region(ispace(int3d), primitive),
                            r_prim_l : region(ispace(int3d), primitive),
                            r_prim_r : region(ispace(int3d), primitive),
@@ -210,18 +210,7 @@ do
 
   var block_d    = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double[9] )
   var block_Uinv = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double[9] )
-  -- var block_d    = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), &double )
-  -- var block_Uinv = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), &double )
-  -- for i in block_d do
-  --   block_d[i] = allocate_double(9)
-  --   token += 1
-  -- end
-  -- if problem.periodic_x then
-  --   for i in block_Uinv do
-  --     block_Uinv[i] = allocate_double(9)
-  --     token += 1
-  --   end
-  -- end
+
   wait_for(token)
   var t_alloc = c.legion_get_current_time_in_micros()
 
@@ -324,33 +313,24 @@ do
   end
   var t_weights = c.legion_get_current_time_in_micros()
 
-  token += solve_block_tridiagonal_x( alpha_l, beta_l, gamma_l, rho_avg, sos_avg, r_prim_l, block_d, block_Uinv )
-  token += solve_block_tridiagonal_x( alpha_r, beta_r, gamma_r, rho_avg, sos_avg, r_prim_r, block_d, block_Uinv )
-  wait_for(token)
+  solve_block_tridiagonal_x( alpha_l, beta_l, gamma_l, rho_avg, sos_avg, r_prim_l, block_d, block_Uinv )
+  solve_block_tridiagonal_x( alpha_r, beta_r, gamma_r, rho_avg, sos_avg, r_prim_r, block_d, block_Uinv )
 
   var t_block = c.legion_get_current_time_in_micros()
 
-  -- __delete(alpha_l)
-  -- __delete(beta_l)
-  -- __delete(gamma_l)
+  __delete(alpha_l)
+  __delete(beta_l)
+  __delete(gamma_l)
 
-  -- __delete(alpha_r)
-  -- __delete(beta_r)
-  -- __delete(gamma_r)
+  __delete(alpha_r)
+  __delete(beta_r)
+  __delete(gamma_r)
 
-  -- __delete(rho_avg)
-  -- __delete(sos_avg)
+  __delete(rho_avg)
+  __delete(sos_avg)
 
-  -- for i in block_d do
-  --   deallocate_double(block_d[i])
-  -- end
-  -- __delete(block_d)
-  -- if problem.periodic_x then
-  --   for i in block_Uinv do
-  --     deallocate_double(block_Uinv[i])
-  --   end
-  -- end
-  -- __delete(block_Uinv)
+  __delete(block_d)
+  __delete(block_Uinv)
 
   var t_end = c.legion_get_current_time_in_micros()
   c.printf("Time to allocate regions: %12.5e\n", (t_alloc-t_start)*1e-6)

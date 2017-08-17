@@ -1,21 +1,6 @@
 import "regent"
 
-local lapack = terralib.includecstring [[
-extern void dgetrf_(int* M, int *N, double* A, int* lda, int* IPIV, int* INFO);
-
-extern void dgetri_(int* N, double* A, int* lda, int* IPIV, double* WORK, int* lwork, int* INFO);
-]]
-
-if os.execute("bash -c \"[ `uname` == 'Darwin' ]\"") == 0 then
-  terralib.linklibrary("libblas.dylib")
-  terralib.linklibrary("liblapack.dylib")
-else
-  terralib.linklibrary("libblas.so")
-  terralib.linklibrary("liblapack.so")
-end
-
 local c       = regentlib.c
-local cmath   = terralib.includec("math.h")
 local cstdlib = terralib.includec("stdlib.h")
 
 require("fields")
@@ -226,7 +211,7 @@ local terra random_number()
   return ( [double](cstdlib.rand()) / [double](cstdlib.RAND_MAX + 1.) )
 end
 
--- __demand(__inline)
+__demand(__inline)
 task solve_block_tridiagonal_x( alpha   : region( ispace(int3d), coeffs ),
                                 beta    : region( ispace(int3d), coeffs ),
                                 gamma   : region( ispace(int3d), coeffs ),
@@ -240,7 +225,6 @@ task solve_block_tridiagonal_x( alpha   : region( ispace(int3d), coeffs ),
 where
   reads(alpha, beta, gamma, rho_avg, sos_avg, sol, d, Uinv), writes(sol, d, Uinv, beta)
 do
-  var t_start = c.legion_get_current_time_in_micros()
 
   var bounds = sol.ispace.bounds
   var N : int = bounds.hi.x + 1
@@ -377,73 +361,4 @@ do
     end
   end
 
-  var t_end = c.legion_get_current_time_in_micros()
-  c.printf("Time for solve_block_tridiagonal_x: %12.5e\n", (t_end-t_start)*1e-6)
-
-  return 1
 end
-
-terra allocate_double( size : int64 )
-  return [&double] ( c.malloc( size * sizeof(double) ) )
-end
-
-terra deallocate_double( pointer : &double )
-  c.free(pointer)
-end
--- 
--- task main()
--- 
---   var nx : int = 8
---   var ny : int = 8
---   var nz : int = 8
--- 
---   var alpha = region( ispace(int3d, {x = nx, y = ny, z = nz}), coeffs )
---   var beta  = region( ispace(int3d, {x = nx, y = ny, z = nz}), coeffs )
---   var gamma = region( ispace(int3d, {x = nx, y = ny, z = nz}), coeffs )
--- 
---   fill(alpha.{_0,_1,_4}, 3./16.)
---   fill(beta.{_0,_1,_4}, 5./8.)
---   fill(gamma.{_0,_1,_4}, 3./16.)
--- 
---   var sol = region( ispace(int3d, {x = nx, y = ny, z = nz}), primitive )
---   for i in sol do
---     sol[i].rho = random_number()
---     sol[i].u   = random_number()
---     sol[i].p   = random_number()
---   end
---   print_sol( sol )
--- 
---   var rho_avg = region( ispace(int3d, {x = nx, y = ny, z = nz}), double )
---   var sos_avg = region( ispace(int3d, {x = nx, y = ny, z = nz}), double )
---   for i in rho_avg do
---     rho_avg[i] = 0.5 + 0.5*random_number()
---     sos_avg[i] = 0.5 + 0.5*random_number()
---   end
--- 
---   c.printf("rho_avg = numpy.array([ ")
---   for i = 0,nx do
---     c.printf(" %20.16e, ", rho_avg[{i,3,6}])
---   end
---   c.printf("\b\b])\n\n")
--- 
---   c.printf("sos_avg = numpy.array([ ")
---   for i = 0,nx do
---     c.printf(" %20.16e, ", sos_avg[{i,3,6}])
---   end
---   c.printf("\b\b])\n\n")
--- 
---   var d = region( ispace(int3d, {x = nx, y = ny, z = nz}), &double )
---   for i in d do
---     d[i] = allocate_double(9)
---   end
--- 
---   var Uinv = region( ispace(int3d, {x = nx, y = ny, z = nz}), &double )
---   for i in Uinv do
---     Uinv[i] = allocate_double(9)
---   end
--- 
---   solve_block_tridiagonal( alpha, beta, gamma, rho_avg, sos_avg, sol, d, Uinv )
---   print_sol( sol )
--- end
--- 
--- regentlib.start(main)
