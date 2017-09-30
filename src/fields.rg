@@ -17,6 +17,14 @@ fspace primitive {
   p   : double,
 }
 
+fspace coeffs {
+  _0 : double,
+  _1 : double,
+  _2 : double,
+  _3 : double,
+  _4 : double,
+}
+
 fspace auxiliary {
   T   : double,
 }

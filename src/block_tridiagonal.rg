@@ -7,14 +7,6 @@ require("fields")
 require("SOE")
 local problem = require("problem")
 
-fspace coeffs {
-  _0 : double,
-  _1 : double,
-  _2 : double,
-  _3 : double,
-  _4 : double,
-}
-
 local periodic_x = problem.periodic_x
 
 -- All matrices here are in Fortran order
@@ -223,7 +215,8 @@ task solve_block_tridiagonal_x( alpha   : region( ispace(int3d), coeffs ),
                                 -- d       : region( ispace(int3d), &double ),
                                 -- Uinv    : region( ispace(int3d), &double ) )
 where
-  reads(alpha, beta, gamma, rho_avg, sos_avg, sol, d, Uinv), writes(sol, d, Uinv, beta)
+  reads(alpha.{_0,_1,_4}, beta.{_0,_1,_4}, gamma.{_0,_1,_4}, rho_avg, sos_avg, sol.{rho,u,p}, d, Uinv),
+  writes(sol.{rho,u,p}, d, Uinv, beta.{_0,_1,_4})
 do
 
   var bounds = sol.ispace.bounds
@@ -362,3 +355,83 @@ do
   end
 
 end
+
+
+function make_solve_tridiagonal_x( fi, fn )
+  -- fi: field index in coeff region (_1, _2, _3 ...)
+  -- fn: field name in primitive region (u, v, w ...)
+
+  local solve_tridiagonal_x __demand(__inline) task solve_tridiagonal_x( alpha   : region( ispace(int3d), coeffs ),
+                                                                         beta    : region( ispace(int3d), coeffs ),
+                                                                         gamma   : region( ispace(int3d), coeffs ),
+                                                                         sol     : region( ispace(int3d), primitive ),
+                                                                         Uinv    : region( ispace(int3d), double) )
+  where
+    reads (alpha.[fi], gamma.[fi]), reads writes ( beta.[fi], sol.[fn], Uinv )
+  do
+  
+    var bounds = sol.ispace.bounds
+    var N : int = bounds.hi.x + 1
+    if periodic_x then
+      N = bounds.hi.x -- Don't solve for last edge if periodic
+    end
+  
+    for k = bounds.lo.z, bounds.hi.z+1 do
+      for j = bounds.lo.y, bounds.hi.y+1 do
+  
+        var beta0 : double = beta[{0,j,k}].[fi]
+        if periodic_x then
+          -- Sherman-Morrison reduced matrix
+          Uinv[{0,j,k}] = -beta[{0,j,k}].[fi]
+          beta[{N-1,j,k}].[fi] = beta[{N-1,j,k}].[fi] + gamma[{N-1,j,k}].[fi] * alpha[{0,j,k}].[fi] / beta[{0,j,k}].[fi]
+          beta[{0,j,k}].[fi] = 2.*beta[{0,j,k}].[fi]
+        end
+
+        -- Forward substitution
+        beta[{0,j,k}].[fi] = 1./beta[{0,j,k}].[fi]
+        sol[{0,j,k}].[fn] = beta[{0,j,k}].[fi] * sol[{0,j,k}].[fn]
+        if periodic_x then
+          Uinv[{0,j,k}] =  beta[{0,j,k}].[fi] * Uinv[{0,j,k}]
+        end
+
+        for i = 1,N do
+          beta[{i,j,k}].[fi] = 1./( beta[{i,j,k}].[fi] - alpha[{i,j,k}].[fi] * beta[{i-1,j,k}].[fi] * gamma[{i-1,j,k}].[fi] )
+          sol[{i,j,k}].[fn] = beta[{i,j,k}].[fi] * (sol[{i,j,k}].[fn] - alpha[{i,j,k}].[fi] * sol[{i-1,j,k}].[fn])
+          if periodic_x then
+            Uinv[{i,j,k}] = beta[{i,j,k}].[fi] * ( - alpha[{i,j,k}].[fi] * Uinv[{i-1,j,k}])
+          end
+
+        end
+
+        if periodic_x then
+          Uinv[{N-1,j,k}] = Uinv[{N-1,j,k}] + beta[{N-1,j,k}].[fi] * ( gamma[{N-1,j,k}].[fi] )
+        end
+        
+        -- Backward elimination
+        for i = N-1,0,-1 do
+          sol[{i-1,j,k}].[fn] = sol[{i-1,j,k}].[fn] - beta[{i-1,j,k}].[fi] * gamma[{i-1,j,k}].[fi] * sol[{i,j,k}].[fn]
+          if periodic_x then
+            Uinv[{i-1,j,k}] = Uinv[{i-1,j,k}] - beta[{i-1,j,k}].[fi] * gamma[{i-1,j,k}].[fi] * Uinv[{i,j,k}]
+          end
+        end
+  
+        -- Sherman-Morrison correction
+        if periodic_x then
+          var corr_factor : double = ( sol[{0,j,k}].[fn] - (alpha[{0,j,k}].[fi] / beta0) * sol[{N-1,j,k}].[fn] )
+          corr_factor = corr_factor / ( 1. + Uinv[{0,j,k}] - (alpha[{0,j,k}].[fi] / beta0) * Uinv[{N-1,j,k}] )
+
+          for i = 0,N do
+            sol[{i,j,k}].[fn] = sol[{i,j,k}].[fn] - corr_factor * Uinv[{i,j,k}]
+          end
+
+          -- Copy last edge if periodic
+          sol[{N,j,k}].[fn] = sol[{0,j,k}].[fn]
+        end
+
+      end
+    end
+  
+  end
+  return solve_tridiagonal_x
+end
+

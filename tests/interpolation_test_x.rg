@@ -57,8 +57,8 @@ do
     if (coords[i].x_c < -4.0) then
       r_prim_c[i].rho = 27./7.
       r_prim_c[i].u   = 4.0*cmath.sqrt(35.0)/9.0
-      r_prim_c[i].v   = 0.0 
-      r_prim_c[i].w   = 0.0
+      r_prim_c[i].v   = 1.0 
+      r_prim_c[i].w   = 1.0
       r_prim_c[i].p   = 31./3.
     else
       r_prim_c[i].rho = 1.0 + 0.2*cmath.sin(5.0*coords[i].x_c)
@@ -134,6 +134,20 @@ task main()
   var r_prim_r_z = region(grid_e_z, primitive)  -- Primitive variables at right z cell edge
   
   var pgrid_x    = ispace(int2d, {x = 1, y = 1}) -- Processor grid in x
+
+  var alpha_l = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var beta_l  = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var gamma_l = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+
+  var alpha_r = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var beta_r  = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var gamma_r = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+
+  var rho_avg = region( ispace(int3d, {Nx+1, Ny, Nz} ), double )
+  var sos_avg = region( ispace(int3d, {Nx+1, Ny, Nz} ), double )
+
+  var block_d    = region( ispace(int3d, {Nx+1, Ny, Nz} ), double[9] )
+  var block_Uinv = region( ispace(int3d, {Nx+1, Ny, Nz} ), double[9] )
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
@@ -144,7 +158,8 @@ task main()
   wait_for(token)
 
   var t_start = c.legion_get_current_time_in_micros()
-  token += WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, Nx, Ny, Nz )
+  token += WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, alpha_l, beta_l, gamma_l, 
+                                 alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv, Nx, Ny, Nz )
   wait_for(token)
   var t_WCHR = c.legion_get_current_time_in_micros() - t_start
   c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_WCHR)*1e-6)

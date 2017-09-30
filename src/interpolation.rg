@@ -171,15 +171,28 @@ terra wait_for(x : int)
   return x
 end
 
+solve_tridiagonal_x_v = make_solve_tridiagonal_x('_2', 'v')
+solve_tridiagonal_x_w = make_solve_tridiagonal_x('_3', 'w')
+
 __demand(__inline)
-task WCHR_interpolation_x( r_prim_c : region(ispace(int3d), primitive),
-                           r_prim_l : region(ispace(int3d), primitive),
-                           r_prim_r : region(ispace(int3d), primitive),
-                           Nx       : int64,
-                           Ny       : int64,
-                           Nz       : int64 )
+task WCHR_interpolation_x( r_prim_c   : region(ispace(int3d), primitive),
+                           r_prim_l   : region(ispace(int3d), primitive),
+                           r_prim_r   : region(ispace(int3d), primitive),
+                           alpha_l    : region(ispace(int3d), coeffs),
+                           beta_l     : region(ispace(int3d), coeffs),
+                           gamma_l    : region(ispace(int3d), coeffs),
+                           alpha_r    : region(ispace(int3d), coeffs),
+                           beta_r     : region(ispace(int3d), coeffs),
+                           gamma_r    : region(ispace(int3d), coeffs),
+                           rho_avg    : region(ispace(int3d), double),
+                           sos_avg    : region(ispace(int3d), double),
+                           block_d    : region(ispace(int3d), double[9]),
+                           block_Uinv : region(ispace(int3d), double[9]),
+                           Nx         : int64,
+                           Ny         : int64,
+                           Nz         : int64 )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r)
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv)
 do
 
   var t_start = c.legion_get_current_time_in_micros()
@@ -197,19 +210,19 @@ do
 
   var dim : int64 = nx+1
 
-  var alpha_l = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
-  var beta_l  = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
-  var gamma_l = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
+  -- var alpha_l = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
+  -- var beta_l  = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
+  -- var gamma_l = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
 
-  var alpha_r = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
-  var beta_r  = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
-  var gamma_r = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
+  -- var alpha_r = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
+  -- var beta_r  = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
+  -- var gamma_r = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
 
-  var rho_avg = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double )
-  var sos_avg = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double )
+  -- var rho_avg = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double )
+  -- var sos_avg = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double )
 
-  var block_d    = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double[9] )
-  var block_Uinv = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double[9] )
+  -- var block_d    = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double[9] )
+  -- var block_Uinv = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), double[9] )
 
   wait_for(token)
   var t_alloc = c.legion_get_current_time_in_micros()
@@ -316,21 +329,27 @@ do
   solve_block_tridiagonal_x( alpha_l, beta_l, gamma_l, rho_avg, sos_avg, r_prim_l, block_d, block_Uinv )
   solve_block_tridiagonal_x( alpha_r, beta_r, gamma_r, rho_avg, sos_avg, r_prim_r, block_d, block_Uinv )
 
+  solve_tridiagonal_x_v( alpha_l, beta_l, gamma_l, r_prim_l, rho_avg )
+  solve_tridiagonal_x_v( alpha_r, beta_r, gamma_r, r_prim_r, sos_avg )
+
+  solve_tridiagonal_x_w( alpha_l, beta_l, gamma_l, r_prim_l, rho_avg )
+  solve_tridiagonal_x_w( alpha_r, beta_r, gamma_r, r_prim_r, sos_avg )
+
   var t_block = c.legion_get_current_time_in_micros()
 
-  __delete(alpha_l)
-  __delete(beta_l)
-  __delete(gamma_l)
+  -- __delete(alpha_l)
+  -- __delete(beta_l)
+  -- __delete(gamma_l)
 
-  __delete(alpha_r)
-  __delete(beta_r)
-  __delete(gamma_r)
+  -- __delete(alpha_r)
+  -- __delete(beta_r)
+  -- __delete(gamma_r)
 
-  __delete(rho_avg)
-  __delete(sos_avg)
+  -- __delete(rho_avg)
+  -- __delete(sos_avg)
 
-  __delete(block_d)
-  __delete(block_Uinv)
+  -- __delete(block_d)
+  -- __delete(block_Uinv)
 
   var t_end = c.legion_get_current_time_in_micros()
   c.printf("Time to allocate regions: %12.5e\n", (t_alloc-t_start)*1e-6)
