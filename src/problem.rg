@@ -1,1 +1,1 @@
-problems/shocktube_problem_3D_x.rg
+problems/shocktube_problem_3D_z.rg

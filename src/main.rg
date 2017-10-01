@@ -172,20 +172,34 @@ task main()
   var block_d_x    = region( ispace(int3d, {Nx+1, Ny, Nz} ), double[9] )
   var block_Uinv_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), double[9] )
 
-  var slu_l_x    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for x interpolation
-  var slu_r_x    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for x interpolation
-  var slu_l_y    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for y interpolation
-  var slu_r_y    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for y interpolation
-  var slu_l_z    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for z interpolation
-  var slu_r_z    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for z interpolation
+  var alpha_l_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
+  var beta_l_y  = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
+  var gamma_l_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
 
-  var matrix_l_x = region(pencil, superlu.CSR_matrix)  -- matrix data structure for x left interpolation
-  var matrix_r_x = region(pencil, superlu.CSR_matrix)  -- matrix data structure for x right interpolation
-  var matrix_l_y = region(pencil, superlu.CSR_matrix)  -- matrix data structure for y left interpolation
-  var matrix_r_y = region(pencil, superlu.CSR_matrix)  -- matrix data structure for y right interpolation
-  var matrix_l_z = region(pencil, superlu.CSR_matrix)  -- matrix data structure for z left interpolation
-  var matrix_r_z = region(pencil, superlu.CSR_matrix)  -- matrix data structure for z right interpolation
-  
+  var alpha_r_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
+  var beta_r_y  = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
+  var gamma_r_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
+
+  var rho_avg_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), double )
+  var sos_avg_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), double )
+
+  var block_d_y    = region( ispace(int3d, {Nx, Ny+1, Nz} ), double[9] )
+  var block_Uinv_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), double[9] )
+
+  var alpha_l_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+  var beta_l_z  = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+  var gamma_l_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+
+  var alpha_r_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+  var beta_r_z  = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+  var gamma_r_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+
+  var rho_avg_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), double )
+  var sos_avg_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), double )
+
+  var block_d_z    = region( ispace(int3d, {Nx, Ny, Nz+1} ), double[9] )
+  var block_Uinv_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), double[9] )
+
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
@@ -283,20 +297,33 @@ task main()
   var p_block_d_x    = partition_xpencil_double9(block_d_x   , pencil)
   var p_block_Uinv_x = partition_xpencil_double9(block_Uinv_x, pencil)
 
-  var p_slu_l_x    = partition_slu(slu_l_x, pencil)
-  var p_slu_r_x    = partition_slu(slu_r_x, pencil)
-  var p_slu_l_y    = partition_slu(slu_l_y, pencil)
-  var p_slu_r_y    = partition_slu(slu_r_y, pencil)
-  var p_slu_l_z    = partition_slu(slu_l_z, pencil)
-  var p_slu_r_z    = partition_slu(slu_r_z, pencil)
+  var p_alpha_l_y = partition_ypencil_coeffs(alpha_l_y, pencil)
+  var p_beta_l_y  = partition_ypencil_coeffs(beta_l_y , pencil)
+  var p_gamma_l_y = partition_ypencil_coeffs(gamma_l_y, pencil)
 
-  var p_matrix_l_x = partition_matrix(matrix_l_x, pencil)
-  var p_matrix_l_y = partition_matrix(matrix_l_y, pencil)
-  var p_matrix_l_z = partition_matrix(matrix_l_z, pencil)
+  var p_alpha_r_y = partition_ypencil_coeffs(alpha_r_y, pencil)
+  var p_beta_r_y  = partition_ypencil_coeffs(beta_r_y , pencil)
+  var p_gamma_r_y = partition_ypencil_coeffs(gamma_r_y, pencil)
 
-  var p_matrix_r_x = partition_matrix(matrix_r_x, pencil)
-  var p_matrix_r_y = partition_matrix(matrix_r_y, pencil)
-  var p_matrix_r_z = partition_matrix(matrix_r_z, pencil)
+  var p_rho_avg_y = partition_ypencil_double(rho_avg_y, pencil)
+  var p_sos_avg_y = partition_ypencil_double(sos_avg_y, pencil)
+
+  var p_block_d_y    = partition_ypencil_double9(block_d_y   , pencil)
+  var p_block_Uinv_y = partition_ypencil_double9(block_Uinv_y, pencil)
+
+  var p_alpha_l_z = partition_zpencil_coeffs(alpha_l_z, pencil)
+  var p_beta_l_z  = partition_zpencil_coeffs(beta_l_z , pencil)
+  var p_gamma_l_z = partition_zpencil_coeffs(gamma_l_z, pencil)
+
+  var p_alpha_r_z = partition_zpencil_coeffs(alpha_r_z, pencil)
+  var p_beta_r_z  = partition_zpencil_coeffs(beta_r_z , pencil)
+  var p_gamma_r_z = partition_zpencil_coeffs(gamma_r_z, pencil)
+
+  var p_rho_avg_z = partition_zpencil_double(rho_avg_z, pencil)
+  var p_sos_avg_z = partition_zpencil_double(sos_avg_z, pencil)
+
+  var p_block_d_z    = partition_zpencil_double9(block_d_z   , pencil)
+  var p_block_Uinv_z = partition_zpencil_double9(block_Uinv_z, pencil)
 
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
@@ -307,48 +334,17 @@ task main()
   if Nx >= 8 then
     __demand(__parallel)
     for i in pencil do
-      token += superlu.initialize_matrix_char_x(p_matrix_l_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny/config.prow, Nz/config.pcol)
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.initialize_matrix_char_x(p_matrix_r_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny/config.prow, Nz/config.pcol)
-    end
-
-    __demand(__parallel)
-    for i in pencil do
       token += set_zero_prim( p_rhs_l_x[i] )
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.init_superlu_vars( p_matrix_l_x[i], 5*(Nx+1)*Ny/config.prow*Nz/config.pcol, p_rhs_l_x[i], p_prim_l_x[i], p_slu_l_x[i] )
     end
 
     __demand(__parallel)
     for i in pencil do
       token += set_zero_prim( p_rhs_r_x[i] )
     end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.init_superlu_vars( p_matrix_r_x[i], 5*(Nx+1)*Ny/config.prow*Nz/config.pcol, p_rhs_r_x[i], p_prim_r_x[i], p_slu_r_x[i] )
-    end
   end
   wait_for(token)
-  c.printf("Finished X matrices initialization\n")
 
   if Ny >= 8 then
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.initialize_matrix_char_y(p_matrix_l_y[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny, Nz/config.pcol)
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.initialize_matrix_char_y(p_matrix_r_y[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny, Nz/config.pcol)
-    end
-
     __demand(__parallel)
     for i in pencil do
       token += set_zero_prim( p_rhs_l_y[i] )
@@ -356,33 +352,12 @@ task main()
 
     __demand(__parallel)
     for i in pencil do
-      token += superlu.init_superlu_vars( p_matrix_l_y[i], 5*Nx/config.prow*(Ny+1)*Nz/config.pcol, p_rhs_l_y[i], p_prim_l_y[i], p_slu_l_y[i] )
-    end
-
-    __demand(__parallel)
-    for i in pencil do
       token += set_zero_prim( p_rhs_r_y[i] )
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.init_superlu_vars( p_matrix_r_y[i], 5*Nx/config.prow*(Ny+1)*Nz/config.pcol, p_rhs_r_y[i], p_prim_r_y[i], p_slu_r_y[i] )
     end
   end
   wait_for(token)
-  c.printf("Finished Y matrices initialization\n")
 
   if Nz >= 8 then
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.initialize_matrix_char_z(p_matrix_l_z[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny/config.pcol, Nz)
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.initialize_matrix_char_z(p_matrix_r_z[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny/config.pcol, Nz)
-    end
-
     __demand(__parallel)
     for i in pencil do
       token += set_zero_prim( p_rhs_l_z[i] )
@@ -390,21 +365,10 @@ task main()
 
     __demand(__parallel)
     for i in pencil do
-      token += superlu.init_superlu_vars( p_matrix_l_z[i], 5*Nx/config.prow*Ny/config.pcol*(Nz+1), p_rhs_l_z[i], p_prim_l_z[i], p_slu_l_z[i] )
-    end
-
-    __demand(__parallel)
-    for i in pencil do
       token += set_zero_prim( p_rhs_r_z[i] )
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.init_superlu_vars( p_matrix_r_z[i], 5*Nx/config.prow*Ny/config.pcol*(Nz+1), p_rhs_r_z[i], p_prim_r_z[i], p_slu_r_z[i] )
     end
   end
   wait_for(token)
-  c.printf("Finished Z matrices initialization\n")
   
   -- Initialize derivatives stuff.
   __demand(__parallel)
@@ -623,21 +587,31 @@ task main()
       -- Add y-direction flux derivative to RHS.
       __demand(__parallel)
       for i in pencil do
-        add_yflux_der_to_rhs( p_cnsr_y[i], p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_q_y[i], 
-                              p_prim_l_y[i], p_prim_r_y[i], p_rhs_l_y[i], p_rhs_r_y[i],
-                              p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
-                              p_LU_y[i], p_slu_l_y[i], p_slu_r_y[i], p_matrix_l_y[i], p_matrix_r_y[i],
-                              Nx, Ny, Nz )
+        -- add_yflux_der_to_rhs( p_cnsr_y[i], p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_q_y[i], 
+        --                       p_prim_l_y[i], p_prim_r_y[i], p_rhs_l_y[i], p_rhs_r_y[i],
+        --                       p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
+        --                       p_LU_y[i], p_slu_l_y[i], p_slu_r_y[i], p_matrix_l_y[i], p_matrix_r_y[i],
+        --                       Nx, Ny, Nz )
+        add_yflux_der_to_rhs( p_cnsr_y[i], p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_q_y[i],
+                              p_prim_l_y[i], p_prim_r_y[i], p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
+                              p_alpha_l_y[i], p_beta_l_y[i], p_gamma_l_y[i],
+                              p_alpha_r_y[i], p_beta_r_y[i], p_gamma_r_y[i], p_rho_avg_y[i], p_sos_avg_y[i], p_block_d_y[i],
+                              p_block_Uinv_y[i], p_LU_y[i], Nx, Ny, Nz )
       end
 
       -- Add z-direction flux derivative to RHS.
       __demand(__parallel)
       for i in pencil do
-        add_zflux_der_to_rhs( p_cnsr_z[i], p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_q_z[i], 
-                              p_prim_l_z[i], p_prim_r_z[i], p_rhs_l_z[i], p_rhs_r_z[i],
-                              p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
-                              p_LU_z[i], p_slu_l_z[i], p_slu_r_z[i], p_matrix_l_z[i], p_matrix_r_z[i],
-                              Nx, Ny, Nz )
+        -- add_zflux_der_to_rhs( p_cnsr_z[i], p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_q_z[i], 
+        --                       p_prim_l_z[i], p_prim_r_z[i], p_rhs_l_z[i], p_rhs_r_z[i],
+        --                       p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
+        --                       p_LU_z[i], p_slu_l_z[i], p_slu_r_z[i], p_matrix_l_z[i], p_matrix_r_z[i],
+        --                       Nx, Ny, Nz )
+        add_zflux_der_to_rhs( p_cnsr_z[i], p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_q_z[i],
+                              p_prim_l_z[i], p_prim_r_z[i], p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
+                              p_alpha_l_z[i], p_beta_l_z[i], p_gamma_l_z[i],
+                              p_alpha_r_z[i], p_beta_r_z[i], p_gamma_r_z[i], p_rho_avg_z[i], p_sos_avg_z[i], p_block_d_z[i],
+                              p_block_Uinv_z[i], p_LU_z[i], Nx, Ny, Nz )
       end
 
        
@@ -748,39 +722,6 @@ task main()
   c.printf("\n")
   c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/step)
   
-  -- Destroy SuperLU structs.
-  if Nx >= 8 then
-    __demand(__parallel)
-    for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_l_x[i] )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_r_x[i] )
-    end
-  end
-
-  if Ny >= 8 then
-    __demand(__parallel)
-    for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_l_y[i] )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_r_y[i] )
-    end
-  end
-
-  if Nz >= 8 then
-    __demand(__parallel)
-    for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_l_z[i] )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_r_z[i] )
-    end
-  end
 end
 
 if os.getenv('SAVEOBJ') == '1' then
