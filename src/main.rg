@@ -158,6 +158,20 @@ task main()
 
   var pencil = ispace(int2d, int2d {config.prow, config.pcol})
 
+  var alpha_l_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var beta_l_x  = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var gamma_l_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+
+  var alpha_r_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var beta_r_x  = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var gamma_r_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+
+  var rho_avg_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), double )
+  var sos_avg_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), double )
+
+  var block_d_x    = region( ispace(int3d, {Nx+1, Ny, Nz} ), double[9] )
+  var block_Uinv_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), double[9] )
+
   var slu_l_x    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for x interpolation
   var slu_r_x    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for x interpolation
   var slu_l_y    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for y interpolation
@@ -254,6 +268,20 @@ task main()
   var p_LU_N_x     = partition_LU(LU_N_x, pencil)
   var p_LU_N_y     = partition_LU(LU_N_y, pencil)
   var p_LU_N_z     = partition_LU(LU_N_z, pencil)
+
+  var p_alpha_l_x = partition_xpencil_coeffs(alpha_l_x, pencil)
+  var p_beta_l_x  = partition_xpencil_coeffs(beta_l_x , pencil)
+  var p_gamma_l_x = partition_xpencil_coeffs(gamma_l_x, pencil)
+
+  var p_alpha_r_x = partition_xpencil_coeffs(alpha_r_x, pencil)
+  var p_beta_r_x  = partition_xpencil_coeffs(beta_r_x , pencil)
+  var p_gamma_r_x = partition_xpencil_coeffs(gamma_r_x, pencil)
+
+  var p_rho_avg_x = partition_xpencil_double(rho_avg_x, pencil)
+  var p_sos_avg_x = partition_xpencil_double(sos_avg_x, pencil)
+
+  var p_block_d_x    = partition_xpencil_double9(block_d_x   , pencil)
+  var p_block_Uinv_x = partition_xpencil_double9(block_Uinv_x, pencil)
 
   var p_slu_l_x    = partition_slu(slu_l_x, pencil)
   var p_slu_r_x    = partition_slu(slu_r_x, pencil)
@@ -453,25 +481,25 @@ task main()
     token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
   end
  
-  var TKE0 : double = 0.0
-  do
-    var t : double = 0.0
-    __demand(__parallel)
-    for i in pencil do
-      t += problem.TKE(p_prim_c_y[i])
-    end
-    TKE0 = wait_for_double(t)
-  end
+  var TKE0 : double = 1.0e-16
+  -- do
+  --   var t : double = 0.0
+  --   __demand(__parallel)
+  --   for i in pencil do
+  --     t += problem.TKE(p_prim_c_y[i])
+  --   end
+  --   TKE0 = wait_for_double(t)
+  -- end
 
-  var enstrophy0 : double = 0.0
-  do
-    var e : double = 0.0
-    __demand(__parallel)
-    for i in pencil do
-      e += problem.enstrophy( p_gradu_y[i] )
-    end
-    enstrophy0 = wait_for_double(e)
-  end
+  var enstrophy0 : double = 1.0e-16
+  -- do
+  --   var e : double = 0.0
+  --   __demand(__parallel)
+  --   for i in pencil do
+  --     e += problem.enstrophy( p_gradu_y[i] )
+  --   end
+  --   enstrophy0 = wait_for_double(e)
+  -- end
   c.printf("TKE, Enstrophy = %g, %g", TKE0, enstrophy0)
 
   var IOtoken = 0
@@ -580,11 +608,16 @@ task main()
       -- Add x-direction flux derivative to RHS.
       __demand(__parallel)
       for i in pencil do
+        -- add_xflux_der_to_rhs( p_cnsr_x[i], p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_q_x[i],
+        --                       p_prim_l_x[i], p_prim_r_x[i], p_rhs_l_x[i], p_rhs_r_x[i],
+        --                       p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
+        --                       p_LU_x[i], p_slu_l_x[i], p_slu_r_x[i], p_matrix_l_x[i], p_matrix_r_x[i],
+        --                       Nx, Ny, Nz )
         add_xflux_der_to_rhs( p_cnsr_x[i], p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_q_x[i],
-                              p_prim_l_x[i], p_prim_r_x[i], p_rhs_l_x[i], p_rhs_r_x[i],
-                              p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
-                              p_LU_x[i], p_slu_l_x[i], p_slu_r_x[i], p_matrix_l_x[i], p_matrix_r_x[i],
-                              Nx, Ny, Nz )
+                              p_prim_l_x[i], p_prim_r_x[i], p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
+                              p_alpha_l_x[i], p_beta_l_x[i], p_gamma_l_x[i],
+                              p_alpha_r_x[i], p_beta_r_x[i], p_gamma_r_x[i], p_rho_avg_x[i], p_sos_avg_x[i], p_block_d_x[i],
+                              p_block_Uinv_x[i], p_LU_x[i], Nx, Ny, Nz )
       end
 
       -- Add y-direction flux derivative to RHS.
@@ -657,16 +690,16 @@ task main()
 
     if (step-1)%config.nstats == 0 then
       var TKE : double = 0.0
-      __demand(__parallel)
-      for i in pencil do
-        TKE += problem.TKE(p_prim_c_y[i])
-      end
+      -- __demand(__parallel)
+      -- for i in pencil do
+      --   TKE += problem.TKE(p_prim_c_y[i])
+      -- end
 
       var enstrophy : double = 0.0
-      __demand(__parallel)
-      for i in pencil do
-        enstrophy += problem.enstrophy( p_gradu_y[i] )
-      end
+      -- __demand(__parallel)
+      -- for i in pencil do
+      --   enstrophy += problem.enstrophy( p_gradu_y[i] )
+      -- end
 
       do
         var TKE = wait_for_double(TKE)

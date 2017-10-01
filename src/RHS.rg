@@ -196,29 +196,35 @@ task add_xflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
                            r_q        : region(ispace(int3d), vect),
                            r_prim_l_x : region(ispace(int3d), primitive),
                            r_prim_r_x : region(ispace(int3d), primitive),
-                           r_rhs_l_x  : region(ispace(int3d), primitive),
-                           r_rhs_r_x  : region(ispace(int3d), primitive),
                            r_flux_c   : region(ispace(int3d), conserved),
                            r_flux_e_x : region(ispace(int3d), conserved),
                            r_fder_c_x : region(ispace(int3d), conserved),
                            r_rhs      : region(ispace(int3d), conserved),
+                           alpha_l    : region(ispace(int3d), coeffs),
+                           beta_l     : region(ispace(int3d), coeffs),
+                           gamma_l    : region(ispace(int3d), coeffs),
+                           alpha_r    : region(ispace(int3d), coeffs),
+                           beta_r     : region(ispace(int3d), coeffs),
+                           gamma_r    : region(ispace(int3d), coeffs),
+                           rho_avg    : region(ispace(int3d), double),
+                           sos_avg    : region(ispace(int3d), double),
+                           block_d    : region(ispace(int3d), double[9]),
+                           block_Uinv : region(ispace(int3d), double[9]),
                            LU_x       : region(ispace(int3d), LU_struct),
-                           slu_l_x    : region(ispace(int2d), superlu.c.superlu_vars_t),
-                           slu_r_x    : region(ispace(int2d), superlu.c.superlu_vars_t),
-                           matrix_l_x : region(ispace(int2d), superlu.CSR_matrix),
-                           matrix_r_x : region(ispace(int2d), superlu.CSR_matrix),
                            Nx         : int64,
                            Ny         : int64,
                            Nz         : int64 )
 where
   reads( r_cnsr, r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_11, _12, _13}, LU_x ),
-  reads writes( r_q._1, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs, slu_l_x, slu_r_x, matrix_l_x, matrix_r_x )
+  reads writes( r_q._1, r_prim_l_x, r_prim_r_x, r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs),
+  reads writes( alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
 do
 
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
 
   if (nx >= 8) then
-    WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_l_x, slu_r_x, Nx, Ny, Nz )
+    WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, alpha_l, beta_l, gamma_l,
+                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv, Nx, Ny, Nz )
     positivity_enforcer_x( r_prim_c, r_prim_l_x, r_prim_r_x, Nx, Ny, Nz )
     HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
     get_xfluxes_r( r_prim_c, r_cnsr, r_flux_c )

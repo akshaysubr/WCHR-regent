@@ -352,11 +352,11 @@ do
   -- __delete(block_Uinv)
 
   var t_end = c.legion_get_current_time_in_micros()
-  c.printf("Time to allocate regions: %12.5e\n", (t_alloc-t_start)*1e-6)
-  c.printf("Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
-  c.printf("Time for block tridiagonal solves: %12.5e\n", (t_block-t_weights)*1e-6)
-  c.printf("Time to deallocate regions: %12.5e\n", (t_end-t_block)*1e-6)
-  c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
+  -- c.printf("Time to allocate regions: %12.5e\n", (t_alloc-t_start)*1e-6)
+  -- c.printf("Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
+  -- c.printf("Time for block tridiagonal solves: %12.5e\n", (t_block-t_weights)*1e-6)
+  -- c.printf("Time to deallocate regions: %12.5e\n", (t_end-t_block)*1e-6)
+  -- c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
  return 1
 end
 
