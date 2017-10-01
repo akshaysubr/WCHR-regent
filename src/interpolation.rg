@@ -208,8 +208,6 @@ do
   regentlib.assert(bounds_c.lo.x == 0, "Can only perform X interpolation in the X pencil")
   regentlib.assert(bounds_x.lo.x == 0, "Can only perform X interpolation in the X pencil")
 
-  var dim : int64 = nx+1
-
   -- var alpha_l = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
   -- var beta_l  = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
   -- var gamma_l = region( ispace(int3d, {nx+1, ny, nz}, bounds_x.lo), coeffs )
@@ -360,32 +358,34 @@ do
  return 1
 end
 
+
+solve_tridiagonal_y_u = make_solve_tridiagonal_y('_1', 'u')
+solve_tridiagonal_y_w = make_solve_tridiagonal_y('_3', 'w')
+
 __demand(__inline)
-task WCHR_interpolation_y( r_prim_c : region(ispace(int3d), primitive),
-                           r_prim_l : region(ispace(int3d), primitive),
-                           r_prim_r : region(ispace(int3d), primitive),
-                           r_rhs_l  : region(ispace(int3d), primitive),
-                           r_rhs_r  : region(ispace(int3d), primitive),
-                           matrix_l : region(ispace(int2d), superlu.CSR_matrix),
-                           matrix_r : region(ispace(int2d), superlu.CSR_matrix),
-                           slu_l    : region(ispace(int2d), superlu.c.superlu_vars_t),
-                           slu_r    : region(ispace(int2d), superlu.c.superlu_vars_t),
-                           Nx       : int64,
-                           Ny       : int64,
-                           Nz       : int64 )
+task WCHR_interpolation_y( r_prim_c   : region(ispace(int3d), primitive),
+                           r_prim_l   : region(ispace(int3d), primitive),
+                           r_prim_r   : region(ispace(int3d), primitive),
+                           alpha_l    : region(ispace(int3d), coeffs),
+                           beta_l     : region(ispace(int3d), coeffs),
+                           gamma_l    : region(ispace(int3d), coeffs),
+                           alpha_r    : region(ispace(int3d), coeffs),
+                           beta_r     : region(ispace(int3d), coeffs),
+                           gamma_r    : region(ispace(int3d), coeffs),
+                           rho_avg    : region(ispace(int3d), double),
+                           sos_avg    : region(ispace(int3d), double),
+                           block_d    : region(ispace(int3d), double[9]),
+                           block_Uinv : region(ispace(int3d), double[9]),
+                           Nx         : int64,
+                           Ny         : int64,
+                           Nz         : int64 )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r), reads writes(r_rhs_l, r_rhs_r, matrix_l, matrix_r, slu_l, slu_r)
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv)
 do
 
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
   var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
   var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
-
-  var dim : int64 = ny+1
-
-  var pr = matrix_l.ispace.bounds.hi.x
-  var pc = matrix_l.ispace.bounds.hi.y
-  -- matrix_l[{pr,pc}].rowptr[0] = 0
 
   var bounds_c = r_prim_c.ispace.bounds
   var bounds_y = r_prim_l.ispace.bounds
@@ -402,203 +402,134 @@ do
     var nlweights_r = get_nonlinear_weights_LD_r(char_values)
     var coeffs_r = get_coefficients_ECI(nlweights_r)
 
+    alpha_l[i]._0 = coeffs_l[0][0]; beta_l[i]._0 = coeffs_l[0][1]; gamma_l[i]._0 = coeffs_l[0][2];
+    alpha_l[i]._1 = coeffs_l[1][0]; beta_l[i]._1 = coeffs_l[1][1]; gamma_l[i]._1 = coeffs_l[1][2];
+    alpha_l[i]._2 = coeffs_l[2][0]; beta_l[i]._2 = coeffs_l[2][1]; gamma_l[i]._2 = coeffs_l[2][2];
+    alpha_l[i]._3 = coeffs_l[3][0]; beta_l[i]._3 = coeffs_l[3][1]; gamma_l[i]._3 = coeffs_l[3][2];
+    alpha_l[i]._4 = coeffs_l[4][0]; beta_l[i]._4 = coeffs_l[4][1]; gamma_l[i]._4 = coeffs_l[4][2];
+
+    alpha_r[i]._0 = coeffs_r[0][0]; beta_r[i]._0 = coeffs_r[0][1]; gamma_r[i]._0 = coeffs_r[0][2];
+    alpha_r[i]._1 = coeffs_r[1][0]; beta_r[i]._1 = coeffs_r[1][1]; gamma_r[i]._1 = coeffs_r[1][2];
+    alpha_r[i]._2 = coeffs_r[2][0]; beta_r[i]._2 = coeffs_r[2][1]; gamma_r[i]._2 = coeffs_r[2][2];
+    alpha_r[i]._3 = coeffs_r[3][0]; beta_r[i]._3 = coeffs_r[3][1]; gamma_r[i]._3 = coeffs_r[3][2];
+    alpha_r[i]._4 = coeffs_r[4][0]; beta_r[i]._4 = coeffs_r[4][1]; gamma_r[i]._4 = coeffs_r[4][2];
+
+    rho_avg[i] = rhosos_avg[0]
+    sos_avg[i] = rhosos_avg[1]
+
     -- RHS for left sided interpolation
-    r_rhs_l[i].rho = coeffs_l[0][3] * char_values[0][0]
-                   + coeffs_l[0][4] * char_values[0][1]
-                   + coeffs_l[0][5] * char_values[0][2]
-                   + coeffs_l[0][6] * char_values[0][3]
-                   + coeffs_l[0][7] * char_values[0][4]
-                   + coeffs_l[0][8] * char_values[0][5]
+    r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
+                    + coeffs_l[0][4] * char_values[0][1]
+                    + coeffs_l[0][5] * char_values[0][2]
+                    + coeffs_l[0][6] * char_values[0][3]
+                    + coeffs_l[0][7] * char_values[0][4]
+                    + coeffs_l[0][8] * char_values[0][5]
 
-    r_rhs_l[i].u   = coeffs_l[1][3] * char_values[1][0]
-                   + coeffs_l[1][4] * char_values[1][1]
-                   + coeffs_l[1][5] * char_values[1][2]
-                   + coeffs_l[1][6] * char_values[1][3]
-                   + coeffs_l[1][7] * char_values[1][4]
-                   + coeffs_l[1][8] * char_values[1][5]
+    r_prim_l[i].u   = coeffs_l[1][3] * char_values[1][0]
+                    + coeffs_l[1][4] * char_values[1][1]
+                    + coeffs_l[1][5] * char_values[1][2]
+                    + coeffs_l[1][6] * char_values[1][3]
+                    + coeffs_l[1][7] * char_values[1][4]
+                    + coeffs_l[1][8] * char_values[1][5]
 
-    r_rhs_l[i].v   = coeffs_l[2][3] * char_values[2][0]
-                   + coeffs_l[2][4] * char_values[2][1]
-                   + coeffs_l[2][5] * char_values[2][2]
-                   + coeffs_l[2][6] * char_values[2][3]
-                   + coeffs_l[2][7] * char_values[2][4]
-                   + coeffs_l[2][8] * char_values[2][5]
+    r_prim_l[i].v   = coeffs_l[2][3] * char_values[2][0]
+                    + coeffs_l[2][4] * char_values[2][1]
+                    + coeffs_l[2][5] * char_values[2][2]
+                    + coeffs_l[2][6] * char_values[2][3]
+                    + coeffs_l[2][7] * char_values[2][4]
+                    + coeffs_l[2][8] * char_values[2][5]
 
-    r_rhs_l[i].w   = coeffs_l[3][3] * char_values[3][0]
-                   + coeffs_l[3][4] * char_values[3][1]
-                   + coeffs_l[3][5] * char_values[3][2]
-                   + coeffs_l[3][6] * char_values[3][3]
-                   + coeffs_l[3][7] * char_values[3][4]
-                   + coeffs_l[3][8] * char_values[3][5]
+    r_prim_l[i].w   = coeffs_l[3][3] * char_values[3][0]
+                    + coeffs_l[3][4] * char_values[3][1]
+                    + coeffs_l[3][5] * char_values[3][2]
+                    + coeffs_l[3][6] * char_values[3][3]
+                    + coeffs_l[3][7] * char_values[3][4]
+                    + coeffs_l[3][8] * char_values[3][5]
 
-    r_rhs_l[i].p   = coeffs_l[4][3] * char_values[4][0]
-                   + coeffs_l[4][4] * char_values[4][1]
-                   + coeffs_l[4][5] * char_values[4][2]
-                   + coeffs_l[4][6] * char_values[4][3]
-                   + coeffs_l[4][7] * char_values[4][4]
-                   + coeffs_l[4][8] * char_values[4][5]
+    r_prim_l[i].p   = coeffs_l[4][3] * char_values[4][0]
+                    + coeffs_l[4][4] * char_values[4][1]
+                    + coeffs_l[4][5] * char_values[4][2]
+                    + coeffs_l[4][6] * char_values[4][3]
+                    + coeffs_l[4][7] * char_values[4][4]
+                    + coeffs_l[4][8] * char_values[4][5]
 
     -- RHS for right sided interpolation
-    r_rhs_r[i].rho = coeffs_r[0][3] * char_values[0][0]
-                   + coeffs_r[0][4] * char_values[0][1]
-                   + coeffs_r[0][5] * char_values[0][2]
-                   + coeffs_r[0][6] * char_values[0][3]
-                   + coeffs_r[0][7] * char_values[0][4]
-                   + coeffs_r[0][8] * char_values[0][5]
+    r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
+                    + coeffs_r[0][4] * char_values[0][1]
+                    + coeffs_r[0][5] * char_values[0][2]
+                    + coeffs_r[0][6] * char_values[0][3]
+                    + coeffs_r[0][7] * char_values[0][4]
+                    + coeffs_r[0][8] * char_values[0][5]
 
-    r_rhs_r[i].u   = coeffs_r[1][3] * char_values[1][0]
-                   + coeffs_r[1][4] * char_values[1][1]
-                   + coeffs_r[1][5] * char_values[1][2]
-                   + coeffs_r[1][6] * char_values[1][3]
-                   + coeffs_r[1][7] * char_values[1][4]
-                   + coeffs_r[1][8] * char_values[1][5]
+    r_prim_r[i].u   = coeffs_r[1][3] * char_values[1][0]
+                    + coeffs_r[1][4] * char_values[1][1]
+                    + coeffs_r[1][5] * char_values[1][2]
+                    + coeffs_r[1][6] * char_values[1][3]
+                    + coeffs_r[1][7] * char_values[1][4]
+                    + coeffs_r[1][8] * char_values[1][5]
 
-    r_rhs_r[i].v   = coeffs_r[2][3] * char_values[2][0]
-                   + coeffs_r[2][4] * char_values[2][1]
-                   + coeffs_r[2][5] * char_values[2][2]
-                   + coeffs_r[2][6] * char_values[2][3]
-                   + coeffs_r[2][7] * char_values[2][4]
-                   + coeffs_r[2][8] * char_values[2][5]
+    r_prim_r[i].v   = coeffs_r[2][3] * char_values[2][0]
+                    + coeffs_r[2][4] * char_values[2][1]
+                    + coeffs_r[2][5] * char_values[2][2]
+                    + coeffs_r[2][6] * char_values[2][3]
+                    + coeffs_r[2][7] * char_values[2][4]
+                    + coeffs_r[2][8] * char_values[2][5]
 
-    r_rhs_r[i].w   = coeffs_r[3][3] * char_values[3][0]
-                   + coeffs_r[3][4] * char_values[3][1]
-                   + coeffs_r[3][5] * char_values[3][2]
-                   + coeffs_r[3][6] * char_values[3][3]
-                   + coeffs_r[3][7] * char_values[3][4]
-                   + coeffs_r[3][8] * char_values[3][5]
+    r_prim_r[i].w   = coeffs_r[3][3] * char_values[3][0]
+                    + coeffs_r[3][4] * char_values[3][1]
+                    + coeffs_r[3][5] * char_values[3][2]
+                    + coeffs_r[3][6] * char_values[3][3]
+                    + coeffs_r[3][7] * char_values[3][4]
+                    + coeffs_r[3][8] * char_values[3][5]
 
-    r_rhs_r[i].p   = coeffs_r[4][3] * char_values[4][0]
-                   + coeffs_r[4][4] * char_values[4][1]
-                   + coeffs_r[4][5] * char_values[4][2]
-                   + coeffs_r[4][6] * char_values[4][3]
-                   + coeffs_r[4][7] * char_values[4][4]
-                   + coeffs_r[4][8] * char_values[4][5]
-
-    var ix = i.x - bounds_c.lo.x
-    var iz = i.z - bounds_c.lo.z
-
-    var grow : int64 = 5*ix + i.y*5*nx + iz*5*dim*nx
-    var bcounter : int64 = 8*3*ix + i.y*(8*3)*nx + iz*(8*3*ny+10)*nx
-
-    -- rho
-    for j = 0, 3 do
-      var bcol : int64 = i.y + j - 1
-      var gcol : int64 = ix*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
-      var counter : int64 = bcounter + 2*j
-
-      -- matrix[{pr,pc}].colind[counter] = gcol+2
-      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[0][j] * (-0.5*rhosos_avg[0]*rhosos_avg[1])
-      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[0][j] * (-0.5*rhosos_avg[0]*rhosos_avg[1])
-
-      -- matrix[{pr,pc}].colind[counter+1] = gcol+4
-      matrix_l[{pr,pc}].nzval [counter+1] = coeffs_l[0][j] * (0.5)
-      matrix_r[{pr,pc}].nzval [counter+1] = coeffs_r[0][j] * (0.5)
-    end
-    bcounter = bcounter + 3*2
-    -- matrix[{pr,pc}].rowptr[grow+1] = bcounter
-
-    -- u
-    for j = 0, 3 do
-      var bcol : int64 = i.y + j - 1
-      var gcol : int64 = ix*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
-      var counter : int64 = bcounter + j
-
-      -- matrix[{pr,pc}].colind[counter] = gcol+1
-      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[1][j] * (1.0)
-      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[1][j] * (1.0)
-    end
-    bcounter = bcounter + 3*1
-    -- matrix[{pr,pc}].rowptr[grow+2] = bcounter
-
-    -- v
-    for j = 0, 3 do
-      var bcol : int64 = i.y + j - 1
-      var gcol : int64 = ix*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
-      var counter : int64 = bcounter + 2*j
-
-      -- matrix[{pr,pc}].colind[counter] = gcol
-      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[2][j] * (1.0)
-      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[2][j] * (1.0)
-
-      -- matrix[{pr,pc}].colind[counter+1] = gcol+4
-      matrix_l[{pr,pc}].nzval [counter+1] = coeffs_l[2][j] * (-1.0/(rhosos_avg[1]*rhosos_avg[1]))
-      matrix_r[{pr,pc}].nzval [counter+1] = coeffs_r[2][j] * (-1.0/(rhosos_avg[1]*rhosos_avg[1]))
-    end
-    bcounter = bcounter + 3*2
-    -- matrix[{pr,pc}].rowptr[grow+3] = bcounter
-
-    -- w
-    for j = 0, 3 do
-      var bcol : int64 = i.y + j - 1
-      var gcol : int64 = ix*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
-      var counter : int64 = bcounter + j
-
-      -- matrix[{pr,pc}].colind[counter] = gcol+3
-      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[3][j] * (1.0)
-      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[3][j] * (1.0)
-    end
-    bcounter = bcounter + 3*1
-    -- matrix[{pr,pc}].rowptr[grow+4] = bcounter
-
-    -- p
-    for j = 0, 3 do
-      var bcol : int64 = i.y + j - 1
-      var gcol : int64 = ix*5 + ((bcol+ny)%ny)*5*nx + iz*5*dim*nx -- Top of the block
-      var counter : int64 = bcounter + 2*j
-
-      -- matrix[{pr,pc}].colind[counter] = gcol+2
-      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[4][j] * (0.5*rhosos_avg[0]*rhosos_avg[1])
-      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[4][j] * (0.5*rhosos_avg[0]*rhosos_avg[1])
-
-      -- matrix[{pr,pc}].colind[counter+1] = gcol+4
-      matrix_l[{pr,pc}].nzval [counter+1] = coeffs_l[4][j] * (0.5)
-      matrix_r[{pr,pc}].nzval [counter+1] = coeffs_r[4][j] * (0.5)
-    end
-    bcounter = bcounter + 3*2
-    -- matrix[{pr,pc}].rowptr[grow+5] = bcounter
+    r_prim_r[i].p   = coeffs_r[4][3] * char_values[4][0]
+                    + coeffs_r[4][4] * char_values[4][1]
+                    + coeffs_r[4][5] * char_values[4][2]
+                    + coeffs_r[4][6] * char_values[4][3]
+                    + coeffs_r[4][7] * char_values[4][4]
+                    + coeffs_r[4][8] * char_values[4][5]
 
   end
       
-  -- For the last point
-  for iz = bounds_y.lo.z, bounds_y.hi.z+1 do
-    for ix = bounds_y.lo.x, bounds_y.hi.x+1 do
-      r_rhs_l[{ix,ny,iz}].{rho, u, v, w, p} = 0.0
-      r_rhs_r[{ix,ny,iz}].{rho, u, v, w, p} = 0.0
-    end
-  end
+  solve_block_tridiagonal_y( alpha_l, beta_l, gamma_l, rho_avg, sos_avg, r_prim_l, block_d, block_Uinv )
+  solve_block_tridiagonal_y( alpha_r, beta_r, gamma_r, rho_avg, sos_avg, r_prim_r, block_d, block_Uinv )
 
-  superlu.MatrixSolve( r_rhs_l, r_prim_l, matrix_l[{pr,pc}], nx, ny, nz, slu_l )
-  superlu.MatrixSolve( r_rhs_r, r_prim_r, matrix_r[{pr,pc}], nx, ny, nz, slu_r )
+  solve_tridiagonal_y_u( alpha_l, beta_l, gamma_l, r_prim_l, rho_avg )
+  solve_tridiagonal_y_u( alpha_r, beta_r, gamma_r, r_prim_r, sos_avg )
+
+  solve_tridiagonal_y_w( alpha_l, beta_l, gamma_l, r_prim_l, rho_avg )
+  solve_tridiagonal_y_w( alpha_r, beta_r, gamma_r, r_prim_r, sos_avg )
 
  return 1
 end
 
+solve_tridiagonal_z_u = make_solve_tridiagonal_z('_1', 'u')
+solve_tridiagonal_z_v = make_solve_tridiagonal_z('_2', 'v')
+
 __demand(__inline)
-task WCHR_interpolation_z( r_prim_c : region(ispace(int3d), primitive),
-                           r_prim_l : region(ispace(int3d), primitive),
-                           r_prim_r : region(ispace(int3d), primitive),
-                           r_rhs_l  : region(ispace(int3d), primitive),
-                           r_rhs_r  : region(ispace(int3d), primitive),
-                           matrix_l : region(ispace(int2d), superlu.CSR_matrix),
-                           matrix_r : region(ispace(int2d), superlu.CSR_matrix),
-                           slu_l    : region(ispace(int2d), superlu.c.superlu_vars_t),
-                           slu_r    : region(ispace(int2d), superlu.c.superlu_vars_t),
-                           Nx       : int64,
-                           Ny       : int64,
-                           Nz       : int64 )
+task WCHR_interpolation_z( r_prim_c   : region(ispace(int3d), primitive),
+                           r_prim_l   : region(ispace(int3d), primitive),
+                           r_prim_r   : region(ispace(int3d), primitive),
+                           alpha_l    : region(ispace(int3d), coeffs),
+                           beta_l     : region(ispace(int3d), coeffs),
+                           gamma_l    : region(ispace(int3d), coeffs),
+                           alpha_r    : region(ispace(int3d), coeffs),
+                           beta_r     : region(ispace(int3d), coeffs),
+                           gamma_r    : region(ispace(int3d), coeffs),
+                           rho_avg    : region(ispace(int3d), double),
+                           sos_avg    : region(ispace(int3d), double),
+                           block_d    : region(ispace(int3d), double[9]),
+                           block_Uinv : region(ispace(int3d), double[9]),
+                           Nx         : int64,
+                           Ny         : int64,
+                           Nz         : int64 )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r), reads writes(r_rhs_l, r_rhs_r, matrix_l, matrix_r, slu_l, slu_r)
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv)
 do
 
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
   var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
   var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
-
-  var dim : int64 = nz+1
-
-  var pr = matrix_l.ispace.bounds.hi.x
-  var pc = matrix_l.ispace.bounds.hi.y
-  -- matrix_l[{pr,pc}].rowptr[0] = 0
 
   var bounds_c = r_prim_c.ispace.bounds
   var bounds_z = r_prim_l.ispace.bounds
@@ -615,172 +546,104 @@ do
     var nlweights_r = get_nonlinear_weights_LD_r(char_values)
     var coeffs_r = get_coefficients_ECI(nlweights_r)
 
+    alpha_l[i]._0 = coeffs_l[0][0]; beta_l[i]._0 = coeffs_l[0][1]; gamma_l[i]._0 = coeffs_l[0][2];
+    alpha_l[i]._1 = coeffs_l[1][0]; beta_l[i]._1 = coeffs_l[1][1]; gamma_l[i]._1 = coeffs_l[1][2];
+    alpha_l[i]._2 = coeffs_l[2][0]; beta_l[i]._2 = coeffs_l[2][1]; gamma_l[i]._2 = coeffs_l[2][2];
+    alpha_l[i]._3 = coeffs_l[3][0]; beta_l[i]._3 = coeffs_l[3][1]; gamma_l[i]._3 = coeffs_l[3][2];
+    alpha_l[i]._4 = coeffs_l[4][0]; beta_l[i]._4 = coeffs_l[4][1]; gamma_l[i]._4 = coeffs_l[4][2];
+
+    alpha_r[i]._0 = coeffs_r[0][0]; beta_r[i]._0 = coeffs_r[0][1]; gamma_r[i]._0 = coeffs_r[0][2];
+    alpha_r[i]._1 = coeffs_r[1][0]; beta_r[i]._1 = coeffs_r[1][1]; gamma_r[i]._1 = coeffs_r[1][2];
+    alpha_r[i]._2 = coeffs_r[2][0]; beta_r[i]._2 = coeffs_r[2][1]; gamma_r[i]._2 = coeffs_r[2][2];
+    alpha_r[i]._3 = coeffs_r[3][0]; beta_r[i]._3 = coeffs_r[3][1]; gamma_r[i]._3 = coeffs_r[3][2];
+    alpha_r[i]._4 = coeffs_r[4][0]; beta_r[i]._4 = coeffs_r[4][1]; gamma_r[i]._4 = coeffs_r[4][2];
+
+    rho_avg[i] = rhosos_avg[0]
+    sos_avg[i] = rhosos_avg[1]
+
     -- RHS for left sided interpolation
-    r_rhs_l[i].rho = coeffs_l[0][3] * char_values[0][0]
-                   + coeffs_l[0][4] * char_values[0][1]
-                   + coeffs_l[0][5] * char_values[0][2]
-                   + coeffs_l[0][6] * char_values[0][3]
-                   + coeffs_l[0][7] * char_values[0][4]
-                   + coeffs_l[0][8] * char_values[0][5]
+    r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
+                    + coeffs_l[0][4] * char_values[0][1]
+                    + coeffs_l[0][5] * char_values[0][2]
+                    + coeffs_l[0][6] * char_values[0][3]
+                    + coeffs_l[0][7] * char_values[0][4]
+                    + coeffs_l[0][8] * char_values[0][5]
 
-    r_rhs_l[i].u   = coeffs_l[1][3] * char_values[1][0]
-                   + coeffs_l[1][4] * char_values[1][1]
-                   + coeffs_l[1][5] * char_values[1][2]
-                   + coeffs_l[1][6] * char_values[1][3]
-                   + coeffs_l[1][7] * char_values[1][4]
-                   + coeffs_l[1][8] * char_values[1][5]
+    r_prim_l[i].u   = coeffs_l[1][3] * char_values[1][0]
+                    + coeffs_l[1][4] * char_values[1][1]
+                    + coeffs_l[1][5] * char_values[1][2]
+                    + coeffs_l[1][6] * char_values[1][3]
+                    + coeffs_l[1][7] * char_values[1][4]
+                    + coeffs_l[1][8] * char_values[1][5]
 
-    r_rhs_l[i].v   = coeffs_l[2][3] * char_values[2][0]
-                   + coeffs_l[2][4] * char_values[2][1]
-                   + coeffs_l[2][5] * char_values[2][2]
-                   + coeffs_l[2][6] * char_values[2][3]
-                   + coeffs_l[2][7] * char_values[2][4]
-                   + coeffs_l[2][8] * char_values[2][5]
+    r_prim_l[i].v   = coeffs_l[2][3] * char_values[2][0]
+                    + coeffs_l[2][4] * char_values[2][1]
+                    + coeffs_l[2][5] * char_values[2][2]
+                    + coeffs_l[2][6] * char_values[2][3]
+                    + coeffs_l[2][7] * char_values[2][4]
+                    + coeffs_l[2][8] * char_values[2][5]
 
-    r_rhs_l[i].w   = coeffs_l[3][3] * char_values[3][0]
-                   + coeffs_l[3][4] * char_values[3][1]
-                   + coeffs_l[3][5] * char_values[3][2]
-                   + coeffs_l[3][6] * char_values[3][3]
-                   + coeffs_l[3][7] * char_values[3][4]
-                   + coeffs_l[3][8] * char_values[3][5]
+    r_prim_l[i].w   = coeffs_l[3][3] * char_values[3][0]
+                    + coeffs_l[3][4] * char_values[3][1]
+                    + coeffs_l[3][5] * char_values[3][2]
+                    + coeffs_l[3][6] * char_values[3][3]
+                    + coeffs_l[3][7] * char_values[3][4]
+                    + coeffs_l[3][8] * char_values[3][5]
 
-    r_rhs_l[i].p   = coeffs_l[4][3] * char_values[4][0]
-                   + coeffs_l[4][4] * char_values[4][1]
-                   + coeffs_l[4][5] * char_values[4][2]
-                   + coeffs_l[4][6] * char_values[4][3]
-                   + coeffs_l[4][7] * char_values[4][4]
-                   + coeffs_l[4][8] * char_values[4][5]
+    r_prim_l[i].p   = coeffs_l[4][3] * char_values[4][0]
+                    + coeffs_l[4][4] * char_values[4][1]
+                    + coeffs_l[4][5] * char_values[4][2]
+                    + coeffs_l[4][6] * char_values[4][3]
+                    + coeffs_l[4][7] * char_values[4][4]
+                    + coeffs_l[4][8] * char_values[4][5]
 
     -- RHS for right sided interpolation
-    r_rhs_r[i].rho = coeffs_r[0][3] * char_values[0][0]
-                   + coeffs_r[0][4] * char_values[0][1]
-                   + coeffs_r[0][5] * char_values[0][2]
-                   + coeffs_r[0][6] * char_values[0][3]
-                   + coeffs_r[0][7] * char_values[0][4]
-                   + coeffs_r[0][8] * char_values[0][5]
+    r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
+                    + coeffs_r[0][4] * char_values[0][1]
+                    + coeffs_r[0][5] * char_values[0][2]
+                    + coeffs_r[0][6] * char_values[0][3]
+                    + coeffs_r[0][7] * char_values[0][4]
+                    + coeffs_r[0][8] * char_values[0][5]
 
-    r_rhs_r[i].u   = coeffs_r[1][3] * char_values[1][0]
-                   + coeffs_r[1][4] * char_values[1][1]
-                   + coeffs_r[1][5] * char_values[1][2]
-                   + coeffs_r[1][6] * char_values[1][3]
-                   + coeffs_r[1][7] * char_values[1][4]
-                   + coeffs_r[1][8] * char_values[1][5]
+    r_prim_r[i].u   = coeffs_r[1][3] * char_values[1][0]
+                    + coeffs_r[1][4] * char_values[1][1]
+                    + coeffs_r[1][5] * char_values[1][2]
+                    + coeffs_r[1][6] * char_values[1][3]
+                    + coeffs_r[1][7] * char_values[1][4]
+                    + coeffs_r[1][8] * char_values[1][5]
 
-    r_rhs_r[i].v   = coeffs_r[2][3] * char_values[2][0]
-                   + coeffs_r[2][4] * char_values[2][1]
-                   + coeffs_r[2][5] * char_values[2][2]
-                   + coeffs_r[2][6] * char_values[2][3]
-                   + coeffs_r[2][7] * char_values[2][4]
-                   + coeffs_r[2][8] * char_values[2][5]
+    r_prim_r[i].v   = coeffs_r[2][3] * char_values[2][0]
+                    + coeffs_r[2][4] * char_values[2][1]
+                    + coeffs_r[2][5] * char_values[2][2]
+                    + coeffs_r[2][6] * char_values[2][3]
+                    + coeffs_r[2][7] * char_values[2][4]
+                    + coeffs_r[2][8] * char_values[2][5]
 
-    r_rhs_r[i].w   = coeffs_r[3][3] * char_values[3][0]
-                   + coeffs_r[3][4] * char_values[3][1]
-                   + coeffs_r[3][5] * char_values[3][2]
-                   + coeffs_r[3][6] * char_values[3][3]
-                   + coeffs_r[3][7] * char_values[3][4]
-                   + coeffs_r[3][8] * char_values[3][5]
+    r_prim_r[i].w   = coeffs_r[3][3] * char_values[3][0]
+                    + coeffs_r[3][4] * char_values[3][1]
+                    + coeffs_r[3][5] * char_values[3][2]
+                    + coeffs_r[3][6] * char_values[3][3]
+                    + coeffs_r[3][7] * char_values[3][4]
+                    + coeffs_r[3][8] * char_values[3][5]
 
-    r_rhs_r[i].p   = coeffs_r[4][3] * char_values[4][0]
-                   + coeffs_r[4][4] * char_values[4][1]
-                   + coeffs_r[4][5] * char_values[4][2]
-                   + coeffs_r[4][6] * char_values[4][3]
-                   + coeffs_r[4][7] * char_values[4][4]
-                   + coeffs_r[4][8] * char_values[4][5]
+    r_prim_r[i].p   = coeffs_r[4][3] * char_values[4][0]
+                    + coeffs_r[4][4] * char_values[4][1]
+                    + coeffs_r[4][5] * char_values[4][2]
+                    + coeffs_r[4][6] * char_values[4][3]
+                    + coeffs_r[4][7] * char_values[4][4]
+                    + coeffs_r[4][8] * char_values[4][5]
 
-    var ix = i.x - bounds_c.lo.x
-    var iy = i.y - bounds_c.lo.y
-
-    var grow : int64 = 5*ix + iy*5*nx + i.z*5*nx*ny
-    var bcounter : int64 = 8*3*ix + iy*(8*3)*nx + i.z*(8*3)*ny*nx
-
-    -- rho
-    for j = 0, 3 do
-      var bcol : int64 = i.z + j - 1
-      var gcol : int64 = ix*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
-      var counter : int64 = bcounter + 2*j
-
-      -- matrix.colind[counter] = gcol+3
-      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[0][j] * (-0.5*rhosos_avg[0]*rhosos_avg[1])
-      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[0][j] * (-0.5*rhosos_avg[0]*rhosos_avg[1])
-
-      -- matrix.colind[counter+1] = gcol+4
-      matrix_l[{pr,pc}].nzval [counter+1] = coeffs_l[0][j] * (0.5)
-      matrix_r[{pr,pc}].nzval [counter+1] = coeffs_r[0][j] * (0.5)
-    end
-    bcounter = bcounter + 3*2
-    -- matrix.rowptr[grow+1] = bcounter
-
-    -- u
-    for j = 0, 3 do
-      var bcol : int64 = i.z + j - 1
-      var gcol : int64 = ix*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
-      var counter : int64 = bcounter + j
-
-      -- matrix.colind[counter] = gcol+1
-      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[1][j] * (1.0)
-      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[1][j] * (1.0)
-    end
-    bcounter = bcounter + 3*1
-    -- matrix.rowptr[grow+2] = bcounter
-
-    -- v
-    for j = 0, 3 do
-      var bcol : int64 = i.z + j - 1
-      var gcol : int64 = ix*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
-      var counter : int64 = bcounter + j
-
-      -- matrix.colind[counter] = gcol+2
-      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[2][j] * (1.0)
-      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[2][j] * (1.0)
-    end
-    bcounter = bcounter + 3*1
-    -- matrix.rowptr[grow+3] = bcounter
-
-    -- w
-    for j = 0, 3 do
-      var bcol : int64 = i.z + j - 1
-      var gcol : int64 = ix*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
-      var counter : int64 = bcounter + 2*j
-
-      -- matrix.colind[counter] = gcol
-      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[3][j] * (1.0)
-      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[3][j] * (1.0)
-
-      -- matrix.colind[counter+1] = gcol+4
-      matrix_l[{pr,pc}].nzval [counter+1] = coeffs_l[3][j] * (-1.0/(rhosos_avg[1]*rhosos_avg[1]))
-      matrix_r[{pr,pc}].nzval [counter+1] = coeffs_r[3][j] * (-1.0/(rhosos_avg[1]*rhosos_avg[1]))
-    end
-    bcounter = bcounter + 3*2
-    -- matrix.rowptr[grow+4] = bcounter
-
-    -- p
-    for j = 0, 3 do
-      var bcol : int64 = i.z + j - 1
-      var gcol : int64 = ix*5 + iy*5*nx + ((bcol+nz)%nz)*5*nx*ny -- Top of the block
-      var counter : int64 = bcounter + 2*j
-
-      -- matrix.colind[counter] = gcol+3
-      matrix_l[{pr,pc}].nzval [counter] = coeffs_l[4][j] * (0.5*rhosos_avg[0]*rhosos_avg[1])
-      matrix_r[{pr,pc}].nzval [counter] = coeffs_r[4][j] * (0.5*rhosos_avg[0]*rhosos_avg[1])
-
-      -- matrix.colind[counter+1] = gcol+4
-      matrix_l[{pr,pc}].nzval [counter+1] = coeffs_l[4][j] * (0.5)
-      matrix_r[{pr,pc}].nzval [counter+1] = coeffs_r[4][j] * (0.5)
-    end
-    bcounter = bcounter + 3*2
-    -- matrix.rowptr[grow+5] = bcounter
   end
 
-  -- For the last point
-  for iy = bounds_z.lo.y, bounds_z.hi.y+1 do
-    for ix = bounds_z.lo.x, bounds_z.hi.x+1 do
-      r_rhs_l[{ix,iy,nz}].{rho, u, v, w, p} = 0.0
-      r_rhs_r[{ix,iy,nz}].{rho, u, v, w, p} = 0.0
-    end
-  end
+  solve_block_tridiagonal_z( alpha_l, beta_l, gamma_l, rho_avg, sos_avg, r_prim_l, block_d, block_Uinv )
+  solve_block_tridiagonal_z( alpha_r, beta_r, gamma_r, rho_avg, sos_avg, r_prim_r, block_d, block_Uinv )
 
-  superlu.MatrixSolve( r_rhs_l, r_prim_l, matrix_l[{pr,pc}], nx, ny, nz, slu_l )
-  superlu.MatrixSolve( r_rhs_r, r_prim_r, matrix_r[{pr,pc}], nx, ny, nz, slu_r )
+  solve_tridiagonal_z_u( alpha_l, beta_l, gamma_l, r_prim_l, rho_avg )
+  solve_tridiagonal_z_u( alpha_r, beta_r, gamma_r, r_prim_r, sos_avg )
+
+  solve_tridiagonal_z_v( alpha_l, beta_l, gamma_l, r_prim_l, rho_avg )
+  solve_tridiagonal_z_v( alpha_r, beta_r, gamma_r, r_prim_r, sos_avg )
+
 
  return 1
 end
