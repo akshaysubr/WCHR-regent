@@ -502,6 +502,7 @@ task main()
   end
   
   wait_for(token)
+  wait_for(IOtoken)
   var t_start = c.legion_get_current_time_in_micros()
 
   __demand(__spmd)
@@ -557,16 +558,18 @@ task main()
         set_zero_cnsr( p_rhs_y[i] )
       end
       
-      -- Get the transport coefficients.
-      __demand(__parallel)
-      for i in pencil do
-        problem.get_transport_coeffs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i] )
-      end
+      if problem.viscous then
+        -- Get the transport coefficients.
+        __demand(__parallel)
+        for i in pencil do
+          problem.get_transport_coeffs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i] )
+        end
 
-      -- Get the viscous stress tensor.
-      __demand(__parallel)
-      for i in pencil do
-        get_tauij( p_gradu_y[i], p_tauij_y[i], p_visc_y[i] )
+        -- Get the viscous stress tensor.
+        __demand(__parallel)
+        for i in pencil do
+          get_tauij( p_gradu_y[i], p_tauij_y[i], p_visc_y[i] )
+        end
       end
 
       -- Add x-direction flux derivative to RHS.
@@ -637,18 +640,20 @@ task main()
         token += get_temperature_r( p_prim_c_y[i], p_aux_c_y[i] )
       end
 
-      -- Update velocity gradient tensor.
-      __demand(__parallel)
-      for i in pencil do
-        token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
-      end
-      __demand(__parallel)
-      for i in pencil do
-        token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
-      end
-      __demand(__parallel)
-      for i in pencil do
-        token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
+      if problem.viscous then
+        -- Update velocity gradient tensor.
+        __demand(__parallel)
+        for i in pencil do
+          token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
+        end
+        __demand(__parallel)
+        for i in pencil do
+          token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
+        end
+        __demand(__parallel)
+        for i in pencil do
+          token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
+        end
       end
  
     end

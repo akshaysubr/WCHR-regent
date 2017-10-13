@@ -1,1 +1,1 @@
-problems/shocktube_problem_3D_z.rg
+problems/taylorgreen_problem.rg

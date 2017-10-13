@@ -322,6 +322,7 @@ do
                     + coeffs_r[4][8] * char_values[4][5]
 
   end
+
   var t_weights = c.legion_get_current_time_in_micros()
 
   solve_block_tridiagonal_x( alpha_l, beta_l, gamma_l, rho_avg, sos_avg, r_prim_l, block_d, block_Uinv )
@@ -333,28 +334,11 @@ do
   solve_tridiagonal_x_w( alpha_l, beta_l, gamma_l, r_prim_l, rho_avg )
   solve_tridiagonal_x_w( alpha_r, beta_r, gamma_r, r_prim_r, sos_avg )
 
-  var t_block = c.legion_get_current_time_in_micros()
-
-  -- __delete(alpha_l)
-  -- __delete(beta_l)
-  -- __delete(gamma_l)
-
-  -- __delete(alpha_r)
-  -- __delete(beta_r)
-  -- __delete(gamma_r)
-
-  -- __delete(rho_avg)
-  -- __delete(sos_avg)
-
-  -- __delete(block_d)
-  -- __delete(block_Uinv)
-
   var t_end = c.legion_get_current_time_in_micros()
-  -- c.printf("Time to allocate regions: %12.5e\n", (t_alloc-t_start)*1e-6)
-  -- c.printf("Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
-  -- c.printf("Time for block tridiagonal solves: %12.5e\n", (t_block-t_weights)*1e-6)
-  -- c.printf("Time to deallocate regions: %12.5e\n", (t_end-t_block)*1e-6)
-  -- c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
+
+  c.printf("X: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
+  c.printf("X: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
+  c.printf("X: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
  return 1
 end
 
@@ -383,6 +367,8 @@ where
   reads(r_prim_c), reads writes(r_prim_l, r_prim_r, alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv)
 do
 
+  var t_start = c.legion_get_current_time_in_micros()
+
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
   var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
   var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
@@ -392,6 +378,8 @@ do
 
   regentlib.assert(bounds_c.lo.y == 0, "Can only perform Y interpolation in the Y pencil")
   regentlib.assert(bounds_y.lo.y == 0, "Can only perform Y interpolation in the Y pencil")
+
+  var t_alloc = c.legion_get_current_time_in_micros()
 
   for i in r_prim_c do
     var rhosos_avg : double[2] = get_rho_sos_avg_y( r_prim_c, i, Nx, Ny, Nz )
@@ -491,6 +479,8 @@ do
 
   end
       
+  var t_weights = c.legion_get_current_time_in_micros()
+
   solve_block_tridiagonal_y( alpha_l, beta_l, gamma_l, rho_avg, sos_avg, r_prim_l, block_d, block_Uinv )
   solve_block_tridiagonal_y( alpha_r, beta_r, gamma_r, rho_avg, sos_avg, r_prim_r, block_d, block_Uinv )
 
@@ -500,6 +490,11 @@ do
   solve_tridiagonal_y_w( alpha_l, beta_l, gamma_l, r_prim_l, rho_avg )
   solve_tridiagonal_y_w( alpha_r, beta_r, gamma_r, r_prim_r, sos_avg )
 
+  var t_end = c.legion_get_current_time_in_micros()
+
+  c.printf("Y: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
+  c.printf("Y: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
+  c.printf("Y: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
  return 1
 end
 
@@ -527,6 +522,8 @@ where
   reads(r_prim_c), reads writes(r_prim_l, r_prim_r, alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv)
 do
 
+  var t_start = c.legion_get_current_time_in_micros()
+
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
   var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
   var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
@@ -536,6 +533,8 @@ do
 
   regentlib.assert(bounds_c.lo.z == 0, "Can only perform Z interpolation in the Z pencil")
   regentlib.assert(bounds_z.lo.z == 0, "Can only perform Z interpolation in the Z pencil")
+
+  var t_alloc = c.legion_get_current_time_in_micros()
 
   for i in r_prim_c do
     var rhosos_avg : double[2] = get_rho_sos_avg_z( r_prim_c, i, Nx, Ny, Nz )
@@ -635,6 +634,8 @@ do
 
   end
 
+  var t_weights = c.legion_get_current_time_in_micros()
+
   solve_block_tridiagonal_z( alpha_l, beta_l, gamma_l, rho_avg, sos_avg, r_prim_l, block_d, block_Uinv )
   solve_block_tridiagonal_z( alpha_r, beta_r, gamma_r, rho_avg, sos_avg, r_prim_r, block_d, block_Uinv )
 
@@ -644,6 +645,11 @@ do
   solve_tridiagonal_z_v( alpha_l, beta_l, gamma_l, r_prim_l, rho_avg )
   solve_tridiagonal_z_v( alpha_r, beta_r, gamma_r, r_prim_r, sos_avg )
 
+  var t_end = c.legion_get_current_time_in_micros()
 
- return 1
+
+  c.printf("Z: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
+  c.printf("Z: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
+  c.printf("Z: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
+  return 1
 end
