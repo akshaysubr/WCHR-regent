@@ -460,9 +460,9 @@ do
   end
 
   for k = bounds.lo.z, bounds.hi.z+1 do
-    for i = bounds.lo.x, bounds.hi.x+1 do
 
-      if periodic_y then
+    if periodic_y then
+      for i = bounds.lo.x, bounds.hi.x+1 do
         -- If periodic, make correction for Sherman-Morrison
         beta[{i,0,k}]._0 = beta[{i,0,k}]._0 + alpha[{i,0,k}]._0
         beta[{i,0,k}]._2 = beta[{i,0,k}]._2 + alpha[{i,0,k}]._2
@@ -472,22 +472,30 @@ do
         beta[{i,N-1,k}]._2 = beta[{i,N-1,k}]._2 + gamma[{i,N-1,k}]._2
         beta[{i,N-1,k}]._4 = beta[{i,N-1,k}]._4 + gamma[{i,N-1,k}]._4
       end
+    end
 
-      -- Forward elimination
+    -- Forward elimination
+    for i = bounds.lo.x, bounds.hi.x+1 do
       get_Rinv_r( rho_avg[{i,0,k}], sos_avg[{i,0,k}], d, unsafe_cast(int3d(double[9], d), int3d {i,0,k}) )
       multiply_diagonal_l_r( d, unsafe_cast(int3d(double[9], d), int3d {i,0,k}), beta[{i,0,k}]._0, beta[{i,0,k}]._2, beta[{i,0,k}]._4 )
       invert_matrix_r( d, unsafe_cast(int3d(double[9], d), int3d {i,0,k}) )
+    end
 
+    for i = bounds.lo.x, bounds.hi.x+1 do
       sol[{i,0,k}].rho = -sol[{i,0,k}].rho
       sol[{i,0,k}].v   = -sol[{i,0,k}].v
       sol[{i,0,k}].p   = -sol[{i,0,k}].p
+    end
 
-      if periodic_y then
+    if periodic_y then
+      for i = bounds.lo.x, bounds.hi.x+1 do
         get_Rinv_r( rho_avg[{i,0,k}], sos_avg[{i,0,k}], Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,0,k}) )
         multiply_diagonal_l_r( Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,0,k}), alpha[{i,0,k}]._0, alpha[{i,0,k}]._2, alpha[{i,0,k}]._4 )
       end
+    end
 
-      for j = 1,N do
+    for j = 1,N do
+      for i = bounds.lo.x, bounds.hi.x+1 do
         var Rinv_i : double[9]
         get_Rinv( rho_avg[{i,j,k}], sos_avg[{i,j,k}], Rinv_i ) -- Get Rinv at i
 
@@ -516,36 +524,44 @@ do
           multiply_diagonal_l_r( Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,j,k}), -1., -1., -1. )
         end
       end
+    end
 
-      if periodic_y then
+    if periodic_y then
+      for i = bounds.lo.x, bounds.hi.x+1 do
         var Rinv : double[9]
         get_Rinv( rho_avg[{i,N-1,k}], sos_avg[{i,N-1,k}], Rinv ) -- Get Rinv
         multiply_diagonal_l( Rinv, gamma[{i,N-1,k}]._0, gamma[{i,N-1,k}]._2, gamma[{i,N-1,k}]._4 )
         axpby_r( Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,N-1,k}), Rinv, 1., -1., 9 )
       end
+    end
 
+    for i = bounds.lo.x, bounds.hi.x+1 do
       -- Back substitution
       var prim : double[3] = array( sol[{i,N-1,k}].rho, sol[{i,N-1,k}].v, sol[{i,N-1,k}].p )
       var cprime = mult_matrix_vector( d[{i,N-1,k}], prim )
       sol[{i,N-1,k}].rho = - cprime[0]
       sol[{i,N-1,k}].v   = - cprime[1]
       sol[{i,N-1,k}].p   = - cprime[2]
+    end
 
-      if periodic_y then
+    if periodic_y then
+      for i = bounds.lo.x, bounds.hi.x+1 do
         var tmp : double[9]
         mult_matrix_matrix( d[{i,N-1,k}], Uinv[{i,N-1,k}], tmp )
         for ii = 0,9 do
           (Uinv[{i,N-1,k}])[ii] = -tmp[ii]
         end
       end
+    end
 
-      for j = N-1,0,-1 do
+    for j = N-1,0,-1 do
+      for i = bounds.lo.x, bounds.hi.x+1 do
         var gammaRinv_im1 : double[9]
         get_Rinv( rho_avg[{i,j-1,k}], sos_avg[{i,j-1,k}], gammaRinv_im1 ) -- Get Rinv at i-1
         multiply_diagonal_l( gammaRinv_im1, gamma[{i,j-1,k}]._0, gamma[{i,j-1,k}]._2, gamma[{i,j-1,k}]._4 )
 
-        prim = array( sol[{i,j,k}].rho, sol[{i,j,k}].v, sol[{i,j,k}].p )
-        cprime = mult_matrix_vector( gammaRinv_im1, prim )    
+        var prim : double[3] = array( sol[{i,j,k}].rho, sol[{i,j,k}].v, sol[{i,j,k}].p )
+        var cprime = mult_matrix_vector( gammaRinv_im1, prim )    
 
         prim = array( sol[{i,j-1,k}].rho, sol[{i,j-1,k}].v, sol[{i,j-1,k}].p )
         axpby( prim, cprime, 1., 1., 3 )
@@ -562,18 +578,20 @@ do
           mult_matrix_matrix_r( d[{i,j-1,k}], tmp, Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,j-1,k}) )
         end -- periodic
       end
+    end
 
-      -- Sherman-Morrison correction
-      if periodic_y then
+    -- Sherman-Morrison correction
+    if periodic_y then
+      for i = bounds.lo.x, bounds.hi.x+1 do
         var M : double[9] = array(1., 0., 0., 0., 1., 0., 0., 0., 1.) -- Identity matrix
         axpby( M, Uinv[{i,0,k}],   1., 1., 9 )
         axpby( M, Uinv[{i,N-1,k}], 1.,-1., 9 )
         invert_matrix( M )
-        prim = array( sol[{i,0,k}].rho - sol[{i,N-1,k}].rho, sol[{i,0,k}].v - sol[{i,N-1,k}].v, sol[{i,0,k}].p - sol[{i,N-1,k}].p )
+        var prim : double[3] = array( sol[{i,0,k}].rho - sol[{i,N-1,k}].rho, sol[{i,0,k}].v - sol[{i,N-1,k}].v, sol[{i,0,k}].p - sol[{i,N-1,k}].p )
         var corrfact : double[3] = mult_matrix_vector( M, prim )
 
         for j = 0,N do
-          cprime = mult_matrix_vector( Uinv[{i,j,k}], corrfact )
+          var cprime = mult_matrix_vector( Uinv[{i,j,k}], corrfact )
           sol[{i,j,k}].rho = sol[{i,j,k}].rho - cprime[0]
           sol[{i,j,k}].v   = sol[{i,j,k}].v   - cprime[1]
           sol[{i,j,k}].p   = sol[{i,j,k}].p   - cprime[2]
@@ -584,8 +602,8 @@ do
         sol[{i,N,k}].v   = sol[{i,0,k}].v
         sol[{i,N,k}].p   = sol[{i,0,k}].p
       end
-
     end
+
   end
 
 end
@@ -610,14 +628,14 @@ function make_solve_tridiagonal_y( fi, fn )
     end
   
     for k = bounds.lo.z, bounds.hi.z+1 do
-      for i = bounds.lo.x, bounds.hi.x+1 do
   
+      for i = bounds.lo.x, bounds.hi.x+1 do
         var beta0 : double = beta[{i,0,k}].[fi]
         if periodic_y then
-          -- Sherman-Morrison reduced matrix
-          Uinv[{i,0,k}] = -beta[{i,0,k}].[fi]
-          beta[{i,N-1,k}].[fi] = beta[{i,N-1,k}].[fi] + gamma[{i,N-1,k}].[fi] * alpha[{i,0,k}].[fi] / beta[{i,0,k}].[fi]
-          beta[{i,0,k}].[fi] = 2.*beta[{i,0,k}].[fi]
+            -- Sherman-Morrison reduced matrix
+            Uinv[{i,0,k}] = -beta[{i,0,k}].[fi]
+            beta[{i,N-1,k}].[fi] = beta[{i,N-1,k}].[fi] + gamma[{i,N-1,k}].[fi] * alpha[{i,0,k}].[fi] / beta[{i,0,k}].[fi]
+            beta[{i,0,k}].[fi] = 2.*beta[{i,0,k}].[fi]
         end
 
         -- Forward substitution
@@ -626,29 +644,38 @@ function make_solve_tridiagonal_y( fi, fn )
         if periodic_y then
           Uinv[{i,0,k}] =  beta[{i,0,k}].[fi] * Uinv[{i,0,k}]
         end
+      end
 
-        for j = 1,N do
+      for j = 1,N do
+        for i = bounds.lo.x, bounds.hi.x+1 do
           beta[{i,j,k}].[fi] = 1./( beta[{i,j,k}].[fi] - alpha[{i,j,k}].[fi] * beta[{i,j-1,k}].[fi] * gamma[{i,j-1,k}].[fi] )
           sol[{i,j,k}].[fn] = beta[{i,j,k}].[fi] * (sol[{i,j,k}].[fn] - alpha[{i,j,k}].[fi] * sol[{i,j-1,k}].[fn])
           if periodic_y then
             Uinv[{i,j,k}] = beta[{i,j,k}].[fi] * ( - alpha[{i,j,k}].[fi] * Uinv[{i,j-1,k}])
           end
         end
+      end
 
-        if periodic_y then
+      if periodic_y then
+        for i = bounds.lo.x, bounds.hi.x+1 do
           Uinv[{i,N-1,k}] = Uinv[{i,N-1,k}] + beta[{i,N-1,k}].[fi] * ( gamma[{i,N-1,k}].[fi] )
         end
-        
-        -- Backward elimination
-        for j = N-1,0,-1 do
+      end
+      
+      -- Backward elimination
+      for j = N-1,0,-1 do
+        for i = bounds.lo.x, bounds.hi.x+1 do
           sol[{i,j-1,k}].[fn] = sol[{i,j-1,k}].[fn] - beta[{i,j-1,k}].[fi] * gamma[{i,j-1,k}].[fi] * sol[{i,j,k}].[fn]
           if periodic_y then
             Uinv[{i,j-1,k}] = Uinv[{i,j-1,k}] - beta[{i,j-1,k}].[fi] * gamma[{i,j-1,k}].[fi] * Uinv[{i,j,k}]
           end
         end
+      end
   
-        -- Sherman-Morrison correction
-        if periodic_y then
+      -- Sherman-Morrison correction
+      if periodic_y then
+        for i = bounds.lo.x, bounds.hi.x+1 do
+          var beta0 = (1./beta[{i,0,k}].[fi])/2.
           var corr_factor : double = ( sol[{i,0,k}].[fn] - (alpha[{i,0,k}].[fi] / beta0) * sol[{i,N-1,k}].[fn] )
           corr_factor = corr_factor / ( 1. + Uinv[{i,0,k}] - (alpha[{i,0,k}].[fi] / beta0) * Uinv[{i,N-1,k}] )
 
@@ -659,8 +686,8 @@ function make_solve_tridiagonal_y( fi, fn )
           -- Copy last edge if periodic
           sol[{i,N,k}].[fn] = sol[{i,0,k}].[fn]
         end
-
       end
+
     end
   
   end
@@ -690,10 +717,10 @@ do
     N = bounds.hi.z -- Don't solve for last edge if periodic
   end
 
-  for j = bounds.lo.y, bounds.hi.y+1 do
-    for i = bounds.lo.x, bounds.hi.x+1 do
 
-      if periodic_z then
+  if periodic_z then
+    for j = bounds.lo.y, bounds.hi.y+1 do
+      for i = bounds.lo.x, bounds.hi.x+1 do
         -- If periodic, make correction for Sherman-Morrison
         beta[{i,j,0}]._0 = beta[{i,j,0}]._0 + alpha[{i,j,0}]._0
         beta[{i,j,0}]._3 = beta[{i,j,0}]._3 + alpha[{i,j,0}]._3
@@ -703,22 +730,38 @@ do
         beta[{i,j,N-1}]._3 = beta[{i,j,N-1}]._3 + gamma[{i,j,N-1}]._3
         beta[{i,j,N-1}]._4 = beta[{i,j,N-1}]._4 + gamma[{i,j,N-1}]._4
       end
+    end
+  end
 
-      -- Forward elimination
+  -- Forward elimination
+  for j = bounds.lo.y, bounds.hi.y+1 do
+    for i = bounds.lo.x, bounds.hi.x+1 do
       get_Rinv_r( rho_avg[{i,j,0}], sos_avg[{i,j,0}], d, unsafe_cast(int3d(double[9], d), int3d {i,j,0}) )
       multiply_diagonal_l_r( d, unsafe_cast(int3d(double[9], d), int3d {i,j,0}), beta[{i,j,0}]._0, beta[{i,j,0}]._3, beta[{i,j,0}]._4 )
       invert_matrix_r( d, unsafe_cast(int3d(double[9], d), int3d {i,j,0}) )
+    end
+  end
 
+  for j = bounds.lo.y, bounds.hi.y+1 do
+    for i = bounds.lo.x, bounds.hi.x+1 do
       sol[{i,j,0}].rho = -sol[{i,j,0}].rho
       sol[{i,j,0}].w   = -sol[{i,j,0}].w
       sol[{i,j,0}].p   = -sol[{i,j,0}].p
+    end
+  end
 
-      if periodic_z then
+  if periodic_z then
+    for j = bounds.lo.y, bounds.hi.y+1 do
+      for i = bounds.lo.x, bounds.hi.x+1 do
         get_Rinv_r( rho_avg[{i,j,0}], sos_avg[{i,j,0}], Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,j,0}) )
         multiply_diagonal_l_r( Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,j,0}), alpha[{i,j,0}]._0, alpha[{i,j,0}]._3, alpha[{i,j,0}]._4 )
       end
+    end
+  end
 
-      for k = 1,N do
+  for k = 1,N do
+    for j = bounds.lo.y, bounds.hi.y+1 do
+      for i = bounds.lo.x, bounds.hi.x+1 do
         var Rinv_i : double[9]
         get_Rinv( rho_avg[{i,j,k}], sos_avg[{i,j,k}], Rinv_i ) -- Get Rinv at i
 
@@ -746,37 +789,54 @@ do
           mult_matrix_matrix_r( mat, Uinv[{i,j,k-1}], Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,j,k}) )
           multiply_diagonal_l_r( Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,j,k}), -1., -1., -1. )
         end
-      end
 
-      if periodic_z then
+      end
+    end
+  end
+
+  if periodic_z then
+    for j = bounds.lo.y, bounds.hi.y+1 do
+      for i = bounds.lo.x, bounds.hi.x+1 do
         var Rinv : double[9]
         get_Rinv( rho_avg[{i,j,N-1}], sos_avg[{i,j,N-1}], Rinv ) -- Get Rinv
         multiply_diagonal_l( Rinv, gamma[{i,j,N-1}]._0, gamma[{i,j,N-1}]._3, gamma[{i,j,N-1}]._4 )
         axpby_r( Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,j,N-1}), Rinv, 1., -1., 9 )
       end
+    end
+  end
 
-      -- Back substitution
+  -- Back substitution
+  for j = bounds.lo.y, bounds.hi.y+1 do
+    for i = bounds.lo.x, bounds.hi.x+1 do
       var prim : double[3] = array( sol[{i,j,N-1}].rho, sol[{i,j,N-1}].w, sol[{i,j,N-1}].p )
       var cprime = mult_matrix_vector( d[{i,j,N-1}], prim )
       sol[{i,j,N-1}].rho = - cprime[0]
       sol[{i,j,N-1}].w   = - cprime[1]
       sol[{i,j,N-1}].p   = - cprime[2]
+    end
+  end
 
-      if periodic_z then
+  if periodic_z then
+    for j = bounds.lo.y, bounds.hi.y+1 do
+      for i = bounds.lo.x, bounds.hi.x+1 do
         var tmp : double[9]
         mult_matrix_matrix( d[{i,j,N-1}], Uinv[{i,j,N-1}], tmp )
         for ii = 0,9 do
           (Uinv[{i,j,N-1}])[ii] = -tmp[ii]
         end
       end
+    end
+  end
 
-      for k = N-1,0,-1 do
+  for k = N-1,0,-1 do
+    for j = bounds.lo.y, bounds.hi.y+1 do
+      for i = bounds.lo.x, bounds.hi.x+1 do
         var gammaRinv_im1 : double[9]
         get_Rinv( rho_avg[{i,j,k-1}], sos_avg[{i,j,k-1}], gammaRinv_im1 ) -- Get Rinv at i-1
         multiply_diagonal_l( gammaRinv_im1, gamma[{i,j,k-1}]._0, gamma[{i,j,k-1}]._3, gamma[{i,j,k-1}]._4 )
 
-        prim = array( sol[{i,j,k}].rho, sol[{i,j,k}].w, sol[{i,j,k}].p )
-        cprime = mult_matrix_vector( gammaRinv_im1, prim )    
+        var prim : double[3] = array( sol[{i,j,k}].rho, sol[{i,j,k}].w, sol[{i,j,k}].p )
+        var cprime = mult_matrix_vector( gammaRinv_im1, prim )    
 
         prim = array( sol[{i,j,k-1}].rho, sol[{i,j,k-1}].w, sol[{i,j,k-1}].p )
         axpby( prim, cprime, 1., 1., 3 )
@@ -793,18 +853,22 @@ do
           mult_matrix_matrix_r( d[{i,j,k-1}], tmp, Uinv, unsafe_cast(int3d(double[9], Uinv), int3d {i,j,k-1}) )
         end -- periodic
       end
+    end
+  end
 
-      -- Sherman-Morrison correction
-      if periodic_z then
+  -- Sherman-Morrison correction
+  if periodic_z then
+    for j = bounds.lo.y, bounds.hi.y+1 do
+      for i = bounds.lo.x, bounds.hi.x+1 do
         var M : double[9] = array(1., 0., 0., 0., 1., 0., 0., 0., 1.) -- Identity matrix
         axpby( M, Uinv[{i,j,0}],   1., 1., 9 )
         axpby( M, Uinv[{i,j,N-1}], 1.,-1., 9 )
         invert_matrix( M )
-        prim = array( sol[{i,j,0}].rho - sol[{i,j,N-1}].rho, sol[{i,j,0}].w - sol[{i,j,N-1}].w, sol[{i,j,0}].p - sol[{i,j,N-1}].p )
+        var prim : double[3] = array( sol[{i,j,0}].rho - sol[{i,j,N-1}].rho, sol[{i,j,0}].w - sol[{i,j,N-1}].w, sol[{i,j,0}].p - sol[{i,j,N-1}].p )
         var corrfact : double[3] = mult_matrix_vector( M, prim )
 
         for k = 0,N do
-          cprime = mult_matrix_vector( Uinv[{i,j,k}], corrfact )
+          var cprime = mult_matrix_vector( Uinv[{i,j,k}], corrfact )
           sol[{i,j,k}].rho = sol[{i,j,k}].rho - cprime[0]
           sol[{i,j,k}].w   = sol[{i,j,k}].w   - cprime[1]
           sol[{i,j,k}].p   = sol[{i,j,k}].p   - cprime[2]
@@ -815,7 +879,6 @@ do
         sol[{i,j,N}].w   = sol[{i,j,0}].w
         sol[{i,j,N}].p   = sol[{i,j,0}].p
       end
-
     end
   end
 
@@ -858,28 +921,46 @@ function make_solve_tridiagonal_z( fi, fn )
           Uinv[{i,j,0}] =  beta[{i,j,0}].[fi] * Uinv[{i,j,0}]
         end
 
-        for k = 1,N do
+      end
+    end
+
+    for k = 1,N do
+      for j = bounds.lo.y, bounds.hi.y+1 do
+        for i = bounds.lo.x, bounds.hi.x+1 do
           beta[{i,j,k}].[fi] = 1./( beta[{i,j,k}].[fi] - alpha[{i,j,k}].[fi] * beta[{i,j,k-1}].[fi] * gamma[{i,j,k-1}].[fi] )
           sol[{i,j,k}].[fn] = beta[{i,j,k}].[fi] * (sol[{i,j,k}].[fn] - alpha[{i,j,k}].[fi] * sol[{i,j,k-1}].[fn])
           if periodic_z then
             Uinv[{i,j,k}] = beta[{i,j,k}].[fi] * ( - alpha[{i,j,k}].[fi] * Uinv[{i,j,k-1}])
           end
         end
+      end
+    end
 
-        if periodic_z then
+    if periodic_z then
+      for j = bounds.lo.y, bounds.hi.y+1 do
+        for i = bounds.lo.x, bounds.hi.x+1 do
           Uinv[{i,j,N-1}] = Uinv[{i,j,N-1}] + beta[{i,j,N-1}].[fi] * ( gamma[{i,j,N-1}].[fi] )
         end
-        
-        -- Backward elimination
-        for k = N-1,0,-1 do
+      end
+    end
+    
+    -- Backward elimination
+    for k = N-1,0,-1 do
+      for j = bounds.lo.y, bounds.hi.y+1 do
+        for i = bounds.lo.x, bounds.hi.x+1 do
           sol[{i,j,k-1}].[fn] = sol[{i,j,k-1}].[fn] - beta[{i,j,k-1}].[fi] * gamma[{i,j,k-1}].[fi] * sol[{i,j,k}].[fn]
           if periodic_z then
             Uinv[{i,j,k-1}] = Uinv[{i,j,k-1}] - beta[{i,j,k-1}].[fi] * gamma[{i,j,k-1}].[fi] * Uinv[{i,j,k}]
           end
         end
+      end
+    end
   
-        -- Sherman-Morrison correction
-        if periodic_z then
+    -- Sherman-Morrison correction
+    if periodic_z then
+      for j = bounds.lo.y, bounds.hi.y+1 do
+        for i = bounds.lo.x, bounds.hi.x+1 do
+          var beta0 = (1./beta[{i,j,0}].[fi])/2.
           var corr_factor : double = ( sol[{i,j,0}].[fn] - (alpha[{i,j,0}].[fi] / beta0) * sol[{i,j,N-1}].[fn] )
           corr_factor = corr_factor / ( 1. + Uinv[{i,j,0}] - (alpha[{i,j,0}].[fi] / beta0) * Uinv[{i,j,N-1}] )
 
@@ -890,9 +971,9 @@ function make_solve_tridiagonal_z( fi, fn )
           -- Copy last edge if periodic
           sol[{i,j,N}].[fn] = sol[{i,j,0}].[fn]
         end
-
       end
     end
+
   
   end
   return solve_tridiagonal_z

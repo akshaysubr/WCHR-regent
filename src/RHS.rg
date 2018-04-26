@@ -278,12 +278,12 @@ do
 
     var t_end = c.legion_get_current_time_in_micros()
 
-    c.printf("X: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
-    c.printf("X: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
-    c.printf("X: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
-    c.printf("X: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
-    c.printf("X: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
-    c.printf("X: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
+    -- c.printf("X: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
+    -- c.printf("X: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
+    -- c.printf("X: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
+    -- c.printf("X: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
+    -- c.printf("X: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
+    -- c.printf("X: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
   end
 end
 
@@ -376,12 +376,12 @@ do
 
     var t_end = c.legion_get_current_time_in_micros()
 
-    c.printf("Y: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
-    c.printf("Y: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
-    c.printf("Y: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
-    c.printf("Y: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
-    c.printf("Y: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
-    c.printf("Y: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
+    -- c.printf("Y: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
+    -- c.printf("Y: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
+    -- c.printf("Y: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
+    -- c.printf("Y: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
+    -- c.printf("Y: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
+    -- c.printf("Y: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
   end
 end
 
@@ -474,12 +474,12 @@ do
 
     var t_end = c.legion_get_current_time_in_micros()
 
-    c.printf("Z: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
-    c.printf("Z: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
-    c.printf("Z: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
-    c.printf("Z: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
-    c.printf("Z: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
-    c.printf("Z: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
+    -- c.printf("Z: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
+    -- c.printf("Z: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
+    -- c.printf("Z: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
+    -- c.printf("Z: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
+    -- c.printf("Z: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
+    -- c.printf("Z: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
   end
 end
 

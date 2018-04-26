@@ -336,9 +336,9 @@ do
 
   var t_end = c.legion_get_current_time_in_micros()
 
-  c.printf("X: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
-  c.printf("X: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
-  c.printf("X: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
+  -- c.printf("X: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
+  -- c.printf("X: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
+  -- c.printf("X: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
  return 1
 end
 
@@ -492,9 +492,9 @@ do
 
   var t_end = c.legion_get_current_time_in_micros()
 
-  c.printf("Y: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
-  c.printf("Y: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
-  c.printf("Y: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
+  -- c.printf("Y: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
+  -- c.printf("Y: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
+  -- c.printf("Y: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
  return 1
 end
 
@@ -648,8 +648,8 @@ do
   var t_end = c.legion_get_current_time_in_micros()
 
 
-  c.printf("Z: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
-  c.printf("Z: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
-  c.printf("Z: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
+  -- c.printf("Z: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
+  -- c.printf("Z: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
+  -- c.printf("Z: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
   return 1
 end
