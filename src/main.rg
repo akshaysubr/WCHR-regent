@@ -13,11 +13,9 @@ require("RHS")
 require("partition")
 local use_io = require("IO")
 
-local superlu = require("superlu_util")
 local problem = require("problem")
 local Config  = require("config")
 
-local csuperlu_mapper = require("superlu_mapper")
 
 terra wait_for(x : int)
   return x
@@ -763,18 +761,15 @@ end
 
 if os.getenv('SAVEOBJ') == '1' then
   local root_dir = arg[0]:match(".*/") or "./"
-  local superlu_root = os.getenv('SUPERLU_PATH') or "/opt/SuperLU_5.2.1"
-  local superlu_lib_dir = superlu_root .. "/lib"
-  local superlu_include_dir = superlu_root .. "/include"
   local link_flags = {}
   if use_io then
     local hdf_root = os.getenv('HDF_ROOT')
     local hdf_lib_dir = hdf_root .. "/lib"
-    link_flags = {"-L" .. root_dir, "-L" .. superlu_lib_dir, "-L" .. hdf_lib_dir, "-lhdf5", "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
+    link_flags = {"-L" .. root_dir, "-L" .. hdf_lib_dir, "-lhdf5", "-lm", "-lblas"}
   else
-    link_flags = {"-L" .. root_dir, "-L" .. superlu_lib_dir, "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
+    link_flags = {"-L" .. root_dir, "-lm", "-lblas"}
   end
-  regentlib.saveobj(main, "wchr", "executable", csuperlu_mapper.register_mappers, link_flags)
+  regentlib.saveobj(main, "wchr", "executable", link_flags)
 else
-  regentlib.start(main, csuperlu_mapper.register_mappers)
+  regentlib.start(main)
 end

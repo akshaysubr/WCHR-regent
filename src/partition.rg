@@ -4,8 +4,6 @@ local c     = regentlib.c
 
 require("fields")
 
-local superlu = require("superlu_util")
-
 task partition_LU( LU     : region(ispace(int3d), LU_struct),
                    pencil : ispace(int2d) )
   var coloring = c.legion_domain_point_coloring_create()
@@ -180,10 +178,4 @@ local r_double9  = regentlib.newsymbol(region(ispace(int3d), double[9]), "r_doub
 partition_xpencil_double9 = make_partition_xpencil(r_double9)
 partition_ypencil_double9 = make_partition_ypencil(r_double9)
 partition_zpencil_double9 = make_partition_zpencil(r_double9)
-
-local slu = regentlib.newsymbol(region(ispace(int2d), superlu.c.superlu_vars_t), "slu")
-partition_slu = make_partition2D(slu)
-
-local matrix = regentlib.newsymbol(region(ispace(int2d), superlu.CSR_matrix), "matrix")
-partition_matrix = make_partition2D(matrix)
 

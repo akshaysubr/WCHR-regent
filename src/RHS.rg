@@ -5,7 +5,6 @@ require("derivatives")
 require("interpolation")
 require("SOE")
 
-local superlu = require("superlu_util")
 local problem = require("problem")
 
 local c     = regentlib.c

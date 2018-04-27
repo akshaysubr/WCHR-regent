@@ -8,7 +8,6 @@ require("IO")
 require("SOE")
 require("block_tridiagonal")
 local problem = require("problem")
-local superlu = require("superlu_util")
 
 local xi = 2.0/3.0
  
