@@ -13,11 +13,9 @@ require("RHS")
 require("partition")
 local use_io = require("IO")
 
-local superlu = require("superlu_util")
 local problem = require("problem")
 local Config  = require("config")
 
-local csuperlu_mapper = require("superlu_mapper")
 
 terra wait_for(x : int)
   return x
@@ -97,10 +95,14 @@ task main()
   c.printf("================================================================\n")
 
   --------------------------------------------------------------------------------------------
-  --                       DATA STUCTURES
+  --                       DATA STRUCTURES
   --------------------------------------------------------------------------------------------
   
   var grid_c     = ispace(int3d, {x = Nx,   y = Ny,   z = Nz  })  -- cell center index space
+
+  var ghost_x    = ispace(int3d, {x =  4,   y = Ny,   z = Nz  })  -- x ghost cells
+  var ghost_y    = ispace(int3d, {x = Nx,   y =  4,   z = Nz  })  -- y ghost cells
+  var ghost_z    = ispace(int3d, {x = Nx,   y = Ny,   z =  4  })  -- y ghost cells
 
   var grid_e_x   = ispace(int3d, {x = Nx+1, y = Ny,   z = Nz  })  -- x cell edge index space
   var grid_e_y   = ispace(int3d, {x = Nx,   y = Ny+1, z = Nz  })  -- y cell edge index space
@@ -117,6 +119,13 @@ task main()
   var r_prim_r_x = region(grid_e_x, primitive)  -- primitive variables at right x cell edge
   var r_prim_r_y = region(grid_e_y, primitive)  -- primitive variables at right y cell edge
   var r_prim_r_z = region(grid_e_z, primitive)  -- primitive variables at right z cell edge
+
+  var gr_prim_l_x = region(ghost_x, primitive)  -- primitive variables at left x ghost cells
+  var gr_prim_l_y = region(ghost_y, primitive)  -- primitive variables at left y ghost cells
+  var gr_prim_l_z = region(ghost_z, primitive)  -- primitive variables at left z ghost cells
+  var gr_prim_r_x = region(ghost_x, primitive)  -- primitive variables at right x ghost cells
+  var gr_prim_r_y = region(ghost_y, primitive)  -- primitive variables at right y ghost cells
+  var gr_prim_r_z = region(ghost_z, primitive)  -- primitive variables at right z ghost cells
 
   var r_aux_c    = region(grid_c,   auxiliary)         -- auxiliary variables at cell center
   var r_visc     = region(grid_c,   transport_coeffs)  -- Transport coefficients at cell center
@@ -137,6 +146,13 @@ task main()
   var r_flux_e_y = region(grid_e_y, conserved)  -- flux at y cell edge
   var r_flux_e_z = region(grid_e_z, conserved)  -- flux at z cell edge
   
+  var gr_flux_l_x = region(ghost_x, conserved)  -- flux at left x ghost cells
+  var gr_flux_l_y = region(ghost_y, conserved)  -- flux at left y ghost cells
+  var gr_flux_l_z = region(ghost_z, conserved)  -- flux at left z ghost cells
+  var gr_flux_r_x = region(ghost_x, conserved)  -- flux at right x ghost cells
+  var gr_flux_r_y = region(ghost_y, conserved)  -- flux at right y ghost cells
+  var gr_flux_r_z = region(ghost_z, conserved)  -- flux at right z ghost cells
+
   var r_fder_c_x = region(grid_c,   conserved)  -- x flux derivative
   var r_fder_c_y = region(grid_c,   conserved)  -- y flux derivative
   var r_fder_c_z = region(grid_c,   conserved)  -- z flux derivative
@@ -158,20 +174,48 @@ task main()
 
   var pencil = ispace(int2d, int2d {config.prow, config.pcol})
 
-  var slu_l_x    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for x interpolation
-  var slu_r_x    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for x interpolation
-  var slu_l_y    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for y interpolation
-  var slu_r_y    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for y interpolation
-  var slu_l_z    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for z interpolation
-  var slu_r_z    = region(pencil, superlu.c.superlu_vars_t)  -- Super LU data structure for z interpolation
+  var alpha_l_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var beta_l_x  = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var gamma_l_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
 
-  var matrix_l_x = region(pencil, superlu.CSR_matrix)  -- matrix data structure for x left interpolation
-  var matrix_r_x = region(pencil, superlu.CSR_matrix)  -- matrix data structure for x right interpolation
-  var matrix_l_y = region(pencil, superlu.CSR_matrix)  -- matrix data structure for y left interpolation
-  var matrix_r_y = region(pencil, superlu.CSR_matrix)  -- matrix data structure for y right interpolation
-  var matrix_l_z = region(pencil, superlu.CSR_matrix)  -- matrix data structure for z left interpolation
-  var matrix_r_z = region(pencil, superlu.CSR_matrix)  -- matrix data structure for z right interpolation
-  
+  var alpha_r_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var beta_r_x  = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var gamma_r_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+
+  var rho_avg_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), double )
+  var sos_avg_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), double )
+
+  var block_d_x    = region( ispace(int3d, {Nx+1, Ny, Nz} ), double[9] )
+  var block_Uinv_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), double[9] )
+
+  var alpha_l_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
+  var beta_l_y  = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
+  var gamma_l_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
+
+  var alpha_r_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
+  var beta_r_y  = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
+  var gamma_r_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
+
+  var rho_avg_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), double )
+  var sos_avg_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), double )
+
+  var block_d_y    = region( ispace(int3d, {Nx, Ny+1, Nz} ), double[9] )
+  var block_Uinv_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), double[9] )
+
+  var alpha_l_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+  var beta_l_z  = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+  var gamma_l_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+
+  var alpha_r_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+  var beta_r_z  = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+  var gamma_r_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+
+  var rho_avg_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), double )
+  var sos_avg_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), double )
+
+  var block_d_z    = region( ispace(int3d, {Nx, Ny, Nz+1} ), double[9] )
+  var block_Uinv_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), double[9] )
+
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
@@ -179,41 +223,48 @@ task main()
   --                       PARTITIONING
   --------------------------------------------------------------------------------------------
   
-  var p_coords_x   = partition_xpencil_coords(coords,   pencil)
-  var p_coords_y   = partition_ypencil_coords(coords,   pencil)
-  var p_coords_z   = partition_zpencil_coords(coords,   pencil)
+  var p_coords_x   = partition_xpencil_coords(coords,    pencil)
+  var p_coords_y   = partition_ypencil_coords(coords,    pencil)
+  var p_coords_z   = partition_zpencil_coords(coords,    pencil)
 
-  var p_cnsr_x     = partition_xpencil_cnsr(r_cnsr,     pencil)
-  var p_cnsr_y     = partition_ypencil_cnsr(r_cnsr,     pencil)
-  var p_cnsr_z     = partition_zpencil_cnsr(r_cnsr,     pencil)
+  var p_cnsr_x     = partition_xpencil_cnsr(r_cnsr,      pencil)
+  var p_cnsr_y     = partition_ypencil_cnsr(r_cnsr,      pencil)
+  var p_cnsr_z     = partition_zpencil_cnsr(r_cnsr,      pencil)
 
-  var p_prim_c_x   = partition_xpencil_prim(r_prim_c,   pencil)
-  var p_prim_c_y   = partition_ypencil_prim(r_prim_c,   pencil)
-  var p_prim_c_z   = partition_zpencil_prim(r_prim_c,   pencil)
+  var p_prim_c_x   = partition_xpencil_prim(r_prim_c,    pencil)
+  var p_prim_c_y   = partition_ypencil_prim(r_prim_c,    pencil)
+  var p_prim_c_z   = partition_zpencil_prim(r_prim_c,    pencil)
 
-  var p_prim_l_x   = partition_xpencil_prim(r_prim_l_x, pencil)
-  var p_prim_l_y   = partition_ypencil_prim(r_prim_l_y, pencil)
-  var p_prim_l_z   = partition_zpencil_prim(r_prim_l_z, pencil)
+  var gp_prim_l_x  = partition_xpencil_prim(gr_prim_l_x, pencil)
+  var gp_prim_l_y  = partition_ypencil_prim(gr_prim_l_y, pencil)
+  var gp_prim_l_z  = partition_zpencil_prim(gr_prim_l_z, pencil)
+  var gp_prim_r_x  = partition_xpencil_prim(gr_prim_r_x, pencil)
+  var gp_prim_r_y  = partition_ypencil_prim(gr_prim_r_y, pencil)
+  var gp_prim_r_z  = partition_zpencil_prim(gr_prim_r_z, pencil)
 
-  var p_prim_r_x   = partition_xpencil_prim(r_prim_r_x, pencil)
-  var p_prim_r_y   = partition_ypencil_prim(r_prim_r_y, pencil)
-  var p_prim_r_z   = partition_zpencil_prim(r_prim_r_z, pencil)
+  var p_prim_l_x   = partition_xpencil_prim(r_prim_l_x,  pencil)
+  var p_prim_l_y   = partition_ypencil_prim(r_prim_l_y,  pencil)
+  var p_prim_l_z   = partition_zpencil_prim(r_prim_l_z,  pencil)
 
-  var p_aux_c_x    = partition_xpencil_aux (r_aux_c,    pencil)
-  var p_aux_c_y    = partition_ypencil_aux (r_aux_c,    pencil)
-  var p_aux_c_z    = partition_zpencil_aux (r_aux_c,    pencil)
+  var p_prim_r_x   = partition_xpencil_prim(r_prim_r_x,  pencil)
+  var p_prim_r_y   = partition_ypencil_prim(r_prim_r_y,  pencil)
+  var p_prim_r_z   = partition_zpencil_prim(r_prim_r_z,  pencil)
 
-  var p_visc_x     = partition_xpencil_visc(r_visc,     pencil)
-  var p_visc_y     = partition_ypencil_visc(r_visc,     pencil)
-  var p_visc_z     = partition_zpencil_visc(r_visc,     pencil)
+  var p_aux_c_x    = partition_xpencil_aux (r_aux_c,     pencil)
+  var p_aux_c_y    = partition_ypencil_aux (r_aux_c,     pencil)
+  var p_aux_c_z    = partition_zpencil_aux (r_aux_c,     pencil)
 
-  var p_q_x        = partition_xpencil_vect(r_q,        pencil)
-  var p_q_y        = partition_ypencil_vect(r_q,        pencil)
-  var p_q_z        = partition_zpencil_vect(r_q,        pencil)
+  var p_visc_x     = partition_xpencil_visc(r_visc,      pencil)
+  var p_visc_y     = partition_ypencil_visc(r_visc,      pencil)
+  var p_visc_z     = partition_zpencil_visc(r_visc,      pencil)
 
-  var p_gradu_x    = partition_xpencil_tnsr2(r_gradu,   pencil)
-  var p_gradu_y    = partition_ypencil_tnsr2(r_gradu,   pencil)
-  var p_gradu_z    = partition_zpencil_tnsr2(r_gradu,   pencil)
+  var p_q_x        = partition_xpencil_vect(r_q,         pencil)
+  var p_q_y        = partition_ypencil_vect(r_q,         pencil)
+  var p_q_z        = partition_zpencil_vect(r_q,         pencil)
+
+  var p_gradu_x    = partition_xpencil_tnsr2(r_gradu,    pencil)
+  var p_gradu_y    = partition_ypencil_tnsr2(r_gradu,    pencil)
+  var p_gradu_z    = partition_zpencil_tnsr2(r_gradu,    pencil)
 
   var p_tauij_x    = partition_xpencil_tnsr2symm(r_tauij, pencil)
   var p_tauij_y    = partition_ypencil_tnsr2symm(r_tauij, pencil)
@@ -230,6 +281,13 @@ task main()
   var p_flux_c_x   = partition_xpencil_cnsr(r_flux_c,   pencil)
   var p_flux_c_y   = partition_ypencil_cnsr(r_flux_c,   pencil)
   var p_flux_c_z   = partition_zpencil_cnsr(r_flux_c,   pencil)
+
+  var gp_flux_l_x  = partition_xpencil_cnsr(gr_flux_l_x, pencil)
+  var gp_flux_l_y  = partition_ypencil_cnsr(gr_flux_l_y, pencil)
+  var gp_flux_l_z  = partition_zpencil_cnsr(gr_flux_l_z, pencil)
+  var gp_flux_r_x  = partition_xpencil_cnsr(gr_flux_r_x, pencil)
+  var gp_flux_r_y  = partition_ypencil_cnsr(gr_flux_r_y, pencil)
+  var gp_flux_r_z  = partition_zpencil_cnsr(gr_flux_r_z, pencil)
 
   var p_flux_e_x   = partition_xpencil_cnsr(r_flux_e_x, pencil)
   var p_flux_e_y   = partition_ypencil_cnsr(r_flux_e_y, pencil)
@@ -255,20 +313,47 @@ task main()
   var p_LU_N_y     = partition_LU(LU_N_y, pencil)
   var p_LU_N_z     = partition_LU(LU_N_z, pencil)
 
-  var p_slu_l_x    = partition_slu(slu_l_x, pencil)
-  var p_slu_r_x    = partition_slu(slu_r_x, pencil)
-  var p_slu_l_y    = partition_slu(slu_l_y, pencil)
-  var p_slu_r_y    = partition_slu(slu_r_y, pencil)
-  var p_slu_l_z    = partition_slu(slu_l_z, pencil)
-  var p_slu_r_z    = partition_slu(slu_r_z, pencil)
+  var p_alpha_l_x = partition_xpencil_coeffs(alpha_l_x, pencil)
+  var p_beta_l_x  = partition_xpencil_coeffs(beta_l_x , pencil)
+  var p_gamma_l_x = partition_xpencil_coeffs(gamma_l_x, pencil)
 
-  var p_matrix_l_x = partition_matrix(matrix_l_x, pencil)
-  var p_matrix_l_y = partition_matrix(matrix_l_y, pencil)
-  var p_matrix_l_z = partition_matrix(matrix_l_z, pencil)
+  var p_alpha_r_x = partition_xpencil_coeffs(alpha_r_x, pencil)
+  var p_beta_r_x  = partition_xpencil_coeffs(beta_r_x , pencil)
+  var p_gamma_r_x = partition_xpencil_coeffs(gamma_r_x, pencil)
 
-  var p_matrix_r_x = partition_matrix(matrix_r_x, pencil)
-  var p_matrix_r_y = partition_matrix(matrix_r_y, pencil)
-  var p_matrix_r_z = partition_matrix(matrix_r_z, pencil)
+  var p_rho_avg_x = partition_xpencil_double(rho_avg_x, pencil)
+  var p_sos_avg_x = partition_xpencil_double(sos_avg_x, pencil)
+
+  var p_block_d_x    = partition_xpencil_double9(block_d_x   , pencil)
+  var p_block_Uinv_x = partition_xpencil_double9(block_Uinv_x, pencil)
+
+  var p_alpha_l_y = partition_ypencil_coeffs(alpha_l_y, pencil)
+  var p_beta_l_y  = partition_ypencil_coeffs(beta_l_y , pencil)
+  var p_gamma_l_y = partition_ypencil_coeffs(gamma_l_y, pencil)
+
+  var p_alpha_r_y = partition_ypencil_coeffs(alpha_r_y, pencil)
+  var p_beta_r_y  = partition_ypencil_coeffs(beta_r_y , pencil)
+  var p_gamma_r_y = partition_ypencil_coeffs(gamma_r_y, pencil)
+
+  var p_rho_avg_y = partition_ypencil_double(rho_avg_y, pencil)
+  var p_sos_avg_y = partition_ypencil_double(sos_avg_y, pencil)
+
+  var p_block_d_y    = partition_ypencil_double9(block_d_y   , pencil)
+  var p_block_Uinv_y = partition_ypencil_double9(block_Uinv_y, pencil)
+
+  var p_alpha_l_z = partition_zpencil_coeffs(alpha_l_z, pencil)
+  var p_beta_l_z  = partition_zpencil_coeffs(beta_l_z , pencil)
+  var p_gamma_l_z = partition_zpencil_coeffs(gamma_l_z, pencil)
+
+  var p_alpha_r_z = partition_zpencil_coeffs(alpha_r_z, pencil)
+  var p_beta_r_z  = partition_zpencil_coeffs(beta_r_z , pencil)
+  var p_gamma_r_z = partition_zpencil_coeffs(gamma_r_z, pencil)
+
+  var p_rho_avg_z = partition_zpencil_double(rho_avg_z, pencil)
+  var p_sos_avg_z = partition_zpencil_double(sos_avg_z, pencil)
+
+  var p_block_d_z    = partition_zpencil_double9(block_d_z   , pencil)
+  var p_block_Uinv_z = partition_zpencil_double9(block_Uinv_z, pencil)
 
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
@@ -279,48 +364,17 @@ task main()
   if Nx >= 8 then
     __demand(__parallel)
     for i in pencil do
-      token += superlu.initialize_matrix_char_x(p_matrix_l_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny/config.prow, Nz/config.pcol)
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.initialize_matrix_char_x(p_matrix_r_x[i], alpha06CI, beta06CI, gamma06CI, Nx, Ny/config.prow, Nz/config.pcol)
-    end
-
-    __demand(__parallel)
-    for i in pencil do
       token += set_zero_prim( p_rhs_l_x[i] )
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.init_superlu_vars( p_matrix_l_x[i], 5*(Nx+1)*Ny/config.prow*Nz/config.pcol, p_rhs_l_x[i], p_prim_l_x[i], p_slu_l_x[i] )
     end
 
     __demand(__parallel)
     for i in pencil do
       token += set_zero_prim( p_rhs_r_x[i] )
     end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.init_superlu_vars( p_matrix_r_x[i], 5*(Nx+1)*Ny/config.prow*Nz/config.pcol, p_rhs_r_x[i], p_prim_r_x[i], p_slu_r_x[i] )
-    end
   end
   wait_for(token)
-  c.printf("Finished X matrices initialization\n")
 
   if Ny >= 8 then
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.initialize_matrix_char_y(p_matrix_l_y[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny, Nz/config.pcol)
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.initialize_matrix_char_y(p_matrix_r_y[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny, Nz/config.pcol)
-    end
-
     __demand(__parallel)
     for i in pencil do
       token += set_zero_prim( p_rhs_l_y[i] )
@@ -328,33 +382,12 @@ task main()
 
     __demand(__parallel)
     for i in pencil do
-      token += superlu.init_superlu_vars( p_matrix_l_y[i], 5*Nx/config.prow*(Ny+1)*Nz/config.pcol, p_rhs_l_y[i], p_prim_l_y[i], p_slu_l_y[i] )
-    end
-
-    __demand(__parallel)
-    for i in pencil do
       token += set_zero_prim( p_rhs_r_y[i] )
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.init_superlu_vars( p_matrix_r_y[i], 5*Nx/config.prow*(Ny+1)*Nz/config.pcol, p_rhs_r_y[i], p_prim_r_y[i], p_slu_r_y[i] )
     end
   end
   wait_for(token)
-  c.printf("Finished Y matrices initialization\n")
 
   if Nz >= 8 then
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.initialize_matrix_char_z(p_matrix_l_z[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny/config.pcol, Nz)
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.initialize_matrix_char_z(p_matrix_r_z[i], alpha06CI, beta06CI, gamma06CI, Nx/config.prow, Ny/config.pcol, Nz)
-    end
-
     __demand(__parallel)
     for i in pencil do
       token += set_zero_prim( p_rhs_l_z[i] )
@@ -362,21 +395,10 @@ task main()
 
     __demand(__parallel)
     for i in pencil do
-      token += superlu.init_superlu_vars( p_matrix_l_z[i], 5*Nx/config.prow*Ny/config.pcol*(Nz+1), p_rhs_l_z[i], p_prim_l_z[i], p_slu_l_z[i] )
-    end
-
-    __demand(__parallel)
-    for i in pencil do
       token += set_zero_prim( p_rhs_r_z[i] )
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += superlu.init_superlu_vars( p_matrix_r_z[i], 5*Nx/config.prow*Ny/config.pcol*(Nz+1), p_rhs_r_z[i], p_prim_r_z[i], p_slu_r_z[i] )
     end
   end
   wait_for(token)
-  c.printf("Finished Z matrices initialization\n")
   
   -- Initialize derivatives stuff.
   __demand(__parallel)
@@ -453,25 +475,25 @@ task main()
     token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
   end
  
-  var TKE0 : double = 0.0
-  do
-    var t : double = 0.0
-    __demand(__parallel)
-    for i in pencil do
-      t += problem.TKE(p_prim_c_y[i])
-    end
-    TKE0 = wait_for_double(t)
-  end
+  var TKE0 : double = 1.0e-16
+  -- do
+  --   var t : double = 0.0
+  --   __demand(__parallel)
+  --   for i in pencil do
+  --     t += problem.TKE(p_prim_c_y[i])
+  --   end
+  --   TKE0 = wait_for_double(t)
+  -- end
 
-  var enstrophy0 : double = 0.0
-  do
-    var e : double = 0.0
-    __demand(__parallel)
-    for i in pencil do
-      e += problem.enstrophy( p_gradu_y[i] )
-    end
-    enstrophy0 = wait_for_double(e)
-  end
+  var enstrophy0 : double = 1.0e-16
+  -- do
+  --   var e : double = 0.0
+  --   __demand(__parallel)
+  --   for i in pencil do
+  --     e += problem.enstrophy( p_gradu_y[i] )
+  --   end
+  --   enstrophy0 = wait_for_double(e)
+  -- end
   c.printf("TKE, Enstrophy = %g, %g", TKE0, enstrophy0)
 
   var IOtoken = 0
@@ -510,6 +532,7 @@ task main()
   end
   
   wait_for(token)
+  wait_for(IOtoken)
   var t_start = c.legion_get_current_time_in_micros()
 
   __demand(__spmd)
@@ -565,46 +588,63 @@ task main()
         set_zero_cnsr( p_rhs_y[i] )
       end
       
-      -- Get the transport coefficients.
-      __demand(__parallel)
-      for i in pencil do
-        problem.get_transport_coeffs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i] )
-      end
+      if problem.viscous then
+        -- Get the transport coefficients.
+        __demand(__parallel)
+        for i in pencil do
+          problem.get_transport_coeffs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i] )
+        end
 
-      -- Get the viscous stress tensor.
-      __demand(__parallel)
-      for i in pencil do
-        get_tauij( p_gradu_y[i], p_tauij_y[i], p_visc_y[i] )
+        -- Get the viscous stress tensor.
+        __demand(__parallel)
+        for i in pencil do
+          get_tauij( p_gradu_y[i], p_tauij_y[i], p_visc_y[i] )
+        end
       end
 
       -- Add x-direction flux derivative to RHS.
       __demand(__parallel)
       for i in pencil do
+        -- add_xflux_der_to_rhs( p_cnsr_x[i], p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_q_x[i],
+        --                       p_prim_l_x[i], p_prim_r_x[i], p_rhs_l_x[i], p_rhs_r_x[i],
+        --                       p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
+        --                       p_LU_x[i], p_slu_l_x[i], p_slu_r_x[i], p_matrix_l_x[i], p_matrix_r_x[i],
+        --                       Nx, Ny, Nz )
         add_xflux_der_to_rhs( p_cnsr_x[i], p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_q_x[i],
-                              p_prim_l_x[i], p_prim_r_x[i], p_rhs_l_x[i], p_rhs_r_x[i],
-                              p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
-                              p_LU_x[i], p_slu_l_x[i], p_slu_r_x[i], p_matrix_l_x[i], p_matrix_r_x[i],
-                              Nx, Ny, Nz )
+                              p_prim_l_x[i], p_prim_r_x[i], p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
+                              p_alpha_l_x[i], p_beta_l_x[i], p_gamma_l_x[i],
+                              p_alpha_r_x[i], p_beta_r_x[i], p_gamma_r_x[i], p_rho_avg_x[i], p_sos_avg_x[i], p_block_d_x[i],
+                              p_block_Uinv_x[i], p_LU_x[i], Nx, Ny, Nz )
       end
 
       -- Add y-direction flux derivative to RHS.
       __demand(__parallel)
       for i in pencil do
-        add_yflux_der_to_rhs( p_cnsr_y[i], p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_q_y[i], 
-                              p_prim_l_y[i], p_prim_r_y[i], p_rhs_l_y[i], p_rhs_r_y[i],
-                              p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
-                              p_LU_y[i], p_slu_l_y[i], p_slu_r_y[i], p_matrix_l_y[i], p_matrix_r_y[i],
-                              Nx, Ny, Nz )
+        -- add_yflux_der_to_rhs( p_cnsr_y[i], p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_q_y[i], 
+        --                       p_prim_l_y[i], p_prim_r_y[i], p_rhs_l_y[i], p_rhs_r_y[i],
+        --                       p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
+        --                       p_LU_y[i], p_slu_l_y[i], p_slu_r_y[i], p_matrix_l_y[i], p_matrix_r_y[i],
+        --                       Nx, Ny, Nz )
+        add_yflux_der_to_rhs( p_cnsr_y[i], p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_q_y[i],
+                              p_prim_l_y[i], p_prim_r_y[i], p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
+                              p_alpha_l_y[i], p_beta_l_y[i], p_gamma_l_y[i],
+                              p_alpha_r_y[i], p_beta_r_y[i], p_gamma_r_y[i], p_rho_avg_y[i], p_sos_avg_y[i], p_block_d_y[i],
+                              p_block_Uinv_y[i], p_LU_y[i], Nx, Ny, Nz )
       end
 
       -- Add z-direction flux derivative to RHS.
       __demand(__parallel)
       for i in pencil do
-        add_zflux_der_to_rhs( p_cnsr_z[i], p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_q_z[i], 
-                              p_prim_l_z[i], p_prim_r_z[i], p_rhs_l_z[i], p_rhs_r_z[i],
-                              p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
-                              p_LU_z[i], p_slu_l_z[i], p_slu_r_z[i], p_matrix_l_z[i], p_matrix_r_z[i],
-                              Nx, Ny, Nz )
+        -- add_zflux_der_to_rhs( p_cnsr_z[i], p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_q_z[i], 
+        --                       p_prim_l_z[i], p_prim_r_z[i], p_rhs_l_z[i], p_rhs_r_z[i],
+        --                       p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
+        --                       p_LU_z[i], p_slu_l_z[i], p_slu_r_z[i], p_matrix_l_z[i], p_matrix_r_z[i],
+        --                       Nx, Ny, Nz )
+        add_zflux_der_to_rhs( p_cnsr_z[i], p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_q_z[i],
+                              p_prim_l_z[i], p_prim_r_z[i], p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
+                              p_alpha_l_z[i], p_beta_l_z[i], p_gamma_l_z[i],
+                              p_alpha_r_z[i], p_beta_r_z[i], p_gamma_r_z[i], p_rho_avg_z[i], p_sos_avg_z[i], p_block_d_z[i],
+                              p_block_Uinv_z[i], p_LU_z[i], Nx, Ny, Nz )
       end
 
        
@@ -630,18 +670,20 @@ task main()
         token += get_temperature_r( p_prim_c_y[i], p_aux_c_y[i] )
       end
 
-      -- Update velocity gradient tensor.
-      __demand(__parallel)
-      for i in pencil do
-        token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
-      end
-      __demand(__parallel)
-      for i in pencil do
-        token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
-      end
-      __demand(__parallel)
-      for i in pencil do
-        token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
+      if problem.viscous then
+        -- Update velocity gradient tensor.
+        __demand(__parallel)
+        for i in pencil do
+          token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
+        end
+        __demand(__parallel)
+        for i in pencil do
+          token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
+        end
+        __demand(__parallel)
+        for i in pencil do
+          token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
+        end
       end
  
     end
@@ -657,16 +699,16 @@ task main()
 
     if (step-1)%config.nstats == 0 then
       var TKE : double = 0.0
-      __demand(__parallel)
-      for i in pencil do
-        TKE += problem.TKE(p_prim_c_y[i])
-      end
+      -- __demand(__parallel)
+      -- for i in pencil do
+      --   TKE += problem.TKE(p_prim_c_y[i])
+      -- end
 
       var enstrophy : double = 0.0
-      __demand(__parallel)
-      for i in pencil do
-        enstrophy += problem.enstrophy( p_gradu_y[i] )
-      end
+      -- __demand(__parallel)
+      -- for i in pencil do
+      --   enstrophy += problem.enstrophy( p_gradu_y[i] )
+      -- end
 
       do
         var TKE = wait_for_double(TKE)
@@ -715,55 +757,19 @@ task main()
   c.printf("\n")
   c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/step)
   
-  -- Destroy SuperLU structs.
-  if Nx >= 8 then
-    __demand(__parallel)
-    for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_l_x[i] )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_r_x[i] )
-    end
-  end
-
-  if Ny >= 8 then
-    __demand(__parallel)
-    for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_l_y[i] )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_r_y[i] )
-    end
-  end
-
-  if Nz >= 8 then
-    __demand(__parallel)
-    for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_l_z[i] )
-    end
-    __demand(__parallel)
-    for i in pencil do
-      superlu.destroy_superlu_vars( p_slu_r_z[i] )
-    end
-  end
 end
 
 if os.getenv('SAVEOBJ') == '1' then
   local root_dir = arg[0]:match(".*/") or "./"
-  local superlu_root = os.getenv('SUPERLU_PATH') or "/opt/SuperLU_5.2.1"
-  local superlu_lib_dir = superlu_root .. "/lib"
-  local superlu_include_dir = superlu_root .. "/include"
   local link_flags = {}
   if use_io then
     local hdf_root = os.getenv('HDF_ROOT')
     local hdf_lib_dir = hdf_root .. "/lib"
-    link_flags = {"-L" .. root_dir, "-L" .. superlu_lib_dir, "-L" .. hdf_lib_dir, "-lhdf5", "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
+    link_flags = {"-L" .. root_dir, "-L" .. hdf_lib_dir, "-lhdf5", "-lm", "-lblas"}
   else
-    link_flags = {"-L" .. root_dir, "-L" .. superlu_lib_dir, "-lsuperlu_mapper", "-lsuperlu_util", "-lsuperlu", "-lm", "-lblas"}
+    link_flags = {"-L" .. root_dir, "-lm", "-lblas"}
   end
-  regentlib.saveobj(main, "wchr", "executable", csuperlu_mapper.register_mappers, link_flags)
+  regentlib.saveobj(main, "wchr", "executable", link_flags)
 else
-  regentlib.start(main, csuperlu_mapper.register_mappers)
+  regentlib.start(main)
 end

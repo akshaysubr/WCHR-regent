@@ -10,11 +10,20 @@ local problem = {}
 
 -- Problem specific parameters
 problem.gamma = 1.4  -- Ratio of specific heats
+problem.Rgas  = 1.0
+problem.Re    = 100.
+problem.Pr    = 1.
+problem.viscous = false
 
 -- Grid dimensions
 problem.NX = 32
-problem.NY = 8
-problem.NZ = 8
+problem.NY = 1
+problem.NZ = 1
+
+-- Periodicity
+problem.periodic_x = true
+problem.periodic_y = true
+problem.periodic_z = true
 
 -- Domain size
 problem.LX = 2.0
@@ -36,8 +45,8 @@ problem.ONEBYDZ = 1.0 / problem.DZ
 
 problem.timestepping_setting = "CONSTANT_TIME_STEP" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
 problem.dt_or_CFL_num        = 5.0e-5
-problem.tstop                = 1.0e-2
-problem.tviz                 = 0.0625
+problem.tstop                = 2.0e0
+problem.tviz                 = 0.1
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
@@ -60,6 +69,19 @@ do
   end
 
   return 1
+end
+
+task problem.get_transport_coeffs( r_prim : region(ispace(int3d), primitive),
+                                   r_aux  : region(ispace(int3d), auxiliary),
+                                   r_visc : region(ispace(int3d), transport_coeffs) )
+where
+  writes(r_visc)
+do
+  for i in r_visc do
+    r_visc[i].mu_s  = 0.
+    r_visc[i].mu_b  = 0.
+    r_visc[i].kappa = 0.
+  end
 end
 
 task problem.get_errors( coords     : region(ispace(int3d), coordinates),

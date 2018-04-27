@@ -1,81 +1,94 @@
 import matplotlib.pyplot as plt
 import numpy
-import h5py
 
-f = h5py.File('../tests/cell_coords.h5')
-
-x = f['x_c'].value
-y = f['y_c'].value
-z = f['z_c'].value
-
-dx = x[0,0,1] - x[0,0,0]
-
-f = h5py.File('../tests/cell_primitive0000.h5')
-rho = f['rho'].value
-u   = f['u'].value
-v   = f['v'].value
-w   = f['w'].value
-p   = f['p'].value
+coordsfile = '../src/interpolation_y_coords_px0000_pz0000.dat'
+f = open(coordsfile)
+line0 = f.readline()
+line1 = f.readline()
 f.close()
 
-x_e = numpy.hstack((x[0,0,:]-0.5*dx, x[0,0,-1]+0.5*dx))
+nx = int(line1.split()[0]) - int(line0.split()[0]) + 1
+ny = int(line1.split()[1]) - int(line0.split()[1]) + 1
+nz = int(line1.split()[2]) - int(line0.split()[2]) + 1
 
-f = h5py.File('../tests/edge_primitive_l_x0000.h5')
-rho_l_x = f['rho'].value
-u_l_x   = f['u'].value
-v_l_x   = f['v'].value
-w_l_x   = f['w'].value
-p_l_x   = f['p'].value
-f.close()
+x, y, z = numpy.loadtxt(coordsfile, skiprows=2, unpack=True)
+x = x.reshape((nx,ny,nz), order='F')
+y = y.reshape((nx,ny,nz), order='F')
+z = z.reshape((nx,ny,nz), order='F')
 
-f = h5py.File('../tests/edge_primitive_r_x0000.h5')
-rho_r_x = f['rho'].value
-u_r_x   = f['u'].value
-v_r_x   = f['v'].value
-w_r_x   = f['w'].value
-p_r_x   = f['p'].value
-f.close()
+dx = x[1,0,0] - x[0,0,0]
+dy = y[0,1,0] - y[0,0,0]
+dz = z[0,0,1] - z[0,0,0]
 
-f = h5py.File('../tests/edge_primitive_l_y0000.h5')
-rho_l_y = f['rho'].value
-u_l_y   = f['u'].value
-v_l_y   = f['v'].value
-w_l_y   = f['w'].value
-p_l_y   = f['p'].value
-f.close()
+cellfile = '../src/interpolation_y_c_0000_px0000_pz0000.dat'
+rho, u, v, w, p = numpy.loadtxt(cellfile, skiprows=2, unpack=True)
+rho = rho.reshape((nx,ny,nz), order='F')
+u = u.reshape((nx,ny,nz), order='F')
+v = v.reshape((nx,ny,nz), order='F')
+w = w.reshape((nx,ny,nz), order='F')
+p = p.reshape((nx,ny,nz), order='F')
 
-f = h5py.File('../tests/edge_primitive_r_y0000.h5')
-rho_r_y = f['rho'].value
-u_r_y   = f['u'].value
-v_r_y   = f['v'].value
-w_r_y   = f['w'].value
-p_r_y   = f['p'].value
-f.close()
+edgefile_l_x = '../src/interpolation_x_l_0000_px0000_pz0000.dat'
+rho_l_x, u_l_x, v_l_x, w_l_x, p_l_x = numpy.loadtxt(edgefile_l_x, skiprows=2, unpack=True)
+rho_l_x = rho_l_x.reshape((nx+1,ny,nz), order='F')
+u_l_x = u_l_x.reshape((nx+1,ny,nz), order='F')
+v_l_x = v_l_x.reshape((nx+1,ny,nz), order='F')
+w_l_x = w_l_x.reshape((nx+1,ny,nz), order='F')
+p_l_x = p_l_x.reshape((nx+1,ny,nz), order='F')
 
-f = h5py.File('../tests/edge_primitive_l_z0000.h5')
-rho_l_z = f['rho'].value
-u_l_z   = f['u'].value
-v_l_z   = f['v'].value
-w_l_z   = f['w'].value
-p_l_z   = f['p'].value
-f.close()
+edgefile_r_x = '../src/interpolation_x_r_0000_px0000_pz0000.dat'
+rho_r_x, u_r_x, v_r_x, w_r_x, p_r_x = numpy.loadtxt(edgefile_r_x, skiprows=2, unpack=True)
+rho_r_x = rho_r_x.reshape((nx+1,ny,nz), order='F')
+u_r_x = u_r_x.reshape((nx+1,ny,nz), order='F')
+v_r_x = v_r_x.reshape((nx+1,ny,nz), order='F')
+w_r_x = w_r_x.reshape((nx+1,ny,nz), order='F')
+p_r_x = p_r_x.reshape((nx+1,ny,nz), order='F')
 
-f = h5py.File('../tests/edge_primitive_r_z0000.h5')
-rho_r_z = f['rho'].value
-u_r_z   = f['u'].value
-v_r_z   = f['v'].value
-w_r_z   = f['w'].value
-p_r_z   = f['p'].value
-f.close()
+edgefile_l_y = '../src/interpolation_y_l_0000_px0000_pz0000.dat'
+rho_l_y, u_l_y, v_l_y, w_l_y, p_l_y = numpy.loadtxt(edgefile_l_y, skiprows=2, unpack=True)
+rho_l_y = rho_l_y.reshape((nx,ny+1,nz), order='F')
+u_l_y = u_l_y.reshape((nx,ny+1,nz), order='F')
+v_l_y = v_l_y.reshape((nx,ny+1,nz), order='F')
+w_l_y = w_l_y.reshape((nx,ny+1,nz), order='F')
+p_l_y = p_l_y.reshape((nx,ny+1,nz), order='F')
+
+edgefile_r_y = '../src/interpolation_y_r_0000_px0000_pz0000.dat'
+rho_r_y, u_r_y, v_r_y, w_r_y, p_r_y = numpy.loadtxt(edgefile_r_y, skiprows=2, unpack=True)
+rho_r_y = rho_r_y.reshape((nx,ny+1,nz), order='F')
+u_r_y = u_r_y.reshape((nx,ny+1,nz), order='F')
+v_r_y = v_r_y.reshape((nx,ny+1,nz), order='F')
+w_r_y = w_r_y.reshape((nx,ny+1,nz), order='F')
+p_r_y = p_r_y.reshape((nx,ny+1,nz), order='F')
+
+edgefile_l_z = '../src/interpolation_z_l_0000_px0000_pz0000.dat'
+rho_l_z, u_l_z, v_l_z, w_l_z, p_l_z = numpy.loadtxt(edgefile_l_z, skiprows=2, unpack=True)
+rho_l_z = rho_l_z.reshape((nx,ny,nz+1), order='F')
+u_l_z = u_l_z.reshape((nx,ny,nz+1), order='F')
+v_l_z = v_l_z.reshape((nx,ny,nz+1), order='F')
+w_l_z = w_l_z.reshape((nx,ny,nz+1), order='F')
+p_l_z = p_l_z.reshape((nx,ny,nz+1), order='F')
+
+edgefile_r_z = '../src/interpolation_z_r_0000_px0000_pz0000.dat'
+rho_r_z, u_r_z, v_r_z, w_r_z, p_r_z = numpy.loadtxt(edgefile_r_z, skiprows=2, unpack=True)
+rho_r_z = rho_r_z.reshape((nx,ny,nz+1), order='F')
+u_r_z = u_r_z.reshape((nx,ny,nz+1), order='F')
+v_r_z = v_r_z.reshape((nx,ny,nz+1), order='F')
+w_r_z = w_r_z.reshape((nx,ny,nz+1), order='F')
+p_r_z = p_r_z.reshape((nx,ny,nz+1), order='F')
+
+y_e = numpy.hstack((y[0,:,0]-0.5*dy, y[0,-1,0]+0.5*dy))
 
 plt.figure()
-plt.plot(x[0,0,:], rho[0,0,:], 'sk-')
-plt.plot(x_e, rho_l_x[0,0,:], 'sb-', fillstyle='none', label=r'$X-left $')
-plt.plot(x_e, rho_r_x[0,0,:], 'sr-', fillstyle='none', label=r'$X-right$')
-plt.plot(x_e, rho_l_y[0,:,0], '^b',  fillstyle='none', label=r'$Y-left $')
-plt.plot(x_e, rho_r_y[0,:,0], '^r',  fillstyle='none', label=r'$Y-right$')
-plt.plot(x_e, rho_l_z[:,0,0], 'vb',  fillstyle='none', label=r'$Z-left $')
-plt.plot(x_e, rho_r_z[:,0,0], 'vr',  fillstyle='none', label=r'$Z-right$')
+plt.plot(y[0,:,0], rho[0,:,0], 'sk-')
+
+plt.plot(y_e, rho_l_x[:,0,0], 'sb',  fillstyle='none', label=r'$X-left $')
+plt.plot(y_e, rho_r_x[:,0,0], 'sr',  fillstyle='none', label=r'$X-right$')
+
+plt.plot(y_e, rho_l_y[0,:,0], '^b',  fillstyle='none', label=r'$Y-left $')
+plt.plot(y_e, rho_r_y[0,:,0], '^r',  fillstyle='none', label=r'$Y-right$')
+
+plt.plot(y_e, rho_l_z[0,0,:], 'ob',  fillstyle='none', label=r'$Z-left $')
+plt.plot(y_e, rho_r_z[0,0,:], 'or',  fillstyle='none', label=r'$Z-right$')
 
 plt.xlabel(r'$x$', fontsize=20)
 plt.ylabel(r'$\rho$', fontsize=20)

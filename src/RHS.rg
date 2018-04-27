@@ -5,12 +5,12 @@ require("derivatives")
 require("interpolation")
 require("SOE")
 
-local superlu = require("superlu_util")
 local problem = require("problem")
 
 local c     = regentlib.c
 local cmath = terralib.includec("math.h")
 
+local viscous = problem.viscous
 
 -- Make the node and midpoint-node differencing tasks (Using pentadiagonal solver for this instead of tridiagonal solver)
 alpha06d1 = 1.0/3.0
@@ -196,38 +196,50 @@ task add_xflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
                            r_q        : region(ispace(int3d), vect),
                            r_prim_l_x : region(ispace(int3d), primitive),
                            r_prim_r_x : region(ispace(int3d), primitive),
-                           r_rhs_l_x  : region(ispace(int3d), primitive),
-                           r_rhs_r_x  : region(ispace(int3d), primitive),
                            r_flux_c   : region(ispace(int3d), conserved),
                            r_flux_e_x : region(ispace(int3d), conserved),
                            r_fder_c_x : region(ispace(int3d), conserved),
                            r_rhs      : region(ispace(int3d), conserved),
+                           alpha_l    : region(ispace(int3d), coeffs),
+                           beta_l     : region(ispace(int3d), coeffs),
+                           gamma_l    : region(ispace(int3d), coeffs),
+                           alpha_r    : region(ispace(int3d), coeffs),
+                           beta_r     : region(ispace(int3d), coeffs),
+                           gamma_r    : region(ispace(int3d), coeffs),
+                           rho_avg    : region(ispace(int3d), double),
+                           sos_avg    : region(ispace(int3d), double),
+                           block_d    : region(ispace(int3d), double[9]),
+                           block_Uinv : region(ispace(int3d), double[9]),
                            LU_x       : region(ispace(int3d), LU_struct),
-                           slu_l_x    : region(ispace(int2d), superlu.c.superlu_vars_t),
-                           slu_r_x    : region(ispace(int2d), superlu.c.superlu_vars_t),
-                           matrix_l_x : region(ispace(int2d), superlu.CSR_matrix),
-                           matrix_r_x : region(ispace(int2d), superlu.CSR_matrix),
                            Nx         : int64,
                            Ny         : int64,
                            Nz         : int64 )
 where
   reads( r_cnsr, r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_11, _12, _13}, LU_x ),
-  reads writes( r_q._1, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs, slu_l_x, slu_r_x, matrix_l_x, matrix_r_x )
+  reads writes( r_q._1, r_prim_l_x, r_prim_r_x, r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs),
+  reads writes( alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
 do
 
   var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
 
   if (nx >= 8) then
-    WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, r_rhs_l_x, r_rhs_r_x, matrix_l_x, matrix_r_x, slu_l_x, slu_r_x, Nx, Ny, Nz )
+    -- var t_start = c.legion_get_current_time_in_micros()
+    WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, alpha_l, beta_l, gamma_l,
+                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv, Nx, Ny, Nz )
+    -- var t_interpolation = c.legion_get_current_time_in_micros()
     positivity_enforcer_x( r_prim_c, r_prim_l_x, r_prim_r_x, Nx, Ny, Nz )
+    -- var t_positivity = c.legion_get_current_time_in_micros()
     HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
+    -- var t_riemann = c.legion_get_current_time_in_micros()
     get_xfluxes_r( r_prim_c, r_cnsr, r_flux_c )
+    -- var t_fluxes = c.legion_get_current_time_in_micros()
    
     ddx_MND_rho ( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     ddx_MND_rhou( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     ddx_MND_rhov( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     ddx_MND_rhow( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     ddx_MND_rhoE( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
+    -- var t_derivatives = c.legion_get_current_time_in_micros()
 
     for i in r_rhs do
       r_rhs[i].rho  -= r_fder_c_x[i].rho
@@ -237,30 +249,40 @@ do
       r_rhs[i].rhoE -= r_fder_c_x[i].rhoE
     end
 
-    get_q_x(r_aux_c, r_visc, r_q, LU_x)
+    if viscous then
+      get_q_x(r_aux_c, r_visc, r_q, LU_x)
 
-    for i in r_flux_c do
-      r_flux_c[i].rho  = 0.
-      r_flux_c[i].rhou = r_tauij[i]._11
-      r_flux_c[i].rhov = r_tauij[i]._12
-      r_flux_c[i].rhow = r_tauij[i]._13
-      r_flux_c[i].rhoE = r_tauij[i]._11 * r_prim_c[i].u + r_tauij[i]._12 * r_prim_c[i].v + r_tauij[i]._13 * r_prim_c[i].w - r_q[i]._1
+      for i in r_flux_c do
+        r_flux_c[i].rho  = 0.
+        r_flux_c[i].rhou = r_tauij[i]._11
+        r_flux_c[i].rhov = r_tauij[i]._12
+        r_flux_c[i].rhow = r_tauij[i]._13
+        r_flux_c[i].rhoE = r_tauij[i]._11 * r_prim_c[i].u + r_tauij[i]._12 * r_prim_c[i].v + r_tauij[i]._13 * r_prim_c[i].w - r_q[i]._1
+      end
+
+      ddx_rho ( r_flux_c, r_fder_c_x, LU_x )
+      ddx_rhou( r_flux_c, r_fder_c_x, LU_x )
+      ddx_rhov( r_flux_c, r_fder_c_x, LU_x )
+      ddx_rhow( r_flux_c, r_fder_c_x, LU_x )
+      ddx_rhoE( r_flux_c, r_fder_c_x, LU_x )
+
+      for i in r_rhs do
+        r_rhs[i].rho  += r_fder_c_x[i].rho
+        r_rhs[i].rhou += r_fder_c_x[i].rhou
+        r_rhs[i].rhov += r_fder_c_x[i].rhov
+        r_rhs[i].rhow += r_fder_c_x[i].rhow
+        r_rhs[i].rhoE += r_fder_c_x[i].rhoE
+      end
     end
 
-    ddx_rho ( r_flux_c, r_fder_c_x, LU_x )
-    ddx_rhou( r_flux_c, r_fder_c_x, LU_x )
-    ddx_rhov( r_flux_c, r_fder_c_x, LU_x )
-    ddx_rhow( r_flux_c, r_fder_c_x, LU_x )
-    ddx_rhoE( r_flux_c, r_fder_c_x, LU_x )
+    -- var t_end = c.legion_get_current_time_in_micros()
 
-    for i in r_rhs do
-      r_rhs[i].rho  += r_fder_c_x[i].rho
-      r_rhs[i].rhou += r_fder_c_x[i].rhou
-      r_rhs[i].rhov += r_fder_c_x[i].rhov
-      r_rhs[i].rhow += r_fder_c_x[i].rhow
-      r_rhs[i].rhoE += r_fder_c_x[i].rhoE
-    end
-
+    -- c.printf("X: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
+    -- c.printf("X: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
+    -- c.printf("X: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
+    -- c.printf("X: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
+    -- c.printf("X: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
+    -- c.printf("X: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
   end
 end
 
@@ -272,38 +294,50 @@ task add_yflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
                            r_q        : region(ispace(int3d), vect),
                            r_prim_l_y : region(ispace(int3d), primitive),
                            r_prim_r_y : region(ispace(int3d), primitive),
-                           r_rhs_l_y  : region(ispace(int3d), primitive),
-                           r_rhs_r_y  : region(ispace(int3d), primitive),
                            r_flux_c   : region(ispace(int3d), conserved),
                            r_flux_e_y : region(ispace(int3d), conserved),
                            r_fder_c_y : region(ispace(int3d), conserved),
                            r_rhs      : region(ispace(int3d), conserved),
+                           alpha_l    : region(ispace(int3d), coeffs),
+                           beta_l     : region(ispace(int3d), coeffs),
+                           gamma_l    : region(ispace(int3d), coeffs),
+                           alpha_r    : region(ispace(int3d), coeffs),
+                           beta_r     : region(ispace(int3d), coeffs),
+                           gamma_r    : region(ispace(int3d), coeffs),
+                           rho_avg    : region(ispace(int3d), double),
+                           sos_avg    : region(ispace(int3d), double),
+                           block_d    : region(ispace(int3d), double[9]),
+                           block_Uinv : region(ispace(int3d), double[9]),
                            LU_y       : region(ispace(int3d), LU_struct),
-                           slu_l_y    : region(ispace(int2d), superlu.c.superlu_vars_t),
-                           slu_r_y    : region(ispace(int2d), superlu.c.superlu_vars_t),
-                           matrix_l_y : region(ispace(int2d), superlu.CSR_matrix),
-                           matrix_r_y : region(ispace(int2d), superlu.CSR_matrix),
                            Nx         : int64,
                            Ny         : int64,
                            Nz         : int64 )
 where
   reads( r_cnsr, r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_12, _22, _23}, LU_y ),
-  reads writes( r_q._2, r_prim_l_y, r_prim_r_y, r_rhs_l_y, r_rhs_r_y, r_flux_c, r_flux_e_y, r_fder_c_y, r_rhs, slu_l_y, slu_r_y, matrix_l_y, matrix_r_y )
+  reads writes( r_q._2, r_prim_l_y, r_prim_r_y, r_flux_c, r_flux_e_y, r_fder_c_y, r_rhs),
+  reads writes( alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
 do
 
   var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
 
   if (ny >= 8) then
-    WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y, r_rhs_l_y, r_rhs_r_y, matrix_l_y, matrix_r_y, slu_l_y, slu_r_y, Nx, Ny, Nz )
+    -- var t_start = c.legion_get_current_time_in_micros()
+    WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y, alpha_l, beta_l, gamma_l,
+                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv, Nx, Ny, Nz )
+    -- var t_interpolation = c.legion_get_current_time_in_micros()
     positivity_enforcer_y( r_prim_c, r_prim_l_y, r_prim_r_y, Nx, Ny, Nz )
+    -- var t_positivity = c.legion_get_current_time_in_micros()
     HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
+    -- var t_riemann = c.legion_get_current_time_in_micros()
     get_yfluxes_r( r_prim_c, r_cnsr, r_flux_c )
+    -- var t_fluxes = c.legion_get_current_time_in_micros()
     
     ddy_MND_rho ( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhou( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhov( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhow( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhoE( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
+    -- var t_derivatives = c.legion_get_current_time_in_micros()
     
     for i in r_rhs do
       r_rhs[i].rho  -= r_fder_c_y[i].rho
@@ -313,30 +347,40 @@ do
       r_rhs[i].rhoE -= r_fder_c_y[i].rhoE
     end
 
-    get_q_y(r_aux_c, r_visc, r_q, LU_y)
+    if viscous then
+      get_q_y(r_aux_c, r_visc, r_q, LU_y)
 
-    for i in r_flux_c do
-      r_flux_c[i].rho  = 0.
-      r_flux_c[i].rhou = r_tauij[i]._12
-      r_flux_c[i].rhov = r_tauij[i]._22
-      r_flux_c[i].rhow = r_tauij[i]._23
-      r_flux_c[i].rhoE = r_tauij[i]._12 * r_prim_c[i].u + r_tauij[i]._22 * r_prim_c[i].v + r_tauij[i]._23 * r_prim_c[i].w - r_q[i]._2
+      for i in r_flux_c do
+        r_flux_c[i].rho  = 0.
+        r_flux_c[i].rhou = r_tauij[i]._12
+        r_flux_c[i].rhov = r_tauij[i]._22
+        r_flux_c[i].rhow = r_tauij[i]._23
+        r_flux_c[i].rhoE = r_tauij[i]._12 * r_prim_c[i].u + r_tauij[i]._22 * r_prim_c[i].v + r_tauij[i]._23 * r_prim_c[i].w - r_q[i]._2
+      end
+
+      ddy_rho ( r_flux_c, r_fder_c_y, LU_y )
+      ddy_rhou( r_flux_c, r_fder_c_y, LU_y )
+      ddy_rhov( r_flux_c, r_fder_c_y, LU_y )
+      ddy_rhow( r_flux_c, r_fder_c_y, LU_y )
+      ddy_rhoE( r_flux_c, r_fder_c_y, LU_y )
+
+      for i in r_rhs do
+        r_rhs[i].rho  += r_fder_c_y[i].rho
+        r_rhs[i].rhou += r_fder_c_y[i].rhou
+        r_rhs[i].rhov += r_fder_c_y[i].rhov
+        r_rhs[i].rhow += r_fder_c_y[i].rhow
+        r_rhs[i].rhoE += r_fder_c_y[i].rhoE
+      end
     end
 
-    ddy_rho ( r_flux_c, r_fder_c_y, LU_y )
-    ddy_rhou( r_flux_c, r_fder_c_y, LU_y )
-    ddy_rhov( r_flux_c, r_fder_c_y, LU_y )
-    ddy_rhow( r_flux_c, r_fder_c_y, LU_y )
-    ddy_rhoE( r_flux_c, r_fder_c_y, LU_y )
+    -- var t_end = c.legion_get_current_time_in_micros()
 
-    for i in r_rhs do
-      r_rhs[i].rho  += r_fder_c_y[i].rho
-      r_rhs[i].rhou += r_fder_c_y[i].rhou
-      r_rhs[i].rhov += r_fder_c_y[i].rhov
-      r_rhs[i].rhow += r_fder_c_y[i].rhow
-      r_rhs[i].rhoE += r_fder_c_y[i].rhoE
-    end
-
+    -- c.printf("Y: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
+    -- c.printf("Y: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
+    -- c.printf("Y: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
+    -- c.printf("Y: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
+    -- c.printf("Y: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
+    -- c.printf("Y: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
   end
 end
 
@@ -348,38 +392,50 @@ task add_zflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
                            r_q        : region(ispace(int3d), vect),
                            r_prim_l_z : region(ispace(int3d), primitive),
                            r_prim_r_z : region(ispace(int3d), primitive),
-                           r_rhs_l_z  : region(ispace(int3d), primitive),
-                           r_rhs_r_z  : region(ispace(int3d), primitive),
                            r_flux_c   : region(ispace(int3d), conserved),
                            r_flux_e_z : region(ispace(int3d), conserved),
                            r_fder_c_z : region(ispace(int3d), conserved),
                            r_rhs      : region(ispace(int3d), conserved),
+                           alpha_l    : region(ispace(int3d), coeffs),
+                           beta_l     : region(ispace(int3d), coeffs),
+                           gamma_l    : region(ispace(int3d), coeffs),
+                           alpha_r    : region(ispace(int3d), coeffs),
+                           beta_r     : region(ispace(int3d), coeffs),
+                           gamma_r    : region(ispace(int3d), coeffs),
+                           rho_avg    : region(ispace(int3d), double),
+                           sos_avg    : region(ispace(int3d), double),
+                           block_d    : region(ispace(int3d), double[9]),
+                           block_Uinv : region(ispace(int3d), double[9]),
                            LU_z       : region(ispace(int3d), LU_struct),
-                           slu_l_z    : region(ispace(int2d), superlu.c.superlu_vars_t),
-                           slu_r_z    : region(ispace(int2d), superlu.c.superlu_vars_t),
-                           matrix_l_z : region(ispace(int2d), superlu.CSR_matrix),
-                           matrix_r_z : region(ispace(int2d), superlu.CSR_matrix),
                            Nx         : int64,
                            Ny         : int64,
                            Nz         : int64 )
 where
   reads( r_cnsr, r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_13, _23, _33}, LU_z ),
-  reads writes( r_q._3, r_prim_l_z, r_prim_r_z, r_rhs_l_z, r_rhs_r_z, r_flux_c, r_flux_e_z, r_fder_c_z, r_rhs, slu_l_z, slu_r_z, matrix_l_z, matrix_r_z )
+  reads writes( r_q._3, r_prim_l_z, r_prim_r_z, r_flux_c, r_flux_e_z, r_fder_c_z, r_rhs),
+  reads writes( alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
 do
 
   var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
 
   if (nz >= 8) then
-    WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z, r_rhs_l_z, r_rhs_r_z, matrix_l_z, matrix_r_z, slu_l_z, slu_r_z, Nx, Ny, Nz )
+    -- var t_start = c.legion_get_current_time_in_micros()
+    WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z, alpha_l, beta_l, gamma_l,
+                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv, Nx, Ny, Nz )
+    -- var t_interpolation = c.legion_get_current_time_in_micros()
     positivity_enforcer_z( r_prim_c, r_prim_l_z, r_prim_r_z, Nx, Ny, Nz )
+    -- var t_positivity = c.legion_get_current_time_in_micros()
     HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
+    -- var t_riemann = c.legion_get_current_time_in_micros()
     get_zfluxes_r( r_prim_c, r_cnsr, r_flux_c )
+    -- var t_fluxes = c.legion_get_current_time_in_micros()
 
     ddz_MND_rho ( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
     ddz_MND_rhou( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
     ddz_MND_rhov( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
     ddz_MND_rhow( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
     ddz_MND_rhoE( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
+    -- var t_derivatives = c.legion_get_current_time_in_micros()
 
     for i in r_rhs do
       r_rhs[i].rho  -= r_fder_c_z[i].rho
@@ -389,30 +445,40 @@ do
       r_rhs[i].rhoE -= r_fder_c_z[i].rhoE
     end
 
-    get_q_z(r_aux_c, r_visc, r_q, LU_z)
+    if viscous then
+      get_q_z(r_aux_c, r_visc, r_q, LU_z)
 
-    for i in r_flux_c do
-      r_flux_c[i].rho  = 0.
-      r_flux_c[i].rhou = r_tauij[i]._13
-      r_flux_c[i].rhov = r_tauij[i]._23
-      r_flux_c[i].rhow = r_tauij[i]._33
-      r_flux_c[i].rhoE = r_tauij[i]._13 * r_prim_c[i].u + r_tauij[i]._23 * r_prim_c[i].v + r_tauij[i]._33 * r_prim_c[i].w - r_q[i]._3
+      for i in r_flux_c do
+        r_flux_c[i].rho  = 0.
+        r_flux_c[i].rhou = r_tauij[i]._13
+        r_flux_c[i].rhov = r_tauij[i]._23
+        r_flux_c[i].rhow = r_tauij[i]._33
+        r_flux_c[i].rhoE = r_tauij[i]._13 * r_prim_c[i].u + r_tauij[i]._23 * r_prim_c[i].v + r_tauij[i]._33 * r_prim_c[i].w - r_q[i]._3
+      end
+
+      ddz_rho ( r_flux_c, r_fder_c_z, LU_z )
+      ddz_rhou( r_flux_c, r_fder_c_z, LU_z )
+      ddz_rhov( r_flux_c, r_fder_c_z, LU_z )
+      ddz_rhow( r_flux_c, r_fder_c_z, LU_z )
+      ddz_rhoE( r_flux_c, r_fder_c_z, LU_z )
+
+      for i in r_rhs do
+        r_rhs[i].rho  += r_fder_c_z[i].rho
+        r_rhs[i].rhou += r_fder_c_z[i].rhou
+        r_rhs[i].rhov += r_fder_c_z[i].rhov
+        r_rhs[i].rhow += r_fder_c_z[i].rhow
+        r_rhs[i].rhoE += r_fder_c_z[i].rhoE
+      end
     end
 
-    ddz_rho ( r_flux_c, r_fder_c_z, LU_z )
-    ddz_rhou( r_flux_c, r_fder_c_z, LU_z )
-    ddz_rhov( r_flux_c, r_fder_c_z, LU_z )
-    ddz_rhow( r_flux_c, r_fder_c_z, LU_z )
-    ddz_rhoE( r_flux_c, r_fder_c_z, LU_z )
+    -- var t_end = c.legion_get_current_time_in_micros()
 
-    for i in r_rhs do
-      r_rhs[i].rho  += r_fder_c_z[i].rho
-      r_rhs[i].rhou += r_fder_c_z[i].rhou
-      r_rhs[i].rhov += r_fder_c_z[i].rhov
-      r_rhs[i].rhow += r_fder_c_z[i].rhow
-      r_rhs[i].rhoE += r_fder_c_z[i].rhoE
-    end
-
+    -- c.printf("Z: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
+    -- c.printf("Z: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
+    -- c.printf("Z: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
+    -- c.printf("Z: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
+    -- c.printf("Z: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
+    -- c.printf("Z: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
   end
 end
 
