@@ -17,8 +17,8 @@ problem.viscous = false
 
 -- Grid dimensions
 problem.NX = 32
-problem.NY = 8
-problem.NZ = 8
+problem.NY = 1
+problem.NZ = 1
 
 -- Periodicity
 problem.periodic_x = true

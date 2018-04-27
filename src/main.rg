@@ -97,10 +97,14 @@ task main()
   c.printf("================================================================\n")
 
   --------------------------------------------------------------------------------------------
-  --                       DATA STUCTURES
+  --                       DATA STRUCTURES
   --------------------------------------------------------------------------------------------
   
   var grid_c     = ispace(int3d, {x = Nx,   y = Ny,   z = Nz  })  -- cell center index space
+
+  var ghost_x    = ispace(int3d, {x =  4,   y = Ny,   z = Nz  })  -- x ghost cells
+  var ghost_y    = ispace(int3d, {x = Nx,   y =  4,   z = Nz  })  -- y ghost cells
+  var ghost_z    = ispace(int3d, {x = Nx,   y = Ny,   z =  4  })  -- y ghost cells
 
   var grid_e_x   = ispace(int3d, {x = Nx+1, y = Ny,   z = Nz  })  -- x cell edge index space
   var grid_e_y   = ispace(int3d, {x = Nx,   y = Ny+1, z = Nz  })  -- y cell edge index space
@@ -117,6 +121,13 @@ task main()
   var r_prim_r_x = region(grid_e_x, primitive)  -- primitive variables at right x cell edge
   var r_prim_r_y = region(grid_e_y, primitive)  -- primitive variables at right y cell edge
   var r_prim_r_z = region(grid_e_z, primitive)  -- primitive variables at right z cell edge
+
+  var gr_prim_l_x = region(ghost_x, primitive)  -- primitive variables at left x ghost cells
+  var gr_prim_l_y = region(ghost_y, primitive)  -- primitive variables at left y ghost cells
+  var gr_prim_l_z = region(ghost_z, primitive)  -- primitive variables at left z ghost cells
+  var gr_prim_r_x = region(ghost_x, primitive)  -- primitive variables at right x ghost cells
+  var gr_prim_r_y = region(ghost_y, primitive)  -- primitive variables at right y ghost cells
+  var gr_prim_r_z = region(ghost_z, primitive)  -- primitive variables at right z ghost cells
 
   var r_aux_c    = region(grid_c,   auxiliary)         -- auxiliary variables at cell center
   var r_visc     = region(grid_c,   transport_coeffs)  -- Transport coefficients at cell center
@@ -137,6 +148,13 @@ task main()
   var r_flux_e_y = region(grid_e_y, conserved)  -- flux at y cell edge
   var r_flux_e_z = region(grid_e_z, conserved)  -- flux at z cell edge
   
+  var gr_flux_l_x = region(ghost_x, conserved)  -- flux at left x ghost cells
+  var gr_flux_l_y = region(ghost_y, conserved)  -- flux at left y ghost cells
+  var gr_flux_l_z = region(ghost_z, conserved)  -- flux at left z ghost cells
+  var gr_flux_r_x = region(ghost_x, conserved)  -- flux at right x ghost cells
+  var gr_flux_r_y = region(ghost_y, conserved)  -- flux at right y ghost cells
+  var gr_flux_r_z = region(ghost_z, conserved)  -- flux at right z ghost cells
+
   var r_fder_c_x = region(grid_c,   conserved)  -- x flux derivative
   var r_fder_c_y = region(grid_c,   conserved)  -- y flux derivative
   var r_fder_c_z = region(grid_c,   conserved)  -- z flux derivative
@@ -207,41 +225,48 @@ task main()
   --                       PARTITIONING
   --------------------------------------------------------------------------------------------
   
-  var p_coords_x   = partition_xpencil_coords(coords,   pencil)
-  var p_coords_y   = partition_ypencil_coords(coords,   pencil)
-  var p_coords_z   = partition_zpencil_coords(coords,   pencil)
+  var p_coords_x   = partition_xpencil_coords(coords,    pencil)
+  var p_coords_y   = partition_ypencil_coords(coords,    pencil)
+  var p_coords_z   = partition_zpencil_coords(coords,    pencil)
 
-  var p_cnsr_x     = partition_xpencil_cnsr(r_cnsr,     pencil)
-  var p_cnsr_y     = partition_ypencil_cnsr(r_cnsr,     pencil)
-  var p_cnsr_z     = partition_zpencil_cnsr(r_cnsr,     pencil)
+  var p_cnsr_x     = partition_xpencil_cnsr(r_cnsr,      pencil)
+  var p_cnsr_y     = partition_ypencil_cnsr(r_cnsr,      pencil)
+  var p_cnsr_z     = partition_zpencil_cnsr(r_cnsr,      pencil)
 
-  var p_prim_c_x   = partition_xpencil_prim(r_prim_c,   pencil)
-  var p_prim_c_y   = partition_ypencil_prim(r_prim_c,   pencil)
-  var p_prim_c_z   = partition_zpencil_prim(r_prim_c,   pencil)
+  var p_prim_c_x   = partition_xpencil_prim(r_prim_c,    pencil)
+  var p_prim_c_y   = partition_ypencil_prim(r_prim_c,    pencil)
+  var p_prim_c_z   = partition_zpencil_prim(r_prim_c,    pencil)
 
-  var p_prim_l_x   = partition_xpencil_prim(r_prim_l_x, pencil)
-  var p_prim_l_y   = partition_ypencil_prim(r_prim_l_y, pencil)
-  var p_prim_l_z   = partition_zpencil_prim(r_prim_l_z, pencil)
+  var gp_prim_l_x  = partition_xpencil_prim(gr_prim_l_x, pencil)
+  var gp_prim_l_y  = partition_ypencil_prim(gr_prim_l_y, pencil)
+  var gp_prim_l_z  = partition_zpencil_prim(gr_prim_l_z, pencil)
+  var gp_prim_r_x  = partition_xpencil_prim(gr_prim_r_x, pencil)
+  var gp_prim_r_y  = partition_ypencil_prim(gr_prim_r_y, pencil)
+  var gp_prim_r_z  = partition_zpencil_prim(gr_prim_r_z, pencil)
 
-  var p_prim_r_x   = partition_xpencil_prim(r_prim_r_x, pencil)
-  var p_prim_r_y   = partition_ypencil_prim(r_prim_r_y, pencil)
-  var p_prim_r_z   = partition_zpencil_prim(r_prim_r_z, pencil)
+  var p_prim_l_x   = partition_xpencil_prim(r_prim_l_x,  pencil)
+  var p_prim_l_y   = partition_ypencil_prim(r_prim_l_y,  pencil)
+  var p_prim_l_z   = partition_zpencil_prim(r_prim_l_z,  pencil)
 
-  var p_aux_c_x    = partition_xpencil_aux (r_aux_c,    pencil)
-  var p_aux_c_y    = partition_ypencil_aux (r_aux_c,    pencil)
-  var p_aux_c_z    = partition_zpencil_aux (r_aux_c,    pencil)
+  var p_prim_r_x   = partition_xpencil_prim(r_prim_r_x,  pencil)
+  var p_prim_r_y   = partition_ypencil_prim(r_prim_r_y,  pencil)
+  var p_prim_r_z   = partition_zpencil_prim(r_prim_r_z,  pencil)
 
-  var p_visc_x     = partition_xpencil_visc(r_visc,     pencil)
-  var p_visc_y     = partition_ypencil_visc(r_visc,     pencil)
-  var p_visc_z     = partition_zpencil_visc(r_visc,     pencil)
+  var p_aux_c_x    = partition_xpencil_aux (r_aux_c,     pencil)
+  var p_aux_c_y    = partition_ypencil_aux (r_aux_c,     pencil)
+  var p_aux_c_z    = partition_zpencil_aux (r_aux_c,     pencil)
 
-  var p_q_x        = partition_xpencil_vect(r_q,        pencil)
-  var p_q_y        = partition_ypencil_vect(r_q,        pencil)
-  var p_q_z        = partition_zpencil_vect(r_q,        pencil)
+  var p_visc_x     = partition_xpencil_visc(r_visc,      pencil)
+  var p_visc_y     = partition_ypencil_visc(r_visc,      pencil)
+  var p_visc_z     = partition_zpencil_visc(r_visc,      pencil)
 
-  var p_gradu_x    = partition_xpencil_tnsr2(r_gradu,   pencil)
-  var p_gradu_y    = partition_ypencil_tnsr2(r_gradu,   pencil)
-  var p_gradu_z    = partition_zpencil_tnsr2(r_gradu,   pencil)
+  var p_q_x        = partition_xpencil_vect(r_q,         pencil)
+  var p_q_y        = partition_ypencil_vect(r_q,         pencil)
+  var p_q_z        = partition_zpencil_vect(r_q,         pencil)
+
+  var p_gradu_x    = partition_xpencil_tnsr2(r_gradu,    pencil)
+  var p_gradu_y    = partition_ypencil_tnsr2(r_gradu,    pencil)
+  var p_gradu_z    = partition_zpencil_tnsr2(r_gradu,    pencil)
 
   var p_tauij_x    = partition_xpencil_tnsr2symm(r_tauij, pencil)
   var p_tauij_y    = partition_ypencil_tnsr2symm(r_tauij, pencil)
@@ -258,6 +283,13 @@ task main()
   var p_flux_c_x   = partition_xpencil_cnsr(r_flux_c,   pencil)
   var p_flux_c_y   = partition_ypencil_cnsr(r_flux_c,   pencil)
   var p_flux_c_z   = partition_zpencil_cnsr(r_flux_c,   pencil)
+
+  var gp_flux_l_x  = partition_xpencil_cnsr(gr_flux_l_x, pencil)
+  var gp_flux_l_y  = partition_ypencil_cnsr(gr_flux_l_y, pencil)
+  var gp_flux_l_z  = partition_zpencil_cnsr(gr_flux_l_z, pencil)
+  var gp_flux_r_x  = partition_xpencil_cnsr(gr_flux_r_x, pencil)
+  var gp_flux_r_y  = partition_ypencil_cnsr(gr_flux_r_y, pencil)
+  var gp_flux_r_z  = partition_zpencil_cnsr(gr_flux_r_z, pencil)
 
   var p_flux_e_x   = partition_xpencil_cnsr(r_flux_e_x, pencil)
   var p_flux_e_y   = partition_ypencil_cnsr(r_flux_e_y, pencil)
