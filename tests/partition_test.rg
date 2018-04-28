@@ -7,14 +7,14 @@ local PI    = cmath.M_PI
 require("fields")
 require("partition")
 
-local superlu = require("superlu_util")
-
 local Config  = require("config")
 
 -- Grid dimensions
 local NX = 200
 local NY = 64
 local NZ = 32
+
+local NGHOSTS = 3
 
 -- Domain size
 local LX = 10.0
@@ -33,6 +33,20 @@ local DZ = LZ / NZ
 local ONEBYDX = 1.0 / DX
 local ONEBYDY = 1.0 / DY
 local ONEBYDZ = 1.0 / DZ
+
+task initialize_coords( coords     : region(ispace(int3d), coordinates),
+                        dx         : double,
+                        dy         : double,
+                        dz         : double )
+where
+  reads writes(coords)
+do
+  for i in coords.ispace do
+    coords[i].x_c = X1 + (i.x + 0.5) * dx
+    coords[i].y_c = Y1 + (i.y + 0.5) * dy
+    coords[i].z_c = Z1 + (i.z + 0.5) * dz
+  end
+end
 
 task initialize( coords     : region(ispace(int3d), coordinates),
                  r_prim_c   : region(ispace(int3d), primitive),
@@ -96,6 +110,11 @@ task main()
   var Ny : int64 = NY
   var Nz : int64 = NZ
 
+  var n_ghosts : int64 = NGHOSTS
+  var Nx_g : int64 = Nx + 2*n_ghosts
+  var Ny_g : int64 = Ny + 2*n_ghosts
+  var Nz_g : int64 = Nz + 2*n_ghosts
+
   var Lx : double = LX
   var Ly : double = LY
   var Lz : double = LZ
@@ -117,11 +136,11 @@ task main()
   --------------------------------------------------------------------------------------------
   --                       DATA STUCTURES
   --------------------------------------------------------------------------------------------
-  var grid_c     = ispace(int3d, {x = Nx,   y = Ny,   z = Nz  })  -- Cell center index space
+  var grid_c     = ispace(int3d, {x = Nx_g, y = Ny_g, z = Nz_g})  -- Cell center index space
 
-  var grid_e_x   = ispace(int3d, {x = Nx+1, y = Ny,   z = Nz  })  -- x cell edge index space
-  var grid_e_y   = ispace(int3d, {x = Nx,   y = Ny+1, z = Nz  })  -- y cell edge index space
-  var grid_e_z   = ispace(int3d, {x = Nx,   y = Ny,   z = Nz+1})  -- z cell edge index space
+  var grid_e_x   = ispace(int3d, {x = Nx+1, y = Ny_g, z = Nz_g})  -- x cell edge index space
+  var grid_e_y   = ispace(int3d, {x = Nx_g, y = Ny+1, z = Nz_g})  -- y cell edge index space
+  var grid_e_z   = ispace(int3d, {x = Nx_g, y = Ny_g, z = Nz+1})  -- z cell edge index space
 
   var coords     = region(grid_c, coordinates)  -- Coordinates of cell center
 
@@ -130,87 +149,95 @@ task main()
   var r_prim_l_y = region(grid_e_y, primitive)  -- Primitive variables at left y cell edge
   var r_prim_l_z = region(grid_e_z, primitive)  -- Primitive variables at left z cell edge
 
-  var pencil     = ispace(int2d, int2d {config.prow, config.pcol})
-  var slu_x      = region(pencil, superlu.c.superlu_vars_t) -- Super LU data structure for x interpolation
-  var matrix_l_x = region(pencil, superlu.CSR_matrix) -- matrix data structure for x left interpolation
+  var pencil     = ispace(int2d, int2d {config.prow+2, config.pcol+2})
+  var pencil_int = ispace(int2d, int2d {config.prow, config.pcol}, int2d {1, 1})
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
   --------------------------------------------------------------------------------------------
   --                       PARTITIONING
   --------------------------------------------------------------------------------------------
-  var coords_x = partition_xpencil_coords(coords, pencil)
-  var coords_y = partition_ypencil_coords(coords, pencil)
-  var coords_z = partition_zpencil_coords(coords, pencil)
+  var coords_x   = partition_xpencil_coords(coords, n_ghosts, pencil)
+  -- var coords_y = partition_ypencil_coords(coords, n_ghosts, pencil)
+  -- var coords_z = partition_zpencil_coords(coords, n_ghosts, pencil)
+
+  __demand(__parallel)
+  for i in pencil_int do
+    initialize_coords(coords_x[i], dx, dy, dz)
+  end
+
+  __demand(__parallel)
+  for i in pencil do
+    initialize_coords(coords_x[i], dx, dy, dz)
+  end
 
   for i in pencil do
     var bounds_0 = coords_x[i].ispace.bounds
     c.printf("Coords partition {%d, %d} in x\n", i.x, i.y)
     c.printf("  lo : %4d, %4d, %4d\n", bounds_0.lo.x, bounds_0.lo.y, bounds_0.lo.z)
     c.printf("  hi : %4d, %4d, %4d\n", bounds_0.hi.x, bounds_0.hi.y, bounds_0.hi.z)
-    regentlib.assert( bounds_0.lo.x == 0,                        "coords: x lower bounds in x partition is wrong." )
-    regentlib.assert( bounds_0.lo.y == Ny/config.prow*i.x,       "coords: y lower bounds in x partition is wrong." )
-    regentlib.assert( bounds_0.lo.z == Nz/config.pcol*i.y,       "coords: z lower bounds in x partition is wrong." )
-    regentlib.assert( bounds_0.hi.x == Nx-1,                     "coords: x upper bounds in x partition is wrong." )
-    regentlib.assert( bounds_0.hi.y == Ny/config.prow*(i.x+1)-1, "coords: y upper bounds in x partition is wrong." )
-    regentlib.assert( bounds_0.hi.z == Nz/config.pcol*(i.y+1)-1, "coords: z upper bounds in x partition is wrong." )
+
+    regentlib.assert( bounds_0.lo.x == 0,                          "coords: x lower bounds in x partition is wrong." )
+    regentlib.assert( bounds_0.hi.x == Nx_g-1,                     "coords: x upper bounds in x partition is wrong." )
+
+    if (i.x == 0) then
+      regentlib.assert( bounds_0.lo.y == 0,                        "coords: y lower bounds in x partition is wrong." )
+      regentlib.assert( bounds_0.hi.y == n_ghosts-1,               "coords: y upper bounds in x partition is wrong." )
+    elseif (i.x == config.prow+1) then
+      regentlib.assert( bounds_0.lo.y == Ny_g - n_ghosts,          "coords: y lower bounds in x partition is wrong." )
+      regentlib.assert( bounds_0.hi.y == Ny_g - 1,                 "coords: y upper bounds in x partition is wrong." )
+    else
+      regentlib.assert( bounds_0.lo.y == Ny/config.prow*(i.x-1) + n_ghosts, "coords: y lower bounds in x partition is wrong." )
+      regentlib.assert( bounds_0.hi.y == Ny/config.prow*i.x -1  + n_ghosts, "coords: y upper bounds in x partition is wrong." )
+    end
+
+    if (i.y == 0) then
+      regentlib.assert( bounds_0.lo.z == 0,                        "coords: z lower bounds in x partition is wrong." )
+      regentlib.assert( bounds_0.hi.z == n_ghosts-1,               "coords: z upper bounds in x partition is wrong." )
+    elseif (i.y == config.pcol+1) then
+      regentlib.assert( bounds_0.lo.z == Nz_g - n_ghosts,          "coords: z lower bounds in x partition is wrong." )
+      regentlib.assert( bounds_0.hi.z == Nz_g - 1,                 "coords: z upper bounds in x partition is wrong." )
+    else
+      regentlib.assert( bounds_0.lo.z == Nz/config.pcol*(i.y-1) + n_ghosts, "coords: z lower bounds in x partition is wrong." )
+      regentlib.assert( bounds_0.hi.z == Nz/config.pcol*i.y -1  + n_ghosts, "coords: z upper bounds in x partition is wrong." )
+    end
+    -- regentlib.assert( bounds_0.lo.x == 0,                        "coords: x lower bounds in x partition is wrong." )
+    -- regentlib.assert( bounds_0.lo.y == Ny/config.prow*i.x,       "coords: y lower bounds in x partition is wrong." )
+    -- regentlib.assert( bounds_0.lo.z == Nz/config.pcol*i.y,       "coords: z lower bounds in x partition is wrong." )
+    -- regentlib.assert( bounds_0.hi.x == Nx-1,                     "coords: x upper bounds in x partition is wrong." )
+    -- regentlib.assert( bounds_0.hi.y == Ny/config.prow*(i.x+1)-1, "coords: y upper bounds in x partition is wrong." )
+    -- regentlib.assert( bounds_0.hi.z == Nz/config.pcol*(i.y+1)-1, "coords: z upper bounds in x partition is wrong." )
   end
   c.printf("\n")
 
-  for i in pencil do
-    var bounds_0 = coords_y[i].ispace.bounds
-    c.printf("Coords partition {%d, %d} in y\n", i.x, i.y)
-    c.printf("  lo : %4d, %4d, %4d\n", bounds_0.lo.x, bounds_0.lo.y, bounds_0.lo.z)
-    c.printf("  hi : %4d, %4d, %4d\n", bounds_0.hi.x, bounds_0.hi.y, bounds_0.hi.z)
-    regentlib.assert( bounds_0.lo.x == Nx/config.prow*i.x,       "coords: x lower bounds in y partition is wrong." )
-    regentlib.assert( bounds_0.lo.y == 0,                        "coords: y lower bounds in y partition is wrong." )
-    regentlib.assert( bounds_0.lo.z == Nz/config.pcol*i.y,       "coords: z lower bounds in y partition is wrong." )
-    regentlib.assert( bounds_0.hi.x == Nx/config.prow*(i.x+1)-1, "coords: x upper bounds in y partition is wrong." )
-    regentlib.assert( bounds_0.hi.y == Ny-1,                     "coords: y upper bounds in y partition is wrong." )
-    regentlib.assert( bounds_0.hi.z == Nz/config.pcol*(i.y+1)-1, "coords: z upper bounds in y partition is wrong." )
-  end
-  c.printf("\n")
+  -- for i in pencil do
+  --   var bounds_0 = coords_y[i].ispace.bounds
+  --   c.printf("Coords partition {%d, %d} in y\n", i.x, i.y)
+  --   c.printf("  lo : %4d, %4d, %4d\n", bounds_0.lo.x, bounds_0.lo.y, bounds_0.lo.z)
+  --   c.printf("  hi : %4d, %4d, %4d\n", bounds_0.hi.x, bounds_0.hi.y, bounds_0.hi.z)
+  --   -- regentlib.assert( bounds_0.lo.x == Nx/config.prow*i.x,       "coords: x lower bounds in y partition is wrong." )
+  --   -- regentlib.assert( bounds_0.lo.y == 0,                        "coords: y lower bounds in y partition is wrong." )
+  --   -- regentlib.assert( bounds_0.lo.z == Nz/config.pcol*i.y,       "coords: z lower bounds in y partition is wrong." )
+  --   -- regentlib.assert( bounds_0.hi.x == Nx/config.prow*(i.x+1)-1, "coords: x upper bounds in y partition is wrong." )
+  --   -- regentlib.assert( bounds_0.hi.y == Ny-1,                     "coords: y upper bounds in y partition is wrong." )
+  --   -- regentlib.assert( bounds_0.hi.z == Nz/config.pcol*(i.y+1)-1, "coords: z upper bounds in y partition is wrong." )
+  -- end
+  -- c.printf("\n")
 
-  for i in pencil do
-    var bounds_0 = coords_z[i].ispace.bounds
-    c.printf("Coords partition {%d, %d} in z\n", i.x, i.y)
-    c.printf("  lo : %4d, %4d, %4d\n", bounds_0.lo.x, bounds_0.lo.y, bounds_0.lo.z)
-    c.printf("  hi : %4d, %4d, %4d\n", bounds_0.hi.x, bounds_0.hi.y, bounds_0.hi.z)
-    regentlib.assert( bounds_0.lo.x == Nx/config.prow*i.x,       "coords: x lower bounds in z partition is wrong." )
-    regentlib.assert( bounds_0.lo.y == Ny/config.pcol*i.y,       "coords: y lower bounds in z partition is wrong." )
-    regentlib.assert( bounds_0.lo.z == 0,                        "coords: z lower bounds in z partition is wrong." )
-    regentlib.assert( bounds_0.hi.x == Nx/config.prow*(i.x+1)-1, "coords: x upper bounds in z partition is wrong." )
-    regentlib.assert( bounds_0.hi.y == Ny/config.pcol*(i.y+1)-1, "coords: y upper bounds in z partition is wrong." )
-    regentlib.assert( bounds_0.hi.z == Nz-1,                     "coords: z upper bounds in z partition is wrong." )
-  end
-  c.printf("\n")
+  -- for i in pencil do
+  --   var bounds_0 = coords_z[i].ispace.bounds
+  --   c.printf("Coords partition {%d, %d} in z\n", i.x, i.y)
+  --   c.printf("  lo : %4d, %4d, %4d\n", bounds_0.lo.x, bounds_0.lo.y, bounds_0.lo.z)
+  --   c.printf("  hi : %4d, %4d, %4d\n", bounds_0.hi.x, bounds_0.hi.y, bounds_0.hi.z)
+  --   -- regentlib.assert( bounds_0.lo.x == Nx/config.prow*i.x,       "coords: x lower bounds in z partition is wrong." )
+  --   -- regentlib.assert( bounds_0.lo.y == Ny/config.pcol*i.y,       "coords: y lower bounds in z partition is wrong." )
+  --   -- regentlib.assert( bounds_0.lo.z == 0,                        "coords: z lower bounds in z partition is wrong." )
+  --   -- regentlib.assert( bounds_0.hi.x == Nx/config.prow*(i.x+1)-1, "coords: x upper bounds in z partition is wrong." )
+  --   -- regentlib.assert( bounds_0.hi.y == Ny/config.pcol*(i.y+1)-1, "coords: y upper bounds in z partition is wrong." )
+  --   -- regentlib.assert( bounds_0.hi.z == Nz-1,                     "coords: z upper bounds in z partition is wrong." )
+  -- end
+  -- c.printf("\n")
 
-  var p_slu_x = partition_slu(slu_x, pencil)
-
-  for i in pencil do
-    var bounds_0 = p_slu_x[i].ispace.bounds
-    c.printf("slu partition {%d, %d}\n", i.x, i.y)
-    c.printf("  lo : %4d, %4d\n", bounds_0.lo.x, bounds_0.lo.y)
-    c.printf("  hi : %4d, %4d\n", bounds_0.hi.x, bounds_0.hi.y)
-    regentlib.assert( bounds_0.lo.x == i.x, "slu: x lower bounds in z partition is wrong." )
-    regentlib.assert( bounds_0.lo.y == i.y, "slu: y lower bounds in z partition is wrong." )
-    regentlib.assert( bounds_0.hi.x == i.x, "slu: x upper bounds in z partition is wrong." )
-    regentlib.assert( bounds_0.hi.y == i.y, "slu: y upper bounds in z partition is wrong." )
-  end
-  c.printf("\n")
-
-  var p_matrix_l_x = partition_matrix(matrix_l_x, pencil)
-
-  for i in pencil do
-    var bounds_0 = p_matrix_l_x[i].ispace.bounds
-    c.printf("matrix partition {%d, %d}\n", i.x, i.y)
-    c.printf("  lo : %4d, %4d\n", bounds_0.lo.x, bounds_0.lo.y)
-    c.printf("  hi : %4d, %4d\n", bounds_0.hi.x, bounds_0.hi.y)
-    regentlib.assert( bounds_0.lo.x == i.x, "matrix: x lower bounds in z partition is wrong." )
-    regentlib.assert( bounds_0.lo.y == i.y, "matrix: y lower bounds in z partition is wrong." )
-    regentlib.assert( bounds_0.hi.x == i.x, "matrix: x upper bounds in z partition is wrong." )
-    regentlib.assert( bounds_0.hi.y == i.y, "matrix: y upper bounds in z partition is wrong." )
-  end
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 

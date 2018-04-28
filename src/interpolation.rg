@@ -15,6 +15,9 @@ alpha06CI = - 45.*( xi - 1. ) / ( 16.*(xi + 5) )
 beta06CI  = ( 53.*xi - 5. ) / ( 8.*(xi + 5) )
 gamma06CI = - 45.*( xi - 1. ) / ( 16.*(xi + 5) )
 
+local ip = {}
+ip.n_ghosts = 3
+
 local function v_index(i,is_left)
   if is_left then
     return i
@@ -652,3 +655,5 @@ do
   -- c.printf("Z: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
   return 1
 end
+
+return ip

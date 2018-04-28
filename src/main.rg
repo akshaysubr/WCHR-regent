@@ -11,6 +11,7 @@ require("derivatives")
 require("SOE")
 require("RHS")
 require("partition")
+local interpolation = require("interpolation")
 local use_io = require("IO")
 
 local problem = require("problem")
@@ -29,6 +30,11 @@ task main()
   var Nx : int64 = problem.NX
   var Ny : int64 = problem.NY
   var Nz : int64 = problem.NZ
+
+  var n_ghosts : int64 = interpolation.n_ghosts
+  var Nx_g : int64 = Nx + 2*n_ghosts
+  var Ny_g : int64 = Ny + 2*n_ghosts
+  var Nz_g : int64 = Nz + 2*n_ghosts
 
   var Lx : double = problem.LX
   var Ly : double = problem.LY
@@ -98,15 +104,11 @@ task main()
   --                       DATA STRUCTURES
   --------------------------------------------------------------------------------------------
   
-  var grid_c     = ispace(int3d, {x = Nx,   y = Ny,   z = Nz  })  -- cell center index space
+  var grid_c     = ispace(int3d, {x = Nx_g, y = Ny_g, z = Nz_g})  -- cell center index space (including ghost cells now)
 
-  var ghost_x    = ispace(int3d, {x =  4,   y = Ny,   z = Nz  })  -- x ghost cells
-  var ghost_y    = ispace(int3d, {x = Nx,   y =  4,   z = Nz  })  -- y ghost cells
-  var ghost_z    = ispace(int3d, {x = Nx,   y = Ny,   z =  4  })  -- y ghost cells
-
-  var grid_e_x   = ispace(int3d, {x = Nx+1, y = Ny,   z = Nz  })  -- x cell edge index space
-  var grid_e_y   = ispace(int3d, {x = Nx,   y = Ny+1, z = Nz  })  -- y cell edge index space
-  var grid_e_z   = ispace(int3d, {x = Nx,   y = Ny,   z = Nz+1})  -- z cell edge index space
+  var grid_e_x   = ispace(int3d, {x = Nx+1, y = Ny_g, z = Nz_g})  -- x cell edge index space (assuming no ghost edges)
+  var grid_e_y   = ispace(int3d, {x = Nx_g, y = Ny+1, z = Nz_g})  -- y cell edge index space (assuming no ghost edges)
+  var grid_e_z   = ispace(int3d, {x = Nx_g, y = Ny_g, z = Nz+1})  -- z cell edge index space (assuming no ghost edges)
 
   var coords     = region(grid_c, coordinates)  -- coordinates of cell center
 
@@ -119,13 +121,6 @@ task main()
   var r_prim_r_x = region(grid_e_x, primitive)  -- primitive variables at right x cell edge
   var r_prim_r_y = region(grid_e_y, primitive)  -- primitive variables at right y cell edge
   var r_prim_r_z = region(grid_e_z, primitive)  -- primitive variables at right z cell edge
-
-  var gr_prim_l_x = region(ghost_x, primitive)  -- primitive variables at left x ghost cells
-  var gr_prim_l_y = region(ghost_y, primitive)  -- primitive variables at left y ghost cells
-  var gr_prim_l_z = region(ghost_z, primitive)  -- primitive variables at left z ghost cells
-  var gr_prim_r_x = region(ghost_x, primitive)  -- primitive variables at right x ghost cells
-  var gr_prim_r_y = region(ghost_y, primitive)  -- primitive variables at right y ghost cells
-  var gr_prim_r_z = region(ghost_z, primitive)  -- primitive variables at right z ghost cells
 
   var r_aux_c    = region(grid_c,   auxiliary)         -- auxiliary variables at cell center
   var r_visc     = region(grid_c,   transport_coeffs)  -- Transport coefficients at cell center
@@ -146,13 +141,6 @@ task main()
   var r_flux_e_y = region(grid_e_y, conserved)  -- flux at y cell edge
   var r_flux_e_z = region(grid_e_z, conserved)  -- flux at z cell edge
   
-  var gr_flux_l_x = region(ghost_x, conserved)  -- flux at left x ghost cells
-  var gr_flux_l_y = region(ghost_y, conserved)  -- flux at left y ghost cells
-  var gr_flux_l_z = region(ghost_z, conserved)  -- flux at left z ghost cells
-  var gr_flux_r_x = region(ghost_x, conserved)  -- flux at right x ghost cells
-  var gr_flux_r_y = region(ghost_y, conserved)  -- flux at right y ghost cells
-  var gr_flux_r_z = region(ghost_z, conserved)  -- flux at right z ghost cells
-
   var r_fder_c_x = region(grid_c,   conserved)  -- x flux derivative
   var r_fder_c_y = region(grid_c,   conserved)  -- y flux derivative
   var r_fder_c_z = region(grid_c,   conserved)  -- z flux derivative
@@ -161,60 +149,60 @@ task main()
   var r_qrhs     = region(grid_c,   conserved)  -- buffer for RK45 time stepping
 
   -- data structure to hold x derivative LU decomposition
-  var LU_x       = region(ispace(int3d, {x = Nx, y = config.prow, z = config.pcol}), LU_struct) -- For staggered finite difference
-  var LU_N_x     = region(ispace(int3d, {x = Nx, y = config.prow, z = config.pcol}), LU_struct) -- For nodal finite difference
+  var LU_x       = region(ispace(int3d, {x = Nx,   y = config.prow, z = config.pcol}), LU_struct) -- For staggered finite difference
+  var LU_N_x     = region(ispace(int3d, {x = Nx_g, y = config.prow, z = config.pcol}), LU_struct) -- For nodal finite difference
   
   -- data structure to hold y derivative LU decomposition
-  var LU_y       = region(ispace(int3d, {x = Ny, y = config.prow, z = config.pcol}), LU_struct) -- For staggered finite difference
-  var LU_N_y     = region(ispace(int3d, {x = Ny, y = config.prow, z = config.pcol}), LU_struct) -- For nodal finite difference
+  var LU_y       = region(ispace(int3d, {x = Ny,   y = config.prow, z = config.pcol}), LU_struct) -- For staggered finite difference
+  var LU_N_y     = region(ispace(int3d, {x = Ny_g, y = config.prow, z = config.pcol}), LU_struct) -- For nodal finite difference
 
   -- data structure to hold z derivative LU decomposition
-  var LU_z       = region(ispace(int3d, {x = Nz, y = config.prow, z = config.pcol}), LU_struct) -- For staggered finite difference
-  var LU_N_z     = region(ispace(int3d, {x = Nz, y = config.prow, z = config.pcol}), LU_struct) -- For nodal finite difference
+  var LU_z       = region(ispace(int3d, {x = Nz,   y = config.prow, z = config.pcol}), LU_struct) -- For staggered finite difference
+  var LU_N_z     = region(ispace(int3d, {x = Nz_g, y = config.prow, z = config.pcol}), LU_struct) -- For nodal finite difference
 
   var pencil = ispace(int2d, int2d {config.prow, config.pcol})
 
-  var alpha_l_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
-  var beta_l_x  = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
-  var gamma_l_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var alpha_l_x = region( grid_e_x, coeffs )
+  var beta_l_x  = region( grid_e_x, coeffs )
+  var gamma_l_x = region( grid_e_x, coeffs )
 
-  var alpha_r_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
-  var beta_r_x  = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
-  var gamma_r_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
+  var alpha_r_x = region( grid_e_x, coeffs )
+  var beta_r_x  = region( grid_e_x, coeffs )
+  var gamma_r_x = region( grid_e_x, coeffs )
 
-  var rho_avg_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), double )
-  var sos_avg_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), double )
+  var rho_avg_x = region( grid_e_x, double )
+  var sos_avg_x = region( grid_e_x, double )
 
-  var block_d_x    = region( ispace(int3d, {Nx+1, Ny, Nz} ), double[9] )
-  var block_Uinv_x = region( ispace(int3d, {Nx+1, Ny, Nz} ), double[9] )
+  var block_d_x    = region( grid_e_x, double[9] )
+  var block_Uinv_x = region( grid_e_x, double[9] )
 
-  var alpha_l_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
-  var beta_l_y  = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
-  var gamma_l_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
+  var alpha_l_y = region( grid_e_y, coeffs )
+  var beta_l_y  = region( grid_e_y, coeffs )
+  var gamma_l_y = region( grid_e_y, coeffs )
 
-  var alpha_r_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
-  var beta_r_y  = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
-  var gamma_r_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), coeffs )
+  var alpha_r_y = region( grid_e_y, coeffs )
+  var beta_r_y  = region( grid_e_y, coeffs )
+  var gamma_r_y = region( grid_e_y, coeffs )
 
-  var rho_avg_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), double )
-  var sos_avg_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), double )
+  var rho_avg_y = region( grid_e_y, double )
+  var sos_avg_y = region( grid_e_y, double )
 
-  var block_d_y    = region( ispace(int3d, {Nx, Ny+1, Nz} ), double[9] )
-  var block_Uinv_y = region( ispace(int3d, {Nx, Ny+1, Nz} ), double[9] )
+  var block_d_y    = region( grid_e_y, double[9] )
+  var block_Uinv_y = region( grid_e_y, double[9] )
 
-  var alpha_l_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
-  var beta_l_z  = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
-  var gamma_l_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+  var alpha_l_z = region( grid_e_z, coeffs )
+  var beta_l_z  = region( grid_e_z, coeffs )
+  var gamma_l_z = region( grid_e_z, coeffs )
 
-  var alpha_r_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
-  var beta_r_z  = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
-  var gamma_r_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), coeffs )
+  var alpha_r_z = region( grid_e_z, coeffs )
+  var beta_r_z  = region( grid_e_z, coeffs )
+  var gamma_r_z = region( grid_e_z, coeffs )
 
-  var rho_avg_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), double )
-  var sos_avg_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), double )
+  var rho_avg_z = region( grid_e_z, double )
+  var sos_avg_z = region( grid_e_z, double )
 
-  var block_d_z    = region( ispace(int3d, {Nx, Ny, Nz+1} ), double[9] )
-  var block_Uinv_z = region( ispace(int3d, {Nx, Ny, Nz+1} ), double[9] )
+  var block_d_z    = region( grid_e_z, double[9] )
+  var block_Uinv_z = region( grid_e_z, double[9] )
 
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
@@ -234,13 +222,6 @@ task main()
   var p_prim_c_x   = partition_xpencil_prim(r_prim_c,    pencil)
   var p_prim_c_y   = partition_ypencil_prim(r_prim_c,    pencil)
   var p_prim_c_z   = partition_zpencil_prim(r_prim_c,    pencil)
-
-  var gp_prim_l_x  = partition_xpencil_prim(gr_prim_l_x, pencil)
-  var gp_prim_l_y  = partition_ypencil_prim(gr_prim_l_y, pencil)
-  var gp_prim_l_z  = partition_zpencil_prim(gr_prim_l_z, pencil)
-  var gp_prim_r_x  = partition_xpencil_prim(gr_prim_r_x, pencil)
-  var gp_prim_r_y  = partition_ypencil_prim(gr_prim_r_y, pencil)
-  var gp_prim_r_z  = partition_zpencil_prim(gr_prim_r_z, pencil)
 
   var p_prim_l_x   = partition_xpencil_prim(r_prim_l_x,  pencil)
   var p_prim_l_y   = partition_ypencil_prim(r_prim_l_y,  pencil)
@@ -281,13 +262,6 @@ task main()
   var p_flux_c_x   = partition_xpencil_cnsr(r_flux_c,   pencil)
   var p_flux_c_y   = partition_ypencil_cnsr(r_flux_c,   pencil)
   var p_flux_c_z   = partition_zpencil_cnsr(r_flux_c,   pencil)
-
-  var gp_flux_l_x  = partition_xpencil_cnsr(gr_flux_l_x, pencil)
-  var gp_flux_l_y  = partition_ypencil_cnsr(gr_flux_l_y, pencil)
-  var gp_flux_l_z  = partition_zpencil_cnsr(gr_flux_l_z, pencil)
-  var gp_flux_r_x  = partition_xpencil_cnsr(gr_flux_r_x, pencil)
-  var gp_flux_r_y  = partition_ypencil_cnsr(gr_flux_r_y, pencil)
-  var gp_flux_r_z  = partition_zpencil_cnsr(gr_flux_r_z, pencil)
 
   var p_flux_e_x   = partition_xpencil_cnsr(r_flux_e_x, pencil)
   var p_flux_e_y   = partition_ypencil_cnsr(r_flux_e_y, pencil)
