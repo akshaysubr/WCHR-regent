@@ -110,22 +110,58 @@ end
 
 local function make_partition_ypencil(r)
   local task partition_ypencil( [r],
-                                ypencil : ispace(int2d) )
+                                n_ghosts : int64,
+                                ypencil  : ispace(int2d) )
     var coloring = c.legion_domain_point_coloring_create()
   
-    var prow = ypencil.bounds.hi.x + 1
-    var pcol = ypencil.bounds.hi.y + 1
-  
+    -- xpencil is of size (prow+2)(pcol+2)
+    var prow = ypencil.bounds.hi.x - 1
+    var pcol = ypencil.bounds.hi.y - 1
+ 
     var bounds = [r].ispace.bounds
-    var Nx = bounds.hi.x + 1
+    var Nx_g = bounds.hi.x + 1
     var Ny = bounds.hi.y + 1
-    var Nz = bounds.hi.z + 1
+    var Nz_g = bounds.hi.z + 1
+    
+    var Nx = Nx_g - 2*n_ghosts
+    var Nz = Nz_g - 2*n_ghosts
   
     for i in ypencil do
-      var lo = int3d { x = i.x*(Nx/prow), y = 0, z = i.y*(Nz/pcol) }
-      var hi = int3d { x = (i.x+1)*(Nx/prow)-1, y = Ny-1, z = (i.y+1)*(Nz/pcol)-1 }
-      var rect = rect3d { lo = lo, hi = hi }
-      c.legion_domain_point_coloring_color_domain(coloring, i, rect)
+        var xst : int64
+        var xen : int64
+        var zst : int64
+        var zen : int64
+
+        if ( (i.x > 0) and (i.x < prow+1) ) then
+          xst = (i.x-1)*(Nx/prow)+n_ghosts
+          xen = (i.x)*(Nx/prow)+n_ghosts-1
+        end
+        if (i.x == 0) then
+          xst = 0
+          xen = n_ghosts-1
+        end
+        if (i.x == prow+1) then
+          xst = Nx+n_ghosts
+          xen = Nx+2*n_ghosts-1
+        end
+
+        if ( (i.y > 0) and (i.y < pcol+1) ) then
+          zst = (i.y-1)*(Nz/pcol)+n_ghosts
+          zen = (i.y)*(Nz/pcol)+n_ghosts-1
+        end
+        if (i.y == 0) then
+          zst = 0
+          zen = n_ghosts-1
+        end
+        if (i.y == pcol+1) then
+          zst = Nz+n_ghosts
+          zen = Nz+2*n_ghosts-1
+        end
+
+        var lo = int3d { x = xst,    y = 0, z = zst }
+        var hi = int3d { x = xen, y = Ny-1, z = zen }
+        var rect = rect3d { lo = lo, hi = hi }
+        c.legion_domain_point_coloring_color_domain(coloring, i, rect)
     end
     var p = partition(disjoint, [r], coloring, ypencil)
     c.legion_domain_point_coloring_destroy(coloring)
