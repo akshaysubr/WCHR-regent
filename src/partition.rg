@@ -48,8 +48,9 @@ end
 
 local function make_partition_xpencil(r)
   local task partition_xpencil( [r],
-                                n_ghosts : int64,
-                                xpencil  : ispace(int2d) )
+                                n_ghosts    : int64,
+                                with_ghosts : bool,
+                                xpencil     : ispace(int2d) )
     var coloring = c.legion_domain_point_coloring_create()
   
     -- xpencil is of size (prow+2)(pcol+2)
@@ -57,18 +58,29 @@ local function make_partition_xpencil(r)
     var pcol = xpencil.bounds.hi.y - 1
   
     var bounds = [r].ispace.bounds
-    var Nx   = bounds.hi.x + 1
+    var Nx_g = bounds.hi.x + 1
     var Ny_g = bounds.hi.y + 1
     var Nz_g = bounds.hi.z + 1
     
+    var Nx = Nx_g - 2*n_ghosts
     var Ny = Ny_g - 2*n_ghosts
     var Nz = Nz_g - 2*n_ghosts
   
     for i in xpencil do
+      var xst : int64
+      var xen : int64
       var yst : int64
       var yen : int64
       var zst : int64
       var zen : int64
+
+      if (with_ghosts) then
+        xst = 0
+        xen = Nx_g - 1
+      else
+        xst = n_ghosts
+        xen = Nx + n_ghosts - 1
+      end
 
       if ( (i.x > 0) and (i.x < prow+1) ) then
         yst = (i.x-1)*(Ny/prow)+n_ghosts
@@ -96,8 +108,8 @@ local function make_partition_xpencil(r)
         zen = Nz+2*n_ghosts-1
       end
 
-      var lo = int3d { x = 0,    y = yst, z = zst }
-      var hi = int3d { x = Nx-1, y = yen, z = zen }
+      var lo = int3d { x = xst, y = yst, z = zst }
+      var hi = int3d { x = xen, y = yen, z = zen }
       var rect = rect3d { lo = lo, hi = hi }
       c.legion_domain_point_coloring_color_domain(coloring, i, rect)
     end
@@ -110,8 +122,9 @@ end
 
 local function make_partition_ypencil(r)
   local task partition_ypencil( [r],
-                                n_ghosts : int64,
-                                ypencil  : ispace(int2d) )
+                                n_ghosts    : int64,
+                                with_ghosts : bool,
+                                ypencil     : ispace(int2d) )
     var coloring = c.legion_domain_point_coloring_create()
   
     -- xpencil is of size (prow+2)(pcol+2)
@@ -120,17 +133,28 @@ local function make_partition_ypencil(r)
  
     var bounds = [r].ispace.bounds
     var Nx_g = bounds.hi.x + 1
-    var Ny   = bounds.hi.y + 1
+    var Ny_g = bounds.hi.y + 1
     var Nz_g = bounds.hi.z + 1
     
     var Nx = Nx_g - 2*n_ghosts
+    var Ny = Ny_g - 2*n_ghosts
     var Nz = Nz_g - 2*n_ghosts
   
     for i in ypencil do
       var xst : int64
       var xen : int64
+      var yst : int64
+      var yen : int64
       var zst : int64
       var zen : int64
+
+      if (with_ghosts) then
+        yst = 0
+        yen = Ny_g - 1
+      else
+        yst = n_ghosts
+        yen = Ny + n_ghosts - 1
+      end
 
       if ( (i.x > 0) and (i.x < prow+1) ) then
         xst = (i.x-1)*(Nx/prow)+n_ghosts
@@ -158,8 +182,8 @@ local function make_partition_ypencil(r)
         zen = Nz+2*n_ghosts-1
       end
 
-      var lo = int3d { x = xst,    y = 0, z = zst }
-      var hi = int3d { x = xen, y = Ny-1, z = zen }
+      var lo = int3d { x = xst, y = yst, z = zst }
+      var hi = int3d { x = xen, y = yen, z = zen }
       var rect = rect3d { lo = lo, hi = hi }
       c.legion_domain_point_coloring_color_domain(coloring, i, rect)
     end
@@ -172,8 +196,9 @@ end
 
 local function make_partition_zpencil(r)
   local task partition_zpencil( [r],
-                                n_ghosts : int64,
-                                zpencil  : ispace(int2d) )
+                                n_ghosts    : int64,
+                                with_ghosts : bool,
+                                zpencil     : ispace(int2d) )
     var coloring = c.legion_domain_point_coloring_create()
   
     -- zpencil is of size (prow+2)(pcol+2)
@@ -183,16 +208,27 @@ local function make_partition_zpencil(r)
     var bounds = [r].ispace.bounds
     var Nx_g = bounds.hi.x + 1
     var Ny_g = bounds.hi.y + 1
-    var Nz   = bounds.hi.z + 1
+    var Nz_g = bounds.hi.z + 1
 
     var Nx = Nx_g - 2*n_ghosts
     var Ny = Ny_g - 2*n_ghosts
+    var Nz = Nz_g - 2*n_ghosts
   
     for i in zpencil do
       var xst : int64
       var xen : int64
       var yst : int64
       var yen : int64
+      var zst : int64
+      var zen : int64
+
+      if (with_ghosts) then
+        zst = 0
+        zen = Nz_g - 1
+      else
+        zst = n_ghosts
+        zen = Nz + n_ghosts - 1
+      end
 
       if ( (i.x > 0) and (i.x < prow+1) ) then
         xst = (i.x-1)*(Nx/prow)+n_ghosts
@@ -220,8 +256,8 @@ local function make_partition_zpencil(r)
         yen = Ny+2*n_ghosts-1
       end
 
-      var lo = int3d { x = xst, y = yst, z = 0 }
-      var hi = int3d { x = xen, y = yen, z = Nz-1 }
+      var lo = int3d { x = xst, y = yst, z = zst }
+      var hi = int3d { x = xen, y = yen, z = zen }
       var rect = rect3d { lo = lo, hi = hi }
       c.legion_domain_point_coloring_color_domain(coloring, i, rect)
     end
