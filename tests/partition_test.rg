@@ -157,9 +157,9 @@ task main()
   --------------------------------------------------------------------------------------------
   --                       PARTITIONING
   --------------------------------------------------------------------------------------------
-  var coords_x   = partition_xpencil_coords(coords, n_ghosts, pencil)
-  -- var coords_y = partition_ypencil_coords(coords, n_ghosts, pencil)
-  -- var coords_z = partition_zpencil_coords(coords, n_ghosts, pencil)
+  var coords_x = partition_xpencil_coords(coords, n_ghosts, pencil)
+  var coords_y = partition_ypencil_coords(coords, n_ghosts, pencil)
+  var coords_z = partition_zpencil_coords(coords, n_ghosts, pencil)
 
   __demand(__parallel)
   for i in pencil_int do
@@ -201,42 +201,74 @@ task main()
       regentlib.assert( bounds_0.lo.z == Nz/config.pcol*(i.y-1) + n_ghosts, "coords: z lower bounds in x partition is wrong." )
       regentlib.assert( bounds_0.hi.z == Nz/config.pcol*i.y -1  + n_ghosts, "coords: z upper bounds in x partition is wrong." )
     end
-    -- regentlib.assert( bounds_0.lo.x == 0,                        "coords: x lower bounds in x partition is wrong." )
-    -- regentlib.assert( bounds_0.lo.y == Ny/config.prow*i.x,       "coords: y lower bounds in x partition is wrong." )
-    -- regentlib.assert( bounds_0.lo.z == Nz/config.pcol*i.y,       "coords: z lower bounds in x partition is wrong." )
-    -- regentlib.assert( bounds_0.hi.x == Nx-1,                     "coords: x upper bounds in x partition is wrong." )
-    -- regentlib.assert( bounds_0.hi.y == Ny/config.prow*(i.x+1)-1, "coords: y upper bounds in x partition is wrong." )
-    -- regentlib.assert( bounds_0.hi.z == Nz/config.pcol*(i.y+1)-1, "coords: z upper bounds in x partition is wrong." )
   end
   c.printf("\n")
 
-  -- for i in pencil do
-  --   var bounds_0 = coords_y[i].ispace.bounds
-  --   c.printf("Coords partition {%d, %d} in y\n", i.x, i.y)
-  --   c.printf("  lo : %4d, %4d, %4d\n", bounds_0.lo.x, bounds_0.lo.y, bounds_0.lo.z)
-  --   c.printf("  hi : %4d, %4d, %4d\n", bounds_0.hi.x, bounds_0.hi.y, bounds_0.hi.z)
-  --   -- regentlib.assert( bounds_0.lo.x == Nx/config.prow*i.x,       "coords: x lower bounds in y partition is wrong." )
-  --   -- regentlib.assert( bounds_0.lo.y == 0,                        "coords: y lower bounds in y partition is wrong." )
-  --   -- regentlib.assert( bounds_0.lo.z == Nz/config.pcol*i.y,       "coords: z lower bounds in y partition is wrong." )
-  --   -- regentlib.assert( bounds_0.hi.x == Nx/config.prow*(i.x+1)-1, "coords: x upper bounds in y partition is wrong." )
-  --   -- regentlib.assert( bounds_0.hi.y == Ny-1,                     "coords: y upper bounds in y partition is wrong." )
-  --   -- regentlib.assert( bounds_0.hi.z == Nz/config.pcol*(i.y+1)-1, "coords: z upper bounds in y partition is wrong." )
-  -- end
-  -- c.printf("\n")
+  for i in pencil do
+    var bounds_0 = coords_y[i].ispace.bounds
+    c.printf("Coords partition {%d, %d} in y\n", i.x, i.y)
+    c.printf("  lo : %4d, %4d, %4d\n", bounds_0.lo.x, bounds_0.lo.y, bounds_0.lo.z)
+    c.printf("  hi : %4d, %4d, %4d\n", bounds_0.hi.x, bounds_0.hi.y, bounds_0.hi.z)
 
-  -- for i in pencil do
-  --   var bounds_0 = coords_z[i].ispace.bounds
-  --   c.printf("Coords partition {%d, %d} in z\n", i.x, i.y)
-  --   c.printf("  lo : %4d, %4d, %4d\n", bounds_0.lo.x, bounds_0.lo.y, bounds_0.lo.z)
-  --   c.printf("  hi : %4d, %4d, %4d\n", bounds_0.hi.x, bounds_0.hi.y, bounds_0.hi.z)
-  --   -- regentlib.assert( bounds_0.lo.x == Nx/config.prow*i.x,       "coords: x lower bounds in z partition is wrong." )
-  --   -- regentlib.assert( bounds_0.lo.y == Ny/config.pcol*i.y,       "coords: y lower bounds in z partition is wrong." )
-  --   -- regentlib.assert( bounds_0.lo.z == 0,                        "coords: z lower bounds in z partition is wrong." )
-  --   -- regentlib.assert( bounds_0.hi.x == Nx/config.prow*(i.x+1)-1, "coords: x upper bounds in z partition is wrong." )
-  --   -- regentlib.assert( bounds_0.hi.y == Ny/config.pcol*(i.y+1)-1, "coords: y upper bounds in z partition is wrong." )
-  --   -- regentlib.assert( bounds_0.hi.z == Nz-1,                     "coords: z upper bounds in z partition is wrong." )
-  -- end
-  -- c.printf("\n")
+    regentlib.assert( bounds_0.lo.y == 0,                          "coords: y lower bounds in y partition is wrong." )
+    regentlib.assert( bounds_0.hi.y == Ny_g-1,                     "coords: y upper bounds in y partition is wrong." )
+
+    if (i.x == 0) then
+      regentlib.assert( bounds_0.lo.x == 0,                        "coords: x lower bounds in y partition is wrong." )
+      regentlib.assert( bounds_0.hi.x == n_ghosts-1,               "coords: x upper bounds in y partition is wrong." )
+    elseif (i.x == config.prow+1) then
+      regentlib.assert( bounds_0.lo.x == Nx_g - n_ghosts,          "coords: x lower bounds in y partition is wrong." )
+      regentlib.assert( bounds_0.hi.x == Nx_g - 1,                 "coords: x upper bounds in y partition is wrong." )
+    else
+      regentlib.assert( bounds_0.lo.x == Nx/config.prow*(i.x-1) + n_ghosts, "coords: x lower bounds in y partition is wrong." )
+      regentlib.assert( bounds_0.hi.x == Nx/config.prow*i.x -1  + n_ghosts, "coords: x upper bounds in y partition is wrong." )
+    end
+
+    if (i.y == 0) then
+      regentlib.assert( bounds_0.lo.z == 0,                        "coords: z lower bounds in y partition is wrong." )
+      regentlib.assert( bounds_0.hi.z == n_ghosts-1,               "coords: z upper bounds in y partition is wrong." )
+    elseif (i.y == config.pcol+1) then
+      regentlib.assert( bounds_0.lo.z == Nz_g - n_ghosts,          "coords: z lower bounds in y partition is wrong." )
+      regentlib.assert( bounds_0.hi.z == Nz_g - 1,                 "coords: z upper bounds in y partition is wrong." )
+    else
+      regentlib.assert( bounds_0.lo.z == Nz/config.pcol*(i.y-1) + n_ghosts, "coords: z lower bounds in y partition is wrong." )
+      regentlib.assert( bounds_0.hi.z == Nz/config.pcol*i.y -1  + n_ghosts, "coords: z upper bounds in y partition is wrong." )
+    end
+  end
+  c.printf("\n")
+
+  for i in pencil do
+    var bounds_0 = coords_z[i].ispace.bounds
+    c.printf("Coords partition {%d, %d} in z\n", i.x, i.y)
+    c.printf("  lo : %4d, %4d, %4d\n", bounds_0.lo.x, bounds_0.lo.y, bounds_0.lo.z)
+    c.printf("  hi : %4d, %4d, %4d\n", bounds_0.hi.x, bounds_0.hi.y, bounds_0.hi.z)
+
+    regentlib.assert( bounds_0.lo.z == 0,                          "coords: z lower bounds in z partition is wrong." )
+    regentlib.assert( bounds_0.hi.z == Nz_g-1,                     "coords: z upper bounds in z partition is wrong." )
+
+    if (i.x == 0) then
+      regentlib.assert( bounds_0.lo.x == 0,                        "coords: x lower bounds in z partition is wrong." )
+      regentlib.assert( bounds_0.hi.x == n_ghosts-1,               "coords: x upper bounds in z partition is wrong." )
+    elseif (i.x == config.prow+1) then
+      regentlib.assert( bounds_0.lo.x == Nx_g - n_ghosts,          "coords: x lower bounds in z partition is wrong." )
+      regentlib.assert( bounds_0.hi.x == Nx_g - 1,                 "coords: x upper bounds in z partition is wrong." )
+    else
+      regentlib.assert( bounds_0.lo.x == Nx/config.prow*(i.x-1) + n_ghosts, "coords: x lower bounds in z partition is wrong." )
+      regentlib.assert( bounds_0.hi.x == Nx/config.prow*i.x -1  + n_ghosts, "coords: x upper bounds in z partition is wrong." )
+    end
+
+    if (i.y == 0) then
+      regentlib.assert( bounds_0.lo.y == 0,                        "coords: y lower bounds in z partition is wrong." )
+      regentlib.assert( bounds_0.hi.y == n_ghosts-1,               "coords: y upper bounds in z partition is wrong." )
+    elseif (i.y == config.pcol+1) then
+      regentlib.assert( bounds_0.lo.y == Ny_g - n_ghosts,          "coords: y lower bounds in z partition is wrong." )
+      regentlib.assert( bounds_0.hi.y == Ny_g - 1,                 "coords: y upper bounds in z partition is wrong." )
+    else
+      regentlib.assert( bounds_0.lo.y == Ny/config.pcol*(i.y-1) + n_ghosts, "coords: y lower bounds in z partition is wrong." )
+      regentlib.assert( bounds_0.hi.y == Ny/config.pcol*i.y -1  + n_ghosts, "coords: y upper bounds in z partition is wrong." )
+    end
+  end
+  c.printf("\n")
 
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
