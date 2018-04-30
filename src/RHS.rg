@@ -291,10 +291,6 @@ do
 end
 
 task add_yflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
-                           r_aux_c    : region(ispace(int3d), auxiliary),
-                           r_visc     : region(ispace(int3d), transport_coeffs),
-                           r_tauij    : region(ispace(int3d), tensor2symm),
-                           r_q        : region(ispace(int3d), vect),
                            r_prim_l_y : region(ispace(int3d), primitive),
                            r_prim_r_y : region(ispace(int3d), primitive),
                            r_flux_c   : region(ispace(int3d), conserved),
@@ -316,31 +312,25 @@ task add_yflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
                            Ny         : int64,
                            Nz         : int64 )
 where
-  reads( r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_12, _22, _23}, LU_y ),
-  reads writes( r_q._2, r_prim_l_y, r_prim_r_y, r_flux_c, r_flux_e_y, r_fder_c_y, r_rhs),
+  reads( r_prim_c, LU_y ),
+  reads writes( r_prim_l_y, r_prim_r_y, r_flux_c, r_flux_e_y, r_fder_c_y, r_rhs),
   reads writes( alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
 do
 
-  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1 - 2*interpolation.n_ghosts
 
   if (ny >= 8) then
-    -- var t_start = c.legion_get_current_time_in_micros()
     WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y, alpha_l, beta_l, gamma_l,
                           alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv, Nx, Ny, Nz )
-    -- var t_interpolation = c.legion_get_current_time_in_micros()
     -- positivity_enforcer_y( r_prim_c, r_prim_l_y, r_prim_r_y, Nx, Ny, Nz )
-    -- var t_positivity = c.legion_get_current_time_in_micros()
     HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
-    -- var t_riemann = c.legion_get_current_time_in_micros()
     get_yfluxes_r( r_prim_c, r_flux_c )
-    -- var t_fluxes = c.legion_get_current_time_in_micros()
     
     ddy_MND_rho ( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhou( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhov( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhow( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhoE( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
-    -- var t_derivatives = c.legion_get_current_time_in_micros()
     
     for i in r_rhs do
       r_rhs[i].rho  -= r_fder_c_y[i].rho
@@ -349,7 +339,29 @@ do
       r_rhs[i].rhow -= r_fder_c_y[i].rhow
       r_rhs[i].rhoE -= r_fder_c_y[i].rhoE
     end
+  end
+end
 
+task add_viscous_yflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
+                                   r_aux_c    : region(ispace(int3d), auxiliary),
+                                   r_visc     : region(ispace(int3d), transport_coeffs),
+                                   r_tauij    : region(ispace(int3d), tensor2symm),
+                                   r_q        : region(ispace(int3d), vect),
+                                   r_flux_c   : region(ispace(int3d), conserved),
+                                   r_fder_c_y : region(ispace(int3d), conserved),
+                                   r_rhs      : region(ispace(int3d), conserved),
+                                   LU_y       : region(ispace(int3d), LU_struct),
+                                   Nx         : int64,
+                                   Ny         : int64,
+                                   Nz         : int64 )
+where
+  reads( r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_12, _22, _23}, LU_y ),
+  reads writes( r_q._2, r_flux_c, r_fder_c_y, r_rhs)
+do
+
+  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1 - 2*interpolation.n_ghosts
+
+  if (ny >= 8) then
     if viscous then
       get_q_y(r_aux_c, r_visc, r_q, LU_y)
 
@@ -376,22 +388,10 @@ do
       end
     end
 
-    -- var t_end = c.legion_get_current_time_in_micros()
-
-    -- c.printf("Y: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
-    -- c.printf("Y: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
-    -- c.printf("Y: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
-    -- c.printf("Y: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
-    -- c.printf("Y: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
-    -- c.printf("Y: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
   end
 end
 
 task add_zflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
-                           r_aux_c    : region(ispace(int3d), auxiliary),
-                           r_visc     : region(ispace(int3d), transport_coeffs),
-                           r_tauij    : region(ispace(int3d), tensor2symm),
-                           r_q        : region(ispace(int3d), vect),
                            r_prim_l_z : region(ispace(int3d), primitive),
                            r_prim_r_z : region(ispace(int3d), primitive),
                            r_flux_c   : region(ispace(int3d), conserved),
@@ -413,24 +413,19 @@ task add_zflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
                            Ny         : int64,
                            Nz         : int64 )
 where
-  reads( r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_13, _23, _33}, LU_z ),
-  reads writes( r_q._3, r_prim_l_z, r_prim_r_z, r_flux_c, r_flux_e_z, r_fder_c_z, r_rhs),
+  reads( r_prim_c, LU_z ),
+  reads writes( r_prim_l_z, r_prim_r_z, r_flux_c, r_flux_e_z, r_fder_c_z, r_rhs),
   reads writes( alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
 do
 
-  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1 - 2*interpolation.n_ghosts
 
   if (nz >= 8) then
-    -- var t_start = c.legion_get_current_time_in_micros()
     WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z, alpha_l, beta_l, gamma_l,
                           alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv, Nx, Ny, Nz )
-    -- var t_interpolation = c.legion_get_current_time_in_micros()
     -- positivity_enforcer_z( r_prim_c, r_prim_l_z, r_prim_r_z, Nx, Ny, Nz )
-    -- var t_positivity = c.legion_get_current_time_in_micros()
     HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
-    -- var t_riemann = c.legion_get_current_time_in_micros()
     get_zfluxes_r( r_prim_c, r_flux_c )
-    -- var t_fluxes = c.legion_get_current_time_in_micros()
 
     ddz_MND_rho ( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
     ddz_MND_rhou( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
@@ -446,7 +441,29 @@ do
       r_rhs[i].rhow -= r_fder_c_z[i].rhow
       r_rhs[i].rhoE -= r_fder_c_z[i].rhoE
     end
+  end
+end
 
+task add_viscous_zflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
+                                   r_aux_c    : region(ispace(int3d), auxiliary),
+                                   r_visc     : region(ispace(int3d), transport_coeffs),
+                                   r_tauij    : region(ispace(int3d), tensor2symm),
+                                   r_q        : region(ispace(int3d), vect),
+                                   r_flux_c   : region(ispace(int3d), conserved),
+                                   r_fder_c_z : region(ispace(int3d), conserved),
+                                   r_rhs      : region(ispace(int3d), conserved),
+                                   LU_z       : region(ispace(int3d), LU_struct),
+                                   Nx         : int64,
+                                   Ny         : int64,
+                                   Nz         : int64 )
+where
+  reads( r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_13, _23, _33}, LU_z ),
+  reads writes( r_q._3, r_flux_c, r_fder_c_z, r_rhs)
+do
+
+  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1 - 2*interpolation.n_ghosts
+
+  if (nz >= 8) then
     if viscous then
       get_q_z(r_aux_c, r_visc, r_q, LU_z)
 
@@ -473,14 +490,6 @@ do
       end
     end
 
-    -- var t_end = c.legion_get_current_time_in_micros()
-
-    -- c.printf("Z: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
-    -- c.printf("Z: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
-    -- c.printf("Z: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
-    -- c.printf("Z: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
-    -- c.printf("Z: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
-    -- c.printf("Z: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
   end
 end
 

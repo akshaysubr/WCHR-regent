@@ -563,6 +563,36 @@ task main()
                                       p_flux_c_x_wg[i], p_fder_c_x_wg[i], p_rhs_x[i], p_LU_N_x[i], Nx, Ny, Nz )
       end
 
+      -- Add y-direction convective flux derivative to RHS.
+      __demand(__parallel)
+      for i in pencil_interior do
+        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_l_y[i], p_prim_r_y[i], p_flux_c_y_wg[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
+                              p_alpha_l_y[i], p_beta_l_y[i], p_gamma_l_y[i], p_alpha_r_y[i], p_beta_r_y[i], p_gamma_r_y[i], 
+                              p_rho_avg_y[i], p_sos_avg_y[i], p_block_d_y[i], p_block_Uinv_y[i], p_LU_y[i], Nx, Ny, Nz )
+      end
+
+      -- Add y-direction viscous flux derivative to RHS.
+      __demand(__parallel)
+      for i in pencil do
+        add_viscous_yflux_der_to_rhs( p_prim_c_y_wg[i], p_aux_c_y_wg[i], p_visc_y_wg[i], p_tauij_y_wg[i], p_q_y_wg[i],
+                                      p_flux_c_y_wg[i], p_fder_c_y_wg[i], p_rhs_y[i], p_LU_N_y[i], Nx, Ny, Nz )
+      end
+
+      -- Add z-direction convective flux derivative to RHS.
+      __demand(__parallel)
+      for i in pencil_interior do
+        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_l_z[i], p_prim_r_z[i], p_flux_c_z_wg[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
+                              p_alpha_l_z[i], p_beta_l_z[i], p_gamma_l_z[i], p_alpha_r_z[i], p_beta_r_z[i], p_gamma_r_z[i], 
+                              p_rho_avg_z[i], p_sos_avg_z[i], p_block_d_z[i], p_block_Uinv_z[i], p_LU_z[i], Nx, Ny, Nz )
+      end
+
+      -- Add z-direction viscous flux derivative to RHS.
+      __demand(__parallel)
+      for i in pencil do
+        add_viscous_zflux_der_to_rhs( p_prim_c_z_wg[i], p_aux_c_z_wg[i], p_visc_z_wg[i], p_tauij_z_wg[i], p_q_z_wg[i],
+                                      p_flux_c_z_wg[i], p_fder_c_z_wg[i], p_rhs_z[i], p_LU_N_z[i], Nx, Ny, Nz )
+      end
+
       -- Update solution in this substep.
       __demand(__parallel)
       for i in pencil_interior do
