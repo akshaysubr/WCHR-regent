@@ -70,18 +70,17 @@ task get_xfluxes( rho  : double,
                   u    : double,
                   v    : double,
                   w    : double,
-                  p    : double, 
-                  rhou : double,
-                  rhov : double,
-                  rhow : double,
-                  rhoE : double )
+                  p    : double )
 
   var flux : double[5]
 
-  flux[0] =  rhou
-  flux[1] =  rhou * u + p
-  flux[2] =  rhou * v
-  flux[3] =  rhou * w
+  var rhoe : double = get_internal_energy(rho, p)
+  var rhoE : double = rhoe + 0.5 * rho * (u*u + v*v + w*w)
+
+  flux[0] =  rho * u
+  flux[1] =  rho * u * u + p
+  flux[2] =  rho * u * v
+  flux[3] =  rho * u * w
   flux[4] = (rhoE + p) * u
 
   return flux
@@ -92,18 +91,17 @@ task get_yfluxes( rho  : double,
                   u    : double,
                   v    : double,
                   w    : double,
-                  p    : double, 
-                  rhou : double,
-                  rhov : double,
-                  rhow : double,
-                  rhoE : double )
+                  p    : double )
 
   var flux : double[5]
 
-  flux[0] =  rhov
-  flux[1] =  rhov * u
-  flux[2] =  rhov * v + p
-  flux[3] =  rhov * w
+  var rhoe : double = get_internal_energy(rho, p)
+  var rhoE : double = rhoe + 0.5 * rho * (u*u + v*v + w*w)
+
+  flux[0] =  rho * v
+  flux[1] =  rho * v * u
+  flux[2] =  rho * v * v + p
+  flux[3] =  rho * v * w
   flux[4] = (rhoE + p) * v
 
   return flux
@@ -114,18 +112,17 @@ task get_zfluxes( rho  : double,
                   u    : double,
                   v    : double,
                   w    : double,
-                  p    : double, 
-                  rhou : double,
-                  rhov : double,
-                  rhow : double,
-                  rhoE : double )
+                  p    : double )
 
   var flux : double[5]
 
-  flux[0] =  rhow
-  flux[1] =  rhow * u
-  flux[2] =  rhow * v
-  flux[3] =  rhow * w + p
+  var rhoe : double = get_internal_energy(rho, p)
+  var rhoE : double = rhoe + 0.5 * rho * (u*u + v*v + w*w)
+
+  flux[0] =  rho * w
+  flux[1] =  rho * w * u
+  flux[2] =  rho * w * v
+  flux[3] =  rho * w * w + p
   flux[4] = (rhoE + p) * w
 
   return flux
@@ -372,21 +369,16 @@ end
 
 __demand(__inline)
 task get_xfluxes_r( r_prim : region(ispace(int3d), primitive),
-                    r_cnsr : region(ispace(int3d), conserved),
                     r_flux : region(ispace(int3d), conserved) )
 where
-  reads (r_prim, r_cnsr), writes (r_flux)
+  reads (r_prim), writes (r_flux)
 do
   for i in r_prim do
     var flux : double[5] =  get_xfluxes( r_prim[i].rho ,
                                          r_prim[i].u   ,
                                          r_prim[i].v   ,
                                          r_prim[i].w   ,
-                                         r_prim[i].p   , 
-                                         r_cnsr[i].rhou,
-                                         r_cnsr[i].rhov,
-                                         r_cnsr[i].rhow,
-                                         r_cnsr[i].rhoE )
+                                         r_prim[i].p   )
     r_flux[i].rho  = flux[0]
     r_flux[i].rhou = flux[1]
     r_flux[i].rhov = flux[2]
@@ -397,21 +389,16 @@ end
 
 __demand(__inline)
 task get_yfluxes_r( r_prim : region(ispace(int3d), primitive),
-                    r_cnsr : region(ispace(int3d), conserved),
                     r_flux : region(ispace(int3d), conserved) )
 where
-  reads (r_prim, r_cnsr), writes (r_flux)
+  reads (r_prim), writes (r_flux)
 do
   for i in r_prim do
     var flux : double[5] = get_yfluxes( r_prim[i].rho ,
                                         r_prim[i].u   ,
                                         r_prim[i].v   ,
                                         r_prim[i].w   ,
-                                        r_prim[i].p   , 
-                                        r_cnsr[i].rhou,
-                                        r_cnsr[i].rhov,
-                                        r_cnsr[i].rhow,
-                                        r_cnsr[i].rhoE )
+                                        r_prim[i].p   )
     
     r_flux[i].rho  = flux[0]
     r_flux[i].rhou = flux[1]
@@ -423,21 +410,16 @@ end
 
 __demand(__inline)
 task get_zfluxes_r( r_prim : region(ispace(int3d), primitive),
-                    r_cnsr : region(ispace(int3d), conserved),
                     r_flux : region(ispace(int3d), conserved) )
 where
-  reads (r_prim, r_cnsr), writes (r_flux)
+  reads (r_prim), writes (r_flux)
 do
   for i in r_prim do
     var flux : double[5] = get_zfluxes( r_prim[i].rho ,
                                         r_prim[i].u   ,
                                         r_prim[i].v   ,
                                         r_prim[i].w   ,
-                                        r_prim[i].p   , 
-                                        r_cnsr[i].rhou,
-                                        r_cnsr[i].rhov,
-                                        r_cnsr[i].rhow,
-                                        r_cnsr[i].rhoE )
+                                        r_prim[i].p   )
     r_flux[i].rho  = flux[0]
     r_flux[i].rhou = flux[1]
     r_flux[i].rhov = flux[2]
@@ -476,12 +458,10 @@ do
                             - r_prim_r_x[i].rho * (s_R - r_prim_r_x[i].u))
 
     var Q_L : double[5] = get_conserved( r_prim_l_x[i].rho, r_prim_l_x[i].u, r_prim_l_x[i].v, r_prim_l_x[i].w, r_prim_l_x[i].p )
-    var F_L : double[5] = get_xfluxes( r_prim_l_x[i].rho, r_prim_l_x[i].u, r_prim_l_x[i].v, r_prim_l_x[i].w, r_prim_l_x[i].p,
-                                       Q_L[1], Q_L[2], Q_L[3], Q_L[4] )
+    var F_L : double[5] = get_xfluxes( r_prim_l_x[i].rho, r_prim_l_x[i].u, r_prim_l_x[i].v, r_prim_l_x[i].w, r_prim_l_x[i].p )
 
     var Q_R : double[5] = get_conserved( r_prim_r_x[i].rho, r_prim_r_x[i].u, r_prim_r_x[i].v, r_prim_r_x[i].w, r_prim_r_x[i].p )
-    var F_R : double[5] = get_xfluxes( r_prim_r_x[i].rho, r_prim_r_x[i].u, r_prim_r_x[i].v, r_prim_r_x[i].w, r_prim_r_x[i].p,
-                                       Q_R[1], Q_R[2], Q_R[3], Q_R[4] )
+    var F_R : double[5] = get_xfluxes( r_prim_r_x[i].rho, r_prim_r_x[i].u, r_prim_r_x[i].v, r_prim_r_x[i].w, r_prim_r_x[i].p )
 
     var chi_star_L : double = ( s_L - r_prim_l_x[i].u ) / ( s_L - s_star )
     var chi_star_R : double = ( s_R - r_prim_r_x[i].u ) / ( s_R - s_star )
@@ -545,12 +525,10 @@ do
                             - r_prim_r_y[i].rho * (s_R - r_prim_r_y[i].v))
 
     var Q_L : double[5] = get_conserved( r_prim_l_y[i].rho, r_prim_l_y[i].u, r_prim_l_y[i].v, r_prim_l_y[i].w, r_prim_l_y[i].p )
-    var F_L : double[5] = get_yfluxes( r_prim_l_y[i].rho, r_prim_l_y[i].u, r_prim_l_y[i].v, r_prim_l_y[i].w, r_prim_l_y[i].p,
-                                       Q_L[1], Q_L[2], Q_L[3], Q_L[4] )
+    var F_L : double[5] = get_yfluxes( r_prim_l_y[i].rho, r_prim_l_y[i].u, r_prim_l_y[i].v, r_prim_l_y[i].w, r_prim_l_y[i].p )
 
     var Q_R : double[5] = get_conserved( r_prim_r_y[i].rho, r_prim_r_y[i].u, r_prim_r_y[i].v, r_prim_r_y[i].w, r_prim_r_y[i].p )
-    var F_R : double[5] = get_yfluxes( r_prim_r_y[i].rho, r_prim_r_y[i].u, r_prim_r_y[i].v, r_prim_r_y[i].w, r_prim_r_y[i].p,
-                                       Q_R[1], Q_R[2], Q_R[3], Q_R[4] )
+    var F_R : double[5] = get_yfluxes( r_prim_r_y[i].rho, r_prim_r_y[i].u, r_prim_r_y[i].v, r_prim_r_y[i].w, r_prim_r_y[i].p )
 
     var chi_star_L : double = ( s_L - r_prim_l_y[i].v ) / ( s_L - s_star )
     var chi_star_R : double = ( s_R - r_prim_r_y[i].v ) / ( s_R - s_star )
@@ -614,12 +592,10 @@ do
                             - r_prim_r_z[i].rho * (s_R - r_prim_r_z[i].w))
 
     var Q_L : double[5] = get_conserved( r_prim_l_z[i].rho, r_prim_l_z[i].u, r_prim_l_z[i].v, r_prim_l_z[i].w, r_prim_l_z[i].p )
-    var F_L : double[5] = get_zfluxes( r_prim_l_z[i].rho, r_prim_l_z[i].u, r_prim_l_z[i].v, r_prim_l_z[i].w, r_prim_l_z[i].p,
-                                       Q_L[1], Q_L[2], Q_L[3], Q_L[4] )
+    var F_L : double[5] = get_zfluxes( r_prim_l_z[i].rho, r_prim_l_z[i].u, r_prim_l_z[i].v, r_prim_l_z[i].w, r_prim_l_z[i].p )
 
     var Q_R : double[5] = get_conserved( r_prim_r_z[i].rho, r_prim_r_z[i].u, r_prim_r_z[i].v, r_prim_r_z[i].w, r_prim_r_z[i].p )
-    var F_R : double[5] = get_zfluxes( r_prim_r_z[i].rho, r_prim_r_z[i].u, r_prim_r_z[i].v, r_prim_r_z[i].w, r_prim_r_z[i].p,
-                                       Q_R[1], Q_R[2], Q_R[3], Q_R[4] )
+    var F_R : double[5] = get_zfluxes( r_prim_r_z[i].rho, r_prim_r_z[i].u, r_prim_r_z[i].v, r_prim_r_z[i].w, r_prim_r_z[i].p )
 
     var chi_star_L : double = ( s_L - r_prim_l_z[i].w ) / ( s_L - s_star )
     var chi_star_R : double = ( s_R - r_prim_r_z[i].w ) / ( s_R - s_star )

@@ -1,4 +1,5 @@
 import "regent"
+import "bishop"
 
 local c       = regentlib.c
 local cmath   = terralib.includec("math.h")
@@ -260,14 +261,6 @@ task main()
   var p_tauij_y_wg  = partition_ypencil_tnsr2symm(r_tauij, n_ghosts, true, pencil)
   var p_tauij_z_wg  = partition_zpencil_tnsr2symm(r_tauij, n_ghosts, true, pencil)
 
-  var p_rhs_l_x     = partition_xpencil_prim(r_rhs_l_x,  n_ghosts,  true, pencil)
-  var p_rhs_l_y     = partition_ypencil_prim(r_rhs_l_y,  n_ghosts,  true, pencil)
-  var p_rhs_l_z     = partition_zpencil_prim(r_rhs_l_z,  n_ghosts,  true, pencil)
-
-  var p_rhs_r_x     = partition_xpencil_prim(r_rhs_r_x,  n_ghosts,  true, pencil)
-  var p_rhs_r_y     = partition_ypencil_prim(r_rhs_r_y,  n_ghosts,  true, pencil)
-  var p_rhs_r_z     = partition_zpencil_prim(r_rhs_r_z,  n_ghosts,  true, pencil)
-
   var p_flux_c_x_wg = partition_xpencil_cnsr(r_flux_c,   n_ghosts,  true, pencil)
   var p_flux_c_y_wg = partition_ypencil_cnsr(r_flux_c,   n_ghosts,  true, pencil)
   var p_flux_c_z_wg = partition_zpencil_cnsr(r_flux_c,   n_ghosts,  true, pencil)
@@ -279,6 +272,10 @@ task main()
   var p_fder_c_x    = partition_xpencil_cnsr(r_fder_c_x, n_ghosts, false, pencil)
   var p_fder_c_y    = partition_ypencil_cnsr(r_fder_c_y, n_ghosts, false, pencil)
   var p_fder_c_z    = partition_zpencil_cnsr(r_fder_c_z, n_ghosts, false, pencil)
+
+  var p_fder_c_x_wg = partition_xpencil_cnsr(r_fder_c_x, n_ghosts,  true, pencil)
+  var p_fder_c_y_wg = partition_ypencil_cnsr(r_fder_c_y, n_ghosts,  true, pencil)
+  var p_fder_c_z_wg = partition_zpencil_cnsr(r_fder_c_z, n_ghosts,  true, pencil)
 
   var p_rhs_x       = partition_xpencil_cnsr(r_rhs,      n_ghosts, false, pencil)
   var p_rhs_y       = partition_ypencil_cnsr(r_rhs,      n_ghosts, false, pencil)
@@ -343,46 +340,6 @@ task main()
 
   var token : int = 0
 
-  -- Initialize characteristic interpolation matrices and SuperLU structs.
-  if Nx >= 8 then
-    __demand(__parallel)
-    for i in pencil do
-      token += set_zero_prim( p_rhs_l_x[i] )
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += set_zero_prim( p_rhs_r_x[i] )
-    end
-  end
-  wait_for(token)
-
-  if Ny >= 8 then
-    __demand(__parallel)
-    for i in pencil do
-      token += set_zero_prim( p_rhs_l_y[i] )
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += set_zero_prim( p_rhs_r_y[i] )
-    end
-  end
-  wait_for(token)
-
-  if Nz >= 8 then
-    __demand(__parallel)
-    for i in pencil do
-      token += set_zero_prim( p_rhs_l_z[i] )
-    end
-
-    __demand(__parallel)
-    for i in pencil do
-      token += set_zero_prim( p_rhs_r_z[i] )
-    end
-  end
-  wait_for(token)
-  
   -- Initialize derivatives stuff.
   __demand(__parallel)
   for i in pencil do
@@ -415,14 +372,14 @@ task main()
     -- Restart the simulation from the latest viz dump
     c.printf("Restarting using viz dump\n")
     __demand(__parallel)
-    for i in pencil do
+    for i in pencil_interior do
       read_coords(p_coords_y[i], config.filename_prefix, i)
     end
     c.printf("Finished reading in coords\n")
 
     vizcount = config.restart_count
     __demand(__parallel)
-    for i in pencil do
+    for i in pencil_interior do
       read_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, i)
     end
     c.printf("Finished restarting using viz dump %d\n", vizcount)
@@ -431,31 +388,37 @@ task main()
   else
     -- If not restarting, then initialize from the problem initialization task
     __demand(__parallel)
-    for i in pencil do
+    for i in pencil_interior do
       -- Initialize everything in y decomposition.
       token += problem.initialize(p_coords_y[i], p_prim_c_y[i], dx, dy, dz)
     end
     c.printf("Finished initialization\n")
   end
 
+  -- TODO
+  -- __demand(__parallel)
+  -- for i in pencil do
+  --   -- Fill in ghost cells
+  -- end
+
   __demand(__parallel)
   for i in pencil do
     -- Get temperature from the initial primitive variables
-    token += get_temperature_r( p_prim_c_y[i], p_aux_c_y[i] )
+    token += get_temperature_r( p_prim_c_y_wg[i], p_aux_c_y_wg[i] )
   end
 
   -- Get the velocity derivatives at initial condition 
   __demand(__parallel)
   for i in pencil do
-    token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
+    token += get_velocity_x_derivatives( p_prim_c_x_wg[i], p_gradu_x_wg[i], p_LU_N_x[i] )
   end
   __demand(__parallel)
   for i in pencil do
-    token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
+    token += get_velocity_y_derivatives( p_prim_c_y_wg[i], p_gradu_y_wg[i], p_LU_N_y[i] )
   end
   __demand(__parallel)
   for i in pencil do
-    token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
+    token += get_velocity_z_derivatives( p_prim_c_z_wg[i], p_gradu_z_wg[i], p_LU_N_z[i] )
   end
  
   var TKE0 : double = 1.0e-16
@@ -482,7 +445,7 @@ task main()
   var IOtoken = 0
   if (use_io and (not config.restart)) then
     __demand(__parallel)
-    for i in pencil do
+    for i in pencil_interior do
       IOtoken += write_coords(p_coords_y[i], config.filename_prefix, i)
     end
   end
@@ -501,14 +464,14 @@ task main()
   
   -- Get conserved variables after initialization.
   __demand(__parallel)
-  for i in pencil do
+  for i in pencil_interior do
     token += get_conserved_r(p_prim_c_y[i], p_cnsr_y[i])
   end
 
   if (use_io and (not config.restart)) then
     wait_for(IOtoken)
     __demand(__parallel)
-    for i in pencil do
+    for i in pencil_interior do
       IOtoken += write_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, i)
     end
     vizcount = vizcount + 1
@@ -526,17 +489,17 @@ task main()
       var new_dt = 1.0e+100
       if Nz >= 8 then
         __demand(__parallel)
-        for i in pencil do
+        for i in pencil_interior do
           new_dt min= get_max_stable_dt_3d(p_prim_c_y[i], dx, dy, dz)
         end
       elseif Ny >= 8 then
         __demand(__parallel)
-        for i in pencil do
+        for i in pencil_interior do
           new_dt min= get_max_stable_dt_2d(p_prim_c_y[i], dx, dy)
         end
       else
         __demand(__parallel)
-        for i in pencil do
+        for i in pencil_interior do
           new_dt min= get_max_stable_dt_1d(p_prim_c_y[i], dx)
         end
       end
@@ -556,7 +519,7 @@ task main()
     var Q_t : double = 0.0
 
     __demand(__parallel)
-    for i in pencil do
+    for i in pencil_interior do
       set_zero_cnsr( p_qrhs_y[i] )
     end
 
@@ -567,7 +530,7 @@ task main()
 
       -- Set RHS to zero.
       __demand(__parallel)
-      for i in pencil do
+      for i in pencil_interior do
         set_zero_cnsr( p_rhs_y[i] )
       end
       
@@ -575,65 +538,34 @@ task main()
         -- Get the transport coefficients.
         __demand(__parallel)
         for i in pencil do
-          problem.get_transport_coeffs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i] )
+          problem.get_transport_coeffs( p_prim_c_y_wg[i], p_aux_c_y_wg[i], p_visc_y_wg[i] )
         end
 
         -- Get the viscous stress tensor.
         __demand(__parallel)
         for i in pencil do
-          get_tauij( p_gradu_y[i], p_tauij_y[i], p_visc_y[i] )
+          get_tauij( p_gradu_y_wg[i], p_tauij_y_wg[i], p_visc_y_wg[i] )
         end
       end
 
-      -- Add x-direction flux derivative to RHS.
+      -- Add x-direction convective flux derivative to RHS.
       __demand(__parallel)
-      for i in pencil do
-        -- add_xflux_der_to_rhs( p_cnsr_x[i], p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_q_x[i],
-        --                       p_prim_l_x[i], p_prim_r_x[i], p_rhs_l_x[i], p_rhs_r_x[i],
-        --                       p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
-        --                       p_LU_x[i], p_slu_l_x[i], p_slu_r_x[i], p_matrix_l_x[i], p_matrix_r_x[i],
-        --                       Nx, Ny, Nz )
-        add_xflux_der_to_rhs( p_cnsr_x[i], p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_q_x[i],
-                              p_prim_l_x[i], p_prim_r_x[i], p_flux_c_x[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
-                              p_alpha_l_x[i], p_beta_l_x[i], p_gamma_l_x[i],
-                              p_alpha_r_x[i], p_beta_r_x[i], p_gamma_r_x[i], p_rho_avg_x[i], p_sos_avg_x[i], p_block_d_x[i],
-                              p_block_Uinv_x[i], p_LU_x[i], Nx, Ny, Nz )
+      for i in pencil_interior do
+        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_l_x[i], p_prim_r_x[i], p_flux_c_x_wg[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
+                              p_alpha_l_x[i], p_beta_l_x[i], p_gamma_l_x[i], p_alpha_r_x[i], p_beta_r_x[i], p_gamma_r_x[i], 
+                              p_rho_avg_x[i], p_sos_avg_x[i], p_block_d_x[i], p_block_Uinv_x[i], p_LU_x[i], Nx, Ny, Nz )
       end
 
-      -- Add y-direction flux derivative to RHS.
+      -- Add x-direction viscous flux derivative to RHS.
       __demand(__parallel)
       for i in pencil do
-        -- add_yflux_der_to_rhs( p_cnsr_y[i], p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_q_y[i], 
-        --                       p_prim_l_y[i], p_prim_r_y[i], p_rhs_l_y[i], p_rhs_r_y[i],
-        --                       p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
-        --                       p_LU_y[i], p_slu_l_y[i], p_slu_r_y[i], p_matrix_l_y[i], p_matrix_r_y[i],
-        --                       Nx, Ny, Nz )
-        add_yflux_der_to_rhs( p_cnsr_y[i], p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_q_y[i],
-                              p_prim_l_y[i], p_prim_r_y[i], p_flux_c_y[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
-                              p_alpha_l_y[i], p_beta_l_y[i], p_gamma_l_y[i],
-                              p_alpha_r_y[i], p_beta_r_y[i], p_gamma_r_y[i], p_rho_avg_y[i], p_sos_avg_y[i], p_block_d_y[i],
-                              p_block_Uinv_y[i], p_LU_y[i], Nx, Ny, Nz )
+        add_viscous_xflux_der_to_rhs( p_prim_c_x_wg[i], p_aux_c_x_wg[i], p_visc_x_wg[i], p_tauij_x_wg[i], p_q_x_wg[i],
+                                      p_flux_c_x_wg[i], p_fder_c_x_wg[i], p_rhs_x[i], p_LU_N_x[i], Nx, Ny, Nz )
       end
 
-      -- Add z-direction flux derivative to RHS.
-      __demand(__parallel)
-      for i in pencil do
-        -- add_zflux_der_to_rhs( p_cnsr_z[i], p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_q_z[i], 
-        --                       p_prim_l_z[i], p_prim_r_z[i], p_rhs_l_z[i], p_rhs_r_z[i],
-        --                       p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
-        --                       p_LU_z[i], p_slu_l_z[i], p_slu_r_z[i], p_matrix_l_z[i], p_matrix_r_z[i],
-        --                       Nx, Ny, Nz )
-        add_zflux_der_to_rhs( p_cnsr_z[i], p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_q_z[i],
-                              p_prim_l_z[i], p_prim_r_z[i], p_flux_c_z[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
-                              p_alpha_l_z[i], p_beta_l_z[i], p_gamma_l_z[i],
-                              p_alpha_r_z[i], p_beta_r_z[i], p_gamma_r_z[i], p_rho_avg_z[i], p_sos_avg_z[i], p_block_d_z[i],
-                              p_block_Uinv_z[i], p_LU_z[i], Nx, Ny, Nz )
-      end
-
-       
       -- Update solution in this substep.
       __demand(__parallel)
-      for i in pencil do
+      for i in pencil_interior do
         update_substep( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK45[isub], B_RK45[isub] )
       end
 
@@ -643,29 +575,35 @@ task main()
 
       -- Update the primitive variables.
       __demand(__parallel)
-      for i in pencil do
+      for i in pencil_interior do
         token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
       end
+
+      -- TODO
+      -- __demand(__parallel)
+      -- for i in pencil do
+      --   -- Fill in ghost cells
+      -- end
 
       -- Update temperature.
       __demand(__parallel)
       for i in pencil do
-        token += get_temperature_r( p_prim_c_y[i], p_aux_c_y[i] )
+        token += get_temperature_r( p_prim_c_y_wg[i], p_aux_c_y_wg[i] )
       end
 
       if problem.viscous then
         -- Update velocity gradient tensor.
         __demand(__parallel)
         for i in pencil do
-          token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
+          token += get_velocity_x_derivatives( p_prim_c_x_wg[i], p_gradu_x_wg[i], p_LU_N_x[i] )
         end
         __demand(__parallel)
         for i in pencil do
-          token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
+          token += get_velocity_y_derivatives( p_prim_c_y_wg[i], p_gradu_y_wg[i], p_LU_N_y[i] )
         end
         __demand(__parallel)
         for i in pencil do
-          token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
+          token += get_velocity_z_derivatives( p_prim_c_z_wg[i], p_gradu_z_wg[i], p_LU_N_z[i] )
         end
       end
  
@@ -704,7 +642,7 @@ task main()
       if vizcond then
         wait_for(IOtoken)
         __demand(__parallel)
-        for i in pencil do
+        for i in pencil_interior do
           IOtoken += write_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, i)
         end
         vizcount = vizcount + 1
@@ -721,7 +659,7 @@ task main()
   for ierr = 0,5 do
     errors[ierr] = 0.0
   end
-  for i in pencil do
+  for i in pencil_interior do
     var perrors = problem.get_errors(p_coords_y[i], p_prim_c_y[i], tsim)
     for ierr = 0,5 do
       if perrors[ierr] > errors[ierr] then
@@ -752,7 +690,7 @@ if os.getenv('SAVEOBJ') == '1' then
   else
     link_flags = {"-L" .. root_dir, "-lm", "-lblas"}
   end
-  regentlib.saveobj(main, "wchr", "executable", link_flags)
+  regentlib.saveobj(main, "wchr", "executable", bishoplib.make_entry(), link_flags)
 else
   regentlib.start(main)
 end
