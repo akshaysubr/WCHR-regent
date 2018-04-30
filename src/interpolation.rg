@@ -146,8 +146,194 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
   return get_nonlinear_weights_LD
 end
 
+local function make_get_nonlinear_weights_LD_LBLB(get_beta, is_left)
+  local get_nonlinear_weights_LD_LBLB __demand(__inline) task get_nonlinear_weights_LD_LBLB( values : double[6][5] )
+    var xi1 : double = -76185.0/170936.0
+    var xi2 : double = 1925.0/14424.0
+
+    var nlweights : double[4][5]
+
+    var d_5 = array( (32.0*xi2 - 5.0)/(3.0*(104.0*xi2 - 35.0)),
+                     5.0*(56.0*xi2 - 11.0)/(3.0*(104.0*xi2 - 35.0)),
+                     -15.0/(104.0*xi2 - 35.0),
+                     0.0 )
+    var d_6 = array( (3488.0*xi1*xi2 - 716.0*xi1 + 264.0*xi2 - 75.0)/(12.0*(3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)),
+                     (80576.0*xi1*xi2 - 20456.0*xi1 + 6840.0*xi2 - 2385.0)/(24.0*(3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)),
+                     -(936.0*xi1+135.0)/((3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)),
+                     (296.0*xi2-35.0)/(8.0*(3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)) )
+
+    for eq = 0, 5 do 
+      var beta = [get_beta](values, eq)
+      
+      var C : double = 1.0e10
+      -- p = 2
+      -- q = 4
+      var epsilon   : double = 1.0e-40
+      var alpha_tau : double = 55.0
+      
+      var alpha_2 : double = (values[eq][2] - values[eq][1])
+      var alpha_3 : double = (values[eq][3] - values[eq][2])
+      var alpha_4 : double = (values[eq][4] - values[eq][3])
+  
+      var theta_2 : double = cmath.fabs(alpha_2 - alpha_3) / (cmath.fabs(alpha_2) + cmath.fabs(alpha_3) + epsilon)
+      var theta_3 : double = cmath.fabs(alpha_3 - alpha_4) / (cmath.fabs(alpha_3) + cmath.fabs(alpha_4) + epsilon)
+  
+      var sigma : double = cmath.fmax(theta_2, theta_3)
+      
+      var beta_avg : double = 1.0/8.0*(beta[0] + beta[2] + 6.0*beta[1])
+      var tau_6 : double = cmath.fabs(beta[3] - beta_avg)
+          
+      -- Compute the nonlinear weights
+      if tau_6/(beta_avg + epsilon) > alpha_tau then
+        
+        var omega_6 : double[4]
+        var sum : double = 0.0
+        for i = 0, 4 do
+          var dummy : double = (tau_6/(beta[i] + epsilon))
+          dummy = dummy*dummy
+          dummy = dummy*dummy       -- q = 4
+          omega_6[i] = d_6[i]*( C + dummy )
+          sum = sum + omega_6[i]
+        end
+        for i = 0, 4 do
+          omega_6[i] = omega_6[i] / sum
+        end
+  
+        var tau_5 : double = cmath.fabs(beta[0] - beta[2])
+        var omega_5 : double[4]
+        sum = 0.0
+        for i = 0, 4 do
+          var dummy : double = (tau_5/(beta[i] + epsilon))
+          dummy = dummy*dummy      -- p = 2
+          omega_5[i] = d_5[i]*( 1.0 + dummy )
+          sum = sum + omega_5[i]
+        end
+        for i = 0, 4 do
+          omega_5[i] = omega_5[i] / sum
+        end
+  
+        for i = 0, 4 do
+          nlweights[eq][ [nl_index(i,is_left)] ] = (sigma)*omega_5[i] + (1.0 - sigma)*omega_6[i]
+        end
+      else
+        var omega_6 : double[4]
+        var sum : double = 0.0
+        for i = 0, 4 do
+          var dummy : double = (tau_6/(beta[i] + epsilon))
+          dummy = dummy*dummy
+          dummy = dummy*dummy       -- q = 4
+          omega_6[i] = d_6[i]*( C + dummy )
+          sum = sum + omega_6[i]
+        end
+        for i = 0, 4 do
+          nlweights[eq][ [nl_index(i,is_left)] ] = omega_6[i] / sum
+        end
+      end
+    end
+      
+    return nlweights
+  end
+  return get_nonlinear_weights_LD_LBLB
+end
+
+local function make_get_nonlinear_weights_LD_LBRB(get_beta, is_left)
+  local get_nonlinear_weights_LD_LBRB __demand(__inline) task get_nonlinear_weights_LD_LBRB( values : double[6][5] )
+    var xi1 : double = -1262925.0/14529472.0 - 3.0*cmath.sqrt(37682533905.0)/14529472.0
+    var xi2 : double = 5644033.0/25100728.0 - 9.0*cmath.sqrt(37682533905.0)/15687955.0
+
+    var nlweights : double[4][5]
+
+    var d_5 = array( (32.0*xi2 - 5.0)/(2.0*(352.0*xi1*xi2 - 340.0*xi1 + 56.0*xi2 - 65.0)),
+                     -(228.0*xi1 + 45.0)/((352.0*xi1*xi2 - 340.0*xi1 + 56.0*xi2 - 65.0)),
+                     (704.0*xi1*xi2 - 224.0*xi1 + 80.0*xi2 - 35.0)/(2.0*(352.0*xi1*xi2 - 340.0*xi1 + 56.0*xi2 - 65.0)),
+                     0.0 )
+    var d_6 = array( (296.0*xi2-35.0)/(8.0*(3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)),
+                     -(936.0*xi1+135.0)/((3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)),
+                     (80576.0*xi1*xi2 - 20456.0*xi1 + 6840.0*xi2 - 2385.0)/(24.0*(3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)),
+                     (3488.0*xi1*xi2 - 716.0*xi1 + 264.0*xi2 - 75.0)/(12.0*(3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)) )
+
+    for eq = 0, 5 do 
+      var beta = [get_beta](values, eq)
+      
+      var C : double = 1.0e10
+      -- p = 2
+      -- q = 4
+      var epsilon   : double = 1.0e-40
+      var alpha_tau : double = 55.0
+      
+      var alpha_2 : double = (values[eq][2] - values[eq][1])
+      var alpha_3 : double = (values[eq][3] - values[eq][2])
+      var alpha_4 : double = (values[eq][4] - values[eq][3])
+  
+      var theta_2 : double = cmath.fabs(alpha_2 - alpha_3) / (cmath.fabs(alpha_2) + cmath.fabs(alpha_3) + epsilon)
+      var theta_3 : double = cmath.fabs(alpha_3 - alpha_4) / (cmath.fabs(alpha_3) + cmath.fabs(alpha_4) + epsilon)
+  
+      var sigma : double = cmath.fmax(theta_2, theta_3)
+      
+      var beta_avg : double = 1.0/8.0*(beta[0] + beta[2] + 6.0*beta[1])
+      var tau_6 : double = cmath.fabs(beta[3] - beta_avg)
+          
+      -- Compute the nonlinear weights
+      if tau_6/(beta_avg + epsilon) > alpha_tau then
+        
+        var omega_6 : double[4]
+        var sum : double = 0.0
+        for i = 0, 4 do
+          var dummy : double = (tau_6/(beta[i] + epsilon))
+          dummy = dummy*dummy
+          dummy = dummy*dummy       -- q = 4
+          omega_6[i] = d_6[i]*( C + dummy )
+          sum = sum + omega_6[i]
+        end
+        for i = 0, 4 do
+          omega_6[i] = omega_6[i] / sum
+        end
+  
+        var tau_5 : double = cmath.fabs(beta[0] - beta[2])
+        var omega_5 : double[4]
+        sum = 0.0
+        for i = 0, 4 do
+          var dummy : double = (tau_5/(beta[i] + epsilon))
+          dummy = dummy*dummy      -- p = 2
+          omega_5[i] = d_5[i]*( 1.0 + dummy )
+          sum = sum + omega_5[i]
+        end
+        for i = 0, 4 do
+          omega_5[i] = omega_5[i] / sum
+        end
+  
+        for i = 0, 4 do
+          nlweights[eq][ [nl_index(i,is_left)] ] = (sigma)*omega_5[i] + (1.0 - sigma)*omega_6[i]
+        end
+      else
+        var omega_6 : double[4]
+        var sum : double = 0.0
+        for i = 0, 4 do
+          var dummy : double = (tau_6/(beta[i] + epsilon))
+          dummy = dummy*dummy
+          dummy = dummy*dummy       -- q = 4
+          omega_6[i] = d_6[i]*( C + dummy )
+          sum = sum + omega_6[i]
+        end
+        for i = 0, 4 do
+          nlweights[eq][ [nl_index(i,is_left)] ] = omega_6[i] / sum
+        end
+      end
+    end
+      
+    return nlweights
+  end
+  return get_nonlinear_weights_LD_LBRB
+end
+
 get_nonlinear_weights_LD_l = make_get_nonlinear_weights_LD(get_beta_l, true )
 get_nonlinear_weights_LD_r = make_get_nonlinear_weights_LD(get_beta_r, false)
+
+get_nonlinear_weights_LD_LBLB_l = make_get_nonlinear_weights_LD_LBLB(get_beta_l, true )
+get_nonlinear_weights_LD_LBLB_r = make_get_nonlinear_weights_LD_LBLB(get_beta_r, false)
+
+get_nonlinear_weights_LD_LBRB_l = make_get_nonlinear_weights_LD_LBRB(get_beta_l, true )
+get_nonlinear_weights_LD_LBRB_r = make_get_nonlinear_weights_LD_LBRB(get_beta_r, false)
 
 
 __demand(__inline)
@@ -162,6 +348,48 @@ task get_coefficients_ECI( nlweights : double[4][5] )
 
   for eq = 0, 5 do
     for i = 0, 9 do
+      coeffs[eq][i] = lcoeff0[i]*nlweights[eq][0] + lcoeff1[i]*nlweights[eq][1] + lcoeff2[i]*nlweights[eq][2] + lcoeff3[i]*nlweights[eq][3]
+    end
+  end
+
+  return coeffs
+end
+
+__demand(__inline)
+task get_coefficients_ECI_LBLB( nlweights : double[4][5] )
+  var xi1 : double = -76185.0/170936.0
+  var xi2 : double = 1925.0/14424.0
+
+  var lcoeff0 = array(0.0, 1.0, 0.0,                      3.0/8.0, -5.0/4.0, 15.0/8.0,           0.0,           0.0,               0.0,                0.0)
+  var lcoeff1 = array(0.0, 1.0, 0.0,                      0.0,     -1.0/8.0, 3.0/4.0,            3.0/8.0,       0.0,               0.0,                0.0)
+  var lcoeff2 = array(0.0, 1.0, 8.0*xi2/3.0 + 1.0/3.0,    0.0,     0.0,      -xi2/3.0 + 1.0/3.0, 2.0*xi2 + 1.0, xi2,               0.0,                0.0)
+  var lcoeff3 = array(0.0, 1.0, 0.0,                      0.0,     0.0,      0.0,                -xi1+15.0/8.0, 3.0*xi1 - 5.0/4.0, -3.0*xi1 + 3.0/8.0, xi1)
+
+  var coeffs : double[10][5]
+
+  for eq = 0, 5 do
+    for i = 0, 10 do
+      coeffs[eq][i] = lcoeff0[i]*nlweights[eq][0] + lcoeff1[i]*nlweights[eq][1] + lcoeff2[i]*nlweights[eq][2] + lcoeff3[i]*nlweights[eq][3]
+    end
+  end
+
+  return coeffs
+end
+
+__demand(__inline)
+task get_coefficients_ECI_LBRB( nlweights : double[4][5] )
+  var xi1 : double = -1262925.0/14529472.0 - 3.0*cmath.sqrt(37682533905.0)/14529472.0
+  var xi2 : double = 5644033.0/25100728.0 - 9.0*cmath.sqrt(37682533905.0)/15687955.0
+
+  var lcoeff0 = array(0.0, 1.0, 0.0,                      3.0/8.0, -5.0/4.0, 15.0/8.0,           0.0,           0.0,               0.0,                0.0)
+  var lcoeff1 = array(0.0, 1.0, 0.0,                      0.0,     -1.0/8.0, 3.0/4.0,            3.0/8.0,       0.0,               0.0,                0.0)
+  var lcoeff2 = array(0.0, 1.0, 8.0*xi2/3.0 + 1.0/3.0,    0.0,     0.0,      -xi2/3.0 + 1.0/3.0, 2.0*xi2 + 1.0, xi2,               0.0,                0.0)
+  var lcoeff3 = array(0.0, 1.0, 0.0,                      0.0,     0.0,      0.0,                -xi1+15.0/8.0, 3.0*xi1 - 5.0/4.0, -3.0*xi1 + 3.0/8.0, xi1)
+
+  var coeffs : double[10][5]
+
+  for eq = 0, 5 do
+    for i = 0, 10 do
       coeffs[eq][i] = lcoeff0[i]*nlweights[eq][0] + lcoeff1[i]*nlweights[eq][1] + lcoeff2[i]*nlweights[eq][2] + lcoeff3[i]*nlweights[eq][3]
     end
   end
