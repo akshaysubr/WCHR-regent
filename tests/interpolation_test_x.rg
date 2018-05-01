@@ -39,6 +39,9 @@ local beta06CI  = 5.0/8.0
 local gamma06CI = 3.0/16.0
 
 task initialize( coords     : region(ispace(int3d), coordinates),
+                 coords_x   : region(ispace(int3d), coordinates),
+                 coords_y   : region(ispace(int3d), coordinates),
+                 coords_z   : region(ispace(int3d), coordinates),
                  r_prim_c   : region(ispace(int3d), primitive),
                  r_prim_l_x : region(ispace(int3d), primitive),
                  r_prim_l_y : region(ispace(int3d), primitive),
@@ -47,7 +50,7 @@ task initialize( coords     : region(ispace(int3d), coordinates),
                  dy         : double,
                  dz         : double )
 where
-  reads writes(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z)
+  reads writes(coords, coords_x, coords_y, coords_z, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z)
 do
   for i in coords.ispace do
     coords[i].x_c = X1 + (i.x + 0.5) * dx
@@ -67,6 +70,24 @@ do
       r_prim_c[i].w   = 0.0
       r_prim_c[i].p   = 1.0
     end
+  end
+
+  for i in coords_x.ispace do
+    coords_x[i].x_c = X1 + (i.x      ) * dx
+    coords_x[i].y_c = Y1 + (i.y + 0.5) * dy
+    coords_x[i].z_c = Z1 + (i.z + 0.5) * dz
+  end
+
+  for i in coords_y.ispace do
+    coords_y[i].x_c = X1 + (i.x + 0.5) * dx
+    coords_y[i].y_c = Y1 + (i.y      ) * dy
+    coords_y[i].z_c = Z1 + (i.z + 0.5) * dz
+  end
+
+  for i in coords_z.ispace do
+    coords_z[i].x_c = X1 + (i.x + 0.5) * dx
+    coords_z[i].y_c = Y1 + (i.y + 0.5) * dy
+    coords_z[i].z_c = Z1 + (i.z      ) * dz
   end
 
   for i in r_prim_l_x do
@@ -115,7 +136,7 @@ task main()
   c.printf("====================================================\n")
 
   --------------------------------------------------------------------------------------------
-  --                       DATA STUCTURES
+  --                       DATA STRUCTURES
   --------------------------------------------------------------------------------------------
   var grid_c     = ispace(int3d, {x = Nx,   y = Ny,   z = Nz  })  -- Cell center index space
 
@@ -125,6 +146,10 @@ task main()
 
   var coords     = region(grid_c, coordinates)  -- Coordinates of cell center
 
+  var coords_x   = region(grid_e_x, coordinates) -- Coordinates of x cell edge
+  var coords_y   = region(grid_e_y, coordinates) -- Coordinates of y cell edge
+  var coords_z   = region(grid_e_z, coordinates) -- Coordinates of z cell edge
+
   var r_prim_c   = region(grid_c,   primitive)  -- Primitive variables at cell center
   var r_prim_l_x = region(grid_e_x, primitive)  -- Primitive variables at left x cell edge
   var r_prim_r_x = region(grid_e_x, primitive)  -- Primitive variables at right x cell edge
@@ -133,8 +158,6 @@ task main()
   var r_prim_l_z = region(grid_e_z, primitive)  -- Primitive variables at left z cell edge
   var r_prim_r_z = region(grid_e_z, primitive)  -- Primitive variables at right z cell edge
   
-  var pgrid_x    = ispace(int2d, {x = 1, y = 1}) -- Processor grid in x
-
   var alpha_l = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
   var beta_l  = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
   var gamma_l = region( ispace(int3d, {Nx+1, Ny, Nz} ), coeffs )
@@ -154,7 +177,7 @@ task main()
   fill( r_prim_l_x.{rho,u,v,w,p}, 0.0 )
   fill( r_prim_r_x.{rho,u,v,w,p}, 0.0 )
 
-  var token = initialize(coords, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z, dx, dy, dz)
+  var token = initialize(coords, coords_x, coords_y, coords_z, r_prim_c, r_prim_l_x, r_prim_l_y, r_prim_l_z, dx, dy, dz)
   wait_for(token)
 
   var t_start = c.legion_get_current_time_in_micros()
@@ -165,7 +188,11 @@ task main()
   c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_WCHR)*1e-6)
 
   var IOtoken = 0
-  IOtoken += write_coords(coords, "interpolation_x_", {0,0})
+  IOtoken += write_coords(coords, "interpolation_x_c_", {0,0})
+  wait_for(IOtoken)
+  IOtoken += write_coords(coords_x, "interpolation_x_l_", {0,0})
+  wait_for(IOtoken)
+  IOtoken += write_coords(coords_x, "interpolation_x_r_", {0,0})
   wait_for(IOtoken)
   IOtoken += write_primitive(r_prim_c, "interpolation_x_c_", 0, {0,0})
   wait_for(IOtoken)
