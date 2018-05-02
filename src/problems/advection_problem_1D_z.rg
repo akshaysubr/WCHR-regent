@@ -21,7 +21,7 @@ problem.NY = 1
 problem.NZ = 32
 
 -- Periodicity
-problem.periodic_x = false
+problem.periodic_x = true
 problem.periodic_y = true
 problem.periodic_z = true
 

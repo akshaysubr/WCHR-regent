@@ -1048,6 +1048,376 @@ solve_tridiagonal_y_u = make_solve_tridiagonal_y('_1', 'u')
 solve_tridiagonal_y_w = make_solve_tridiagonal_y('_3', 'w')
 
 __demand(__inline)
+task WCHR_interpolation_wg_y( r_prim_c   : region(ispace(int3d), primitive),
+                              r_prim_l   : region(ispace(int3d), primitive),
+                              r_prim_r   : region(ispace(int3d), primitive),
+                              alpha_l    : region(ispace(int3d), coeffs),
+                              beta_l     : region(ispace(int3d), coeffs),
+                              gamma_l    : region(ispace(int3d), coeffs),
+                              alpha_r    : region(ispace(int3d), coeffs),
+                              beta_r     : region(ispace(int3d), coeffs),
+                              gamma_r    : region(ispace(int3d), coeffs),
+                              rho_avg    : region(ispace(int3d), double),
+                              sos_avg    : region(ispace(int3d), double),
+                              block_d    : region(ispace(int3d), double[9]),
+                              block_Uinv : region(ispace(int3d), double[9]),
+                              Nx         : int64,
+                              Ny         : int64,
+                              Nz         : int64 )
+where
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv)
+do
+
+  -- var t_start = c.legion_get_current_time_in_micros()
+
+  -- var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+  -- var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+  -- var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_prim_c.ispace.bounds
+  var bounds_y = r_prim_l.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.y == 0, "Can only perform Y interpolation in the Y pencil")
+  regentlib.assert(bounds_y.lo.y == 0, "Can only perform Y interpolation in the Y pencil")
+
+  var Nx_g = Nx + 2*ip.n_ghosts
+  var Ny_g = Ny + 2*ip.n_ghosts
+  var Nz_g = Nz + 2*ip.n_ghosts
+
+  -- var t_alloc = c.legion_get_current_time_in_micros()
+
+  for i in alpha_l do
+    var idx_c = int3d { x = i.x, y = i.y + ip.n_ghosts, z = i.z }
+    var rhosos_avg : double[2] = get_rho_sos_avg_y( r_prim_c, idx_c, Nx_g, Ny_g, Nz_g )
+
+    if (i.y == 0) then
+      var char_values : double[7][5] = get_char_values_LB_y( r_prim_c, rhosos_avg[0], rhosos_avg[1], idx_c )
+
+      var nlweights_l = get_nonlinear_weights_LD_LBLB_l(char_values)
+      var coeffs_l = get_coefficients_ECI_LBLB(nlweights_l)
+      var nlweights_r = get_nonlinear_weights_LD_LBRB_r(char_values)
+      var coeffs_r = get_coefficients_ECI_LBLB(nlweights_r)
+
+      alpha_l[i]._0 = coeffs_l[0][0]; beta_l[i]._0 = coeffs_l[0][1]; gamma_l[i]._0 = coeffs_l[0][2];
+      alpha_l[i]._1 = coeffs_l[1][0]; beta_l[i]._1 = coeffs_l[1][1]; gamma_l[i]._1 = coeffs_l[1][2];
+      alpha_l[i]._2 = coeffs_l[2][0]; beta_l[i]._2 = coeffs_l[2][1]; gamma_l[i]._2 = coeffs_l[2][2];
+      alpha_l[i]._3 = coeffs_l[3][0]; beta_l[i]._3 = coeffs_l[3][1]; gamma_l[i]._3 = coeffs_l[3][2];
+      alpha_l[i]._4 = coeffs_l[4][0]; beta_l[i]._4 = coeffs_l[4][1]; gamma_l[i]._4 = coeffs_l[4][2];
+
+      alpha_r[i]._0 = coeffs_r[0][0]; beta_r[i]._0 = coeffs_r[0][1]; gamma_r[i]._0 = coeffs_r[0][2];
+      alpha_r[i]._1 = coeffs_r[1][0]; beta_r[i]._1 = coeffs_r[1][1]; gamma_r[i]._1 = coeffs_r[1][2];
+      alpha_r[i]._2 = coeffs_r[2][0]; beta_r[i]._2 = coeffs_r[2][1]; gamma_r[i]._2 = coeffs_r[2][2];
+      alpha_r[i]._3 = coeffs_r[3][0]; beta_r[i]._3 = coeffs_r[3][1]; gamma_r[i]._3 = coeffs_r[3][2];
+      alpha_r[i]._4 = coeffs_r[4][0]; beta_r[i]._4 = coeffs_r[4][1]; gamma_r[i]._4 = coeffs_r[4][2];
+
+      rho_avg[i] = rhosos_avg[0]
+      sos_avg[i] = rhosos_avg[1]
+
+      -- RHS for left sided interpolation
+      r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
+                      + coeffs_l[0][4] * char_values[0][1]
+                      + coeffs_l[0][5] * char_values[0][2]
+                      + coeffs_l[0][6] * char_values[0][3]
+                      + coeffs_l[0][7] * char_values[0][4]
+                      + coeffs_l[0][8] * char_values[0][5]
+                      + coeffs_l[0][9] * char_values[0][6]
+
+      r_prim_l[i].u   = coeffs_l[1][3] * char_values[1][0]
+                      + coeffs_l[1][4] * char_values[1][1]
+                      + coeffs_l[1][5] * char_values[1][2]
+                      + coeffs_l[1][6] * char_values[1][3]
+                      + coeffs_l[1][7] * char_values[1][4]
+                      + coeffs_l[1][8] * char_values[1][5]
+                      + coeffs_l[1][9] * char_values[1][6]
+
+      r_prim_l[i].v   = coeffs_l[2][3] * char_values[2][0]
+                      + coeffs_l[2][4] * char_values[2][1]
+                      + coeffs_l[2][5] * char_values[2][2]
+                      + coeffs_l[2][6] * char_values[2][3]
+                      + coeffs_l[2][7] * char_values[2][4]
+                      + coeffs_l[2][8] * char_values[2][5]
+                      + coeffs_l[2][9] * char_values[2][6]
+
+      r_prim_l[i].w   = coeffs_l[3][3] * char_values[3][0]
+                      + coeffs_l[3][4] * char_values[3][1]
+                      + coeffs_l[3][5] * char_values[3][2]
+                      + coeffs_l[3][6] * char_values[3][3]
+                      + coeffs_l[3][7] * char_values[3][4]
+                      + coeffs_l[3][8] * char_values[3][5]
+                      + coeffs_l[3][9] * char_values[3][6]
+
+      r_prim_l[i].p   = coeffs_l[4][3] * char_values[4][0]
+                      + coeffs_l[4][4] * char_values[4][1]
+                      + coeffs_l[4][5] * char_values[4][2]
+                      + coeffs_l[4][6] * char_values[4][3]
+                      + coeffs_l[4][7] * char_values[4][4]
+                      + coeffs_l[4][8] * char_values[4][5]
+                      + coeffs_l[4][9] * char_values[4][6]
+
+      -- RHS for right sided interpolation
+      r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
+                      + coeffs_r[0][4] * char_values[0][1]
+                      + coeffs_r[0][5] * char_values[0][2]
+                      + coeffs_r[0][6] * char_values[0][3]
+                      + coeffs_r[0][7] * char_values[0][4]
+                      + coeffs_r[0][8] * char_values[0][5]
+                      + coeffs_r[0][9] * char_values[0][6]
+
+      r_prim_r[i].u   = coeffs_r[1][3] * char_values[1][0]
+                      + coeffs_r[1][4] * char_values[1][1]
+                      + coeffs_r[1][5] * char_values[1][2]
+                      + coeffs_r[1][6] * char_values[1][3]
+                      + coeffs_r[1][7] * char_values[1][4]
+                      + coeffs_r[1][8] * char_values[1][5]
+                      + coeffs_r[1][9] * char_values[1][6]
+
+      r_prim_r[i].v   = coeffs_r[2][3] * char_values[2][0]
+                      + coeffs_r[2][4] * char_values[2][1]
+                      + coeffs_r[2][5] * char_values[2][2]
+                      + coeffs_r[2][6] * char_values[2][3]
+                      + coeffs_r[2][7] * char_values[2][4]
+                      + coeffs_r[2][8] * char_values[2][5]
+                      + coeffs_r[2][9] * char_values[2][6]
+
+      r_prim_r[i].w   = coeffs_r[3][3] * char_values[3][0]
+                      + coeffs_r[3][4] * char_values[3][1]
+                      + coeffs_r[3][5] * char_values[3][2]
+                      + coeffs_r[3][6] * char_values[3][3]
+                      + coeffs_r[3][7] * char_values[3][4]
+                      + coeffs_r[3][8] * char_values[3][5]
+                      + coeffs_r[3][9] * char_values[3][6]
+
+      r_prim_r[i].p   = coeffs_r[4][3] * char_values[4][0]
+                      + coeffs_r[4][4] * char_values[4][1]
+                      + coeffs_r[4][5] * char_values[4][2]
+                      + coeffs_r[4][6] * char_values[4][3]
+                      + coeffs_r[4][7] * char_values[4][4]
+                      + coeffs_r[4][8] * char_values[4][5]
+                      + coeffs_r[4][9] * char_values[4][6]
+
+    elseif (i.y == Ny) then
+      var char_values : double[7][5] = get_char_values_RB_y( r_prim_c, rhosos_avg[0], rhosos_avg[1], idx_c )
+
+      var nlweights_l = get_nonlinear_weights_LD_LBRB_l(char_values)
+      var coeffs_l = get_coefficients_ECI_LBRB(nlweights_l)
+      var nlweights_r = get_nonlinear_weights_LD_LBLB_r(char_values)
+      var coeffs_r = get_coefficients_ECI_LBRB(nlweights_r)
+
+      alpha_l[i]._0 = coeffs_l[0][0]; beta_l[i]._0 = coeffs_l[0][1]; gamma_l[i]._0 = coeffs_l[0][2];
+      alpha_l[i]._1 = coeffs_l[1][0]; beta_l[i]._1 = coeffs_l[1][1]; gamma_l[i]._1 = coeffs_l[1][2];
+      alpha_l[i]._2 = coeffs_l[2][0]; beta_l[i]._2 = coeffs_l[2][1]; gamma_l[i]._2 = coeffs_l[2][2];
+      alpha_l[i]._3 = coeffs_l[3][0]; beta_l[i]._3 = coeffs_l[3][1]; gamma_l[i]._3 = coeffs_l[3][2];
+      alpha_l[i]._4 = coeffs_l[4][0]; beta_l[i]._4 = coeffs_l[4][1]; gamma_l[i]._4 = coeffs_l[4][2];
+
+      alpha_r[i]._0 = coeffs_r[0][0]; beta_r[i]._0 = coeffs_r[0][1]; gamma_r[i]._0 = coeffs_r[0][2];
+      alpha_r[i]._1 = coeffs_r[1][0]; beta_r[i]._1 = coeffs_r[1][1]; gamma_r[i]._1 = coeffs_r[1][2];
+      alpha_r[i]._2 = coeffs_r[2][0]; beta_r[i]._2 = coeffs_r[2][1]; gamma_r[i]._2 = coeffs_r[2][2];
+      alpha_r[i]._3 = coeffs_r[3][0]; beta_r[i]._3 = coeffs_r[3][1]; gamma_r[i]._3 = coeffs_r[3][2];
+      alpha_r[i]._4 = coeffs_r[4][0]; beta_r[i]._4 = coeffs_r[4][1]; gamma_r[i]._4 = coeffs_r[4][2];
+
+      rho_avg[i] = rhosos_avg[0]
+      sos_avg[i] = rhosos_avg[1]
+
+      -- RHS for left sided interpolation
+      r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
+                      + coeffs_l[0][4] * char_values[0][1]
+                      + coeffs_l[0][5] * char_values[0][2]
+                      + coeffs_l[0][6] * char_values[0][3]
+                      + coeffs_l[0][7] * char_values[0][4]
+                      + coeffs_l[0][8] * char_values[0][5]
+                      + coeffs_l[0][9] * char_values[0][6]
+
+      r_prim_l[i].u   = coeffs_l[1][3] * char_values[1][0]
+                      + coeffs_l[1][4] * char_values[1][1]
+                      + coeffs_l[1][5] * char_values[1][2]
+                      + coeffs_l[1][6] * char_values[1][3]
+                      + coeffs_l[1][7] * char_values[1][4]
+                      + coeffs_l[1][8] * char_values[1][5]
+                      + coeffs_l[1][9] * char_values[1][6]
+
+      r_prim_l[i].v   = coeffs_l[2][3] * char_values[2][0]
+                      + coeffs_l[2][4] * char_values[2][1]
+                      + coeffs_l[2][5] * char_values[2][2]
+                      + coeffs_l[2][6] * char_values[2][3]
+                      + coeffs_l[2][7] * char_values[2][4]
+                      + coeffs_l[2][8] * char_values[2][5]
+                      + coeffs_l[2][9] * char_values[2][6]
+
+      r_prim_l[i].w   = coeffs_l[3][3] * char_values[3][0]
+                      + coeffs_l[3][4] * char_values[3][1]
+                      + coeffs_l[3][5] * char_values[3][2]
+                      + coeffs_l[3][6] * char_values[3][3]
+                      + coeffs_l[3][7] * char_values[3][4]
+                      + coeffs_l[3][8] * char_values[3][5]
+                      + coeffs_l[3][9] * char_values[3][6]
+
+      r_prim_l[i].p   = coeffs_l[4][3] * char_values[4][0]
+                      + coeffs_l[4][4] * char_values[4][1]
+                      + coeffs_l[4][5] * char_values[4][2]
+                      + coeffs_l[4][6] * char_values[4][3]
+                      + coeffs_l[4][7] * char_values[4][4]
+                      + coeffs_l[4][8] * char_values[4][5]
+                      + coeffs_l[4][9] * char_values[4][6]
+
+      -- RHS for right sided interpolation
+      r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
+                      + coeffs_r[0][4] * char_values[0][1]
+                      + coeffs_r[0][5] * char_values[0][2]
+                      + coeffs_r[0][6] * char_values[0][3]
+                      + coeffs_r[0][7] * char_values[0][4]
+                      + coeffs_r[0][8] * char_values[0][5]
+                      + coeffs_r[0][9] * char_values[0][6]
+
+      r_prim_r[i].u   = coeffs_r[1][3] * char_values[1][0]
+                      + coeffs_r[1][4] * char_values[1][1]
+                      + coeffs_r[1][5] * char_values[1][2]
+                      + coeffs_r[1][6] * char_values[1][3]
+                      + coeffs_r[1][7] * char_values[1][4]
+                      + coeffs_r[1][8] * char_values[1][5]
+                      + coeffs_r[1][9] * char_values[1][6]
+
+      r_prim_r[i].v   = coeffs_r[2][3] * char_values[2][0]
+                      + coeffs_r[2][4] * char_values[2][1]
+                      + coeffs_r[2][5] * char_values[2][2]
+                      + coeffs_r[2][6] * char_values[2][3]
+                      + coeffs_r[2][7] * char_values[2][4]
+                      + coeffs_r[2][8] * char_values[2][5]
+                      + coeffs_r[2][9] * char_values[2][6]
+
+      r_prim_r[i].w   = coeffs_r[3][3] * char_values[3][0]
+                      + coeffs_r[3][4] * char_values[3][1]
+                      + coeffs_r[3][5] * char_values[3][2]
+                      + coeffs_r[3][6] * char_values[3][3]
+                      + coeffs_r[3][7] * char_values[3][4]
+                      + coeffs_r[3][8] * char_values[3][5]
+                      + coeffs_r[3][9] * char_values[3][6]
+
+      r_prim_r[i].p   = coeffs_r[4][3] * char_values[4][0]
+                      + coeffs_r[4][4] * char_values[4][1]
+                      + coeffs_r[4][5] * char_values[4][2]
+                      + coeffs_r[4][6] * char_values[4][3]
+                      + coeffs_r[4][7] * char_values[4][4]
+                      + coeffs_r[4][8] * char_values[4][5]
+                      + coeffs_r[4][9] * char_values[4][6]
+
+    else
+      var char_values : double[6][5] = get_char_values_y( r_prim_c, rhosos_avg[0], rhosos_avg[1], idx_c, Nx_g, Ny_g, Nz_g )
+  
+      var nlweights_l = get_nonlinear_weights_LD_l(char_values)
+      var coeffs_l = get_coefficients_ECI(nlweights_l)
+      var nlweights_r = get_nonlinear_weights_LD_r(char_values)
+      var coeffs_r = get_coefficients_ECI(nlweights_r)
+  
+      alpha_l[i]._0 = coeffs_l[0][0]; beta_l[i]._0 = coeffs_l[0][1]; gamma_l[i]._0 = coeffs_l[0][2];
+      alpha_l[i]._1 = coeffs_l[1][0]; beta_l[i]._1 = coeffs_l[1][1]; gamma_l[i]._1 = coeffs_l[1][2];
+      alpha_l[i]._2 = coeffs_l[2][0]; beta_l[i]._2 = coeffs_l[2][1]; gamma_l[i]._2 = coeffs_l[2][2];
+      alpha_l[i]._3 = coeffs_l[3][0]; beta_l[i]._3 = coeffs_l[3][1]; gamma_l[i]._3 = coeffs_l[3][2];
+      alpha_l[i]._4 = coeffs_l[4][0]; beta_l[i]._4 = coeffs_l[4][1]; gamma_l[i]._4 = coeffs_l[4][2];
+  
+      alpha_r[i]._0 = coeffs_r[0][0]; beta_r[i]._0 = coeffs_r[0][1]; gamma_r[i]._0 = coeffs_r[0][2];
+      alpha_r[i]._1 = coeffs_r[1][0]; beta_r[i]._1 = coeffs_r[1][1]; gamma_r[i]._1 = coeffs_r[1][2];
+      alpha_r[i]._2 = coeffs_r[2][0]; beta_r[i]._2 = coeffs_r[2][1]; gamma_r[i]._2 = coeffs_r[2][2];
+      alpha_r[i]._3 = coeffs_r[3][0]; beta_r[i]._3 = coeffs_r[3][1]; gamma_r[i]._3 = coeffs_r[3][2];
+      alpha_r[i]._4 = coeffs_r[4][0]; beta_r[i]._4 = coeffs_r[4][1]; gamma_r[i]._4 = coeffs_r[4][2];
+  
+      rho_avg[i] = rhosos_avg[0]
+      sos_avg[i] = rhosos_avg[1]
+  
+      -- RHS for left sided interpolation
+      r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
+                      + coeffs_l[0][4] * char_values[0][1]
+                      + coeffs_l[0][5] * char_values[0][2]
+                      + coeffs_l[0][6] * char_values[0][3]
+                      + coeffs_l[0][7] * char_values[0][4]
+                      + coeffs_l[0][8] * char_values[0][5]
+  
+      r_prim_l[i].u   = coeffs_l[1][3] * char_values[1][0]
+                      + coeffs_l[1][4] * char_values[1][1]
+                      + coeffs_l[1][5] * char_values[1][2]
+                      + coeffs_l[1][6] * char_values[1][3]
+                      + coeffs_l[1][7] * char_values[1][4]
+                      + coeffs_l[1][8] * char_values[1][5]
+  
+      r_prim_l[i].v   = coeffs_l[2][3] * char_values[2][0]
+                      + coeffs_l[2][4] * char_values[2][1]
+                      + coeffs_l[2][5] * char_values[2][2]
+                      + coeffs_l[2][6] * char_values[2][3]
+                      + coeffs_l[2][7] * char_values[2][4]
+                      + coeffs_l[2][8] * char_values[2][5]
+  
+      r_prim_l[i].w   = coeffs_l[3][3] * char_values[3][0]
+                      + coeffs_l[3][4] * char_values[3][1]
+                      + coeffs_l[3][5] * char_values[3][2]
+                      + coeffs_l[3][6] * char_values[3][3]
+                      + coeffs_l[3][7] * char_values[3][4]
+                      + coeffs_l[3][8] * char_values[3][5]
+  
+      r_prim_l[i].p   = coeffs_l[4][3] * char_values[4][0]
+                      + coeffs_l[4][4] * char_values[4][1]
+                      + coeffs_l[4][5] * char_values[4][2]
+                      + coeffs_l[4][6] * char_values[4][3]
+                      + coeffs_l[4][7] * char_values[4][4]
+                      + coeffs_l[4][8] * char_values[4][5]
+  
+      -- RHS for right sided interpolation
+      r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
+                      + coeffs_r[0][4] * char_values[0][1]
+                      + coeffs_r[0][5] * char_values[0][2]
+                      + coeffs_r[0][6] * char_values[0][3]
+                      + coeffs_r[0][7] * char_values[0][4]
+                      + coeffs_r[0][8] * char_values[0][5]
+  
+      r_prim_r[i].u   = coeffs_r[1][3] * char_values[1][0]
+                      + coeffs_r[1][4] * char_values[1][1]
+                      + coeffs_r[1][5] * char_values[1][2]
+                      + coeffs_r[1][6] * char_values[1][3]
+                      + coeffs_r[1][7] * char_values[1][4]
+                      + coeffs_r[1][8] * char_values[1][5]
+  
+      r_prim_r[i].v   = coeffs_r[2][3] * char_values[2][0]
+                      + coeffs_r[2][4] * char_values[2][1]
+                      + coeffs_r[2][5] * char_values[2][2]
+                      + coeffs_r[2][6] * char_values[2][3]
+                      + coeffs_r[2][7] * char_values[2][4]
+                      + coeffs_r[2][8] * char_values[2][5]
+  
+      r_prim_r[i].w   = coeffs_r[3][3] * char_values[3][0]
+                      + coeffs_r[3][4] * char_values[3][1]
+                      + coeffs_r[3][5] * char_values[3][2]
+                      + coeffs_r[3][6] * char_values[3][3]
+                      + coeffs_r[3][7] * char_values[3][4]
+                      + coeffs_r[3][8] * char_values[3][5]
+  
+      r_prim_r[i].p   = coeffs_r[4][3] * char_values[4][0]
+                      + coeffs_r[4][4] * char_values[4][1]
+                      + coeffs_r[4][5] * char_values[4][2]
+                      + coeffs_r[4][6] * char_values[4][3]
+                      + coeffs_r[4][7] * char_values[4][4]
+                      + coeffs_r[4][8] * char_values[4][5]
+
+    end  
+  end
+      
+  -- var t_weights = c.legion_get_current_time_in_micros()
+
+  solve_block_tridiagonal_y( alpha_l, beta_l, gamma_l, rho_avg, sos_avg, r_prim_l, block_d, block_Uinv )
+  solve_block_tridiagonal_y( alpha_r, beta_r, gamma_r, rho_avg, sos_avg, r_prim_r, block_d, block_Uinv )
+
+  solve_tridiagonal_y_u( alpha_l, beta_l, gamma_l, r_prim_l, rho_avg )
+  solve_tridiagonal_y_u( alpha_r, beta_r, gamma_r, r_prim_r, sos_avg )
+
+  solve_tridiagonal_y_w( alpha_l, beta_l, gamma_l, r_prim_l, rho_avg )
+  solve_tridiagonal_y_w( alpha_r, beta_r, gamma_r, r_prim_r, sos_avg )
+
+  -- var t_end = c.legion_get_current_time_in_micros()
+
+  -- c.printf("Y: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
+  -- c.printf("Y: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
+  -- c.printf("Y: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
+ return 1
+end
+
+__demand(__inline)
 task WCHR_interpolation_y( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l   : region(ispace(int3d), primitive),
                            r_prim_r   : region(ispace(int3d), primitive),
@@ -1201,6 +1571,377 @@ end
 
 solve_tridiagonal_z_u = make_solve_tridiagonal_z('_1', 'u')
 solve_tridiagonal_z_v = make_solve_tridiagonal_z('_2', 'v')
+
+__demand(__inline)
+task WCHR_interpolation_wg_z( r_prim_c   : region(ispace(int3d), primitive),
+                              r_prim_l   : region(ispace(int3d), primitive),
+                              r_prim_r   : region(ispace(int3d), primitive),
+                              alpha_l    : region(ispace(int3d), coeffs),
+                              beta_l     : region(ispace(int3d), coeffs),
+                              gamma_l    : region(ispace(int3d), coeffs),
+                              alpha_r    : region(ispace(int3d), coeffs),
+                              beta_r     : region(ispace(int3d), coeffs),
+                              gamma_r    : region(ispace(int3d), coeffs),
+                              rho_avg    : region(ispace(int3d), double),
+                              sos_avg    : region(ispace(int3d), double),
+                              block_d    : region(ispace(int3d), double[9]),
+                              block_Uinv : region(ispace(int3d), double[9]),
+                              Nx         : int64,
+                              Ny         : int64,
+                              Nz         : int64 )
+where
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv)
+do
+
+  -- var t_start = c.legion_get_current_time_in_micros()
+
+  -- var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+  -- var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+  -- var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_prim_c.ispace.bounds
+  var bounds_z = r_prim_l.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.z == 0, "Can only perform Z interpolation in the Z pencil")
+  regentlib.assert(bounds_z.lo.z == 0, "Can only perform Z interpolation in the Z pencil")
+
+  -- var t_alloc = c.legion_get_current_time_in_micros()
+
+  var Nx_g = Nx + 2*ip.n_ghosts
+  var Ny_g = Ny + 2*ip.n_ghosts
+  var Nz_g = Nz + 2*ip.n_ghosts
+
+  for i in alpha_l do
+    var idx_c = int3d { x = i.x, y = i.y, z = i.z + ip.n_ghosts }
+    var rhosos_avg : double[2] = get_rho_sos_avg_z( r_prim_c, idx_c, Nx_g, Ny_g, Nz_g )
+
+    if (i.z == 0) then
+      var char_values : double[7][5] = get_char_values_LB_z( r_prim_c, rhosos_avg[0], rhosos_avg[1], idx_c )
+
+      var nlweights_l = get_nonlinear_weights_LD_LBLB_l(char_values)
+      var coeffs_l = get_coefficients_ECI_LBLB(nlweights_l)
+      var nlweights_r = get_nonlinear_weights_LD_LBRB_r(char_values)
+      var coeffs_r = get_coefficients_ECI_LBLB(nlweights_r)
+
+      alpha_l[i]._0 = coeffs_l[0][0]; beta_l[i]._0 = coeffs_l[0][1]; gamma_l[i]._0 = coeffs_l[0][2];
+      alpha_l[i]._1 = coeffs_l[1][0]; beta_l[i]._1 = coeffs_l[1][1]; gamma_l[i]._1 = coeffs_l[1][2];
+      alpha_l[i]._2 = coeffs_l[2][0]; beta_l[i]._2 = coeffs_l[2][1]; gamma_l[i]._2 = coeffs_l[2][2];
+      alpha_l[i]._3 = coeffs_l[3][0]; beta_l[i]._3 = coeffs_l[3][1]; gamma_l[i]._3 = coeffs_l[3][2];
+      alpha_l[i]._4 = coeffs_l[4][0]; beta_l[i]._4 = coeffs_l[4][1]; gamma_l[i]._4 = coeffs_l[4][2];
+
+      alpha_r[i]._0 = coeffs_r[0][0]; beta_r[i]._0 = coeffs_r[0][1]; gamma_r[i]._0 = coeffs_r[0][2];
+      alpha_r[i]._1 = coeffs_r[1][0]; beta_r[i]._1 = coeffs_r[1][1]; gamma_r[i]._1 = coeffs_r[1][2];
+      alpha_r[i]._2 = coeffs_r[2][0]; beta_r[i]._2 = coeffs_r[2][1]; gamma_r[i]._2 = coeffs_r[2][2];
+      alpha_r[i]._3 = coeffs_r[3][0]; beta_r[i]._3 = coeffs_r[3][1]; gamma_r[i]._3 = coeffs_r[3][2];
+      alpha_r[i]._4 = coeffs_r[4][0]; beta_r[i]._4 = coeffs_r[4][1]; gamma_r[i]._4 = coeffs_r[4][2];
+
+      rho_avg[i] = rhosos_avg[0]
+      sos_avg[i] = rhosos_avg[1]
+
+      -- RHS for left sided interpolation
+      r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
+                      + coeffs_l[0][4] * char_values[0][1]
+                      + coeffs_l[0][5] * char_values[0][2]
+                      + coeffs_l[0][6] * char_values[0][3]
+                      + coeffs_l[0][7] * char_values[0][4]
+                      + coeffs_l[0][8] * char_values[0][5]
+                      + coeffs_l[0][9] * char_values[0][6]
+
+      r_prim_l[i].u   = coeffs_l[1][3] * char_values[1][0]
+                      + coeffs_l[1][4] * char_values[1][1]
+                      + coeffs_l[1][5] * char_values[1][2]
+                      + coeffs_l[1][6] * char_values[1][3]
+                      + coeffs_l[1][7] * char_values[1][4]
+                      + coeffs_l[1][8] * char_values[1][5]
+                      + coeffs_l[1][9] * char_values[1][6]
+
+      r_prim_l[i].v   = coeffs_l[2][3] * char_values[2][0]
+                      + coeffs_l[2][4] * char_values[2][1]
+                      + coeffs_l[2][5] * char_values[2][2]
+                      + coeffs_l[2][6] * char_values[2][3]
+                      + coeffs_l[2][7] * char_values[2][4]
+                      + coeffs_l[2][8] * char_values[2][5]
+                      + coeffs_l[2][9] * char_values[2][6]
+
+      r_prim_l[i].w   = coeffs_l[3][3] * char_values[3][0]
+                      + coeffs_l[3][4] * char_values[3][1]
+                      + coeffs_l[3][5] * char_values[3][2]
+                      + coeffs_l[3][6] * char_values[3][3]
+                      + coeffs_l[3][7] * char_values[3][4]
+                      + coeffs_l[3][8] * char_values[3][5]
+                      + coeffs_l[3][9] * char_values[3][6]
+
+      r_prim_l[i].p   = coeffs_l[4][3] * char_values[4][0]
+                      + coeffs_l[4][4] * char_values[4][1]
+                      + coeffs_l[4][5] * char_values[4][2]
+                      + coeffs_l[4][6] * char_values[4][3]
+                      + coeffs_l[4][7] * char_values[4][4]
+                      + coeffs_l[4][8] * char_values[4][5]
+                      + coeffs_l[4][9] * char_values[4][6]
+
+      -- RHS for right sided interpolation
+      r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
+                      + coeffs_r[0][4] * char_values[0][1]
+                      + coeffs_r[0][5] * char_values[0][2]
+                      + coeffs_r[0][6] * char_values[0][3]
+                      + coeffs_r[0][7] * char_values[0][4]
+                      + coeffs_r[0][8] * char_values[0][5]
+                      + coeffs_r[0][9] * char_values[0][6]
+
+      r_prim_r[i].u   = coeffs_r[1][3] * char_values[1][0]
+                      + coeffs_r[1][4] * char_values[1][1]
+                      + coeffs_r[1][5] * char_values[1][2]
+                      + coeffs_r[1][6] * char_values[1][3]
+                      + coeffs_r[1][7] * char_values[1][4]
+                      + coeffs_r[1][8] * char_values[1][5]
+                      + coeffs_r[1][9] * char_values[1][6]
+
+      r_prim_r[i].v   = coeffs_r[2][3] * char_values[2][0]
+                      + coeffs_r[2][4] * char_values[2][1]
+                      + coeffs_r[2][5] * char_values[2][2]
+                      + coeffs_r[2][6] * char_values[2][3]
+                      + coeffs_r[2][7] * char_values[2][4]
+                      + coeffs_r[2][8] * char_values[2][5]
+                      + coeffs_r[2][9] * char_values[2][6]
+
+      r_prim_r[i].w   = coeffs_r[3][3] * char_values[3][0]
+                      + coeffs_r[3][4] * char_values[3][1]
+                      + coeffs_r[3][5] * char_values[3][2]
+                      + coeffs_r[3][6] * char_values[3][3]
+                      + coeffs_r[3][7] * char_values[3][4]
+                      + coeffs_r[3][8] * char_values[3][5]
+                      + coeffs_r[3][9] * char_values[3][6]
+
+      r_prim_r[i].p   = coeffs_r[4][3] * char_values[4][0]
+                      + coeffs_r[4][4] * char_values[4][1]
+                      + coeffs_r[4][5] * char_values[4][2]
+                      + coeffs_r[4][6] * char_values[4][3]
+                      + coeffs_r[4][7] * char_values[4][4]
+                      + coeffs_r[4][8] * char_values[4][5]
+                      + coeffs_r[4][9] * char_values[4][6]
+
+    elseif (i.z == Nz) then
+      var char_values : double[7][5] = get_char_values_RB_z( r_prim_c, rhosos_avg[0], rhosos_avg[1], idx_c )
+      
+      var nlweights_l = get_nonlinear_weights_LD_LBRB_l(char_values)
+      var coeffs_l = get_coefficients_ECI_LBRB(nlweights_l)
+      var nlweights_r = get_nonlinear_weights_LD_LBLB_r(char_values)
+      var coeffs_r = get_coefficients_ECI_LBRB(nlweights_r)
+
+      alpha_l[i]._0 = coeffs_l[0][0]; beta_l[i]._0 = coeffs_l[0][1]; gamma_l[i]._0 = coeffs_l[0][2];
+      alpha_l[i]._1 = coeffs_l[1][0]; beta_l[i]._1 = coeffs_l[1][1]; gamma_l[i]._1 = coeffs_l[1][2];
+      alpha_l[i]._2 = coeffs_l[2][0]; beta_l[i]._2 = coeffs_l[2][1]; gamma_l[i]._2 = coeffs_l[2][2];
+      alpha_l[i]._3 = coeffs_l[3][0]; beta_l[i]._3 = coeffs_l[3][1]; gamma_l[i]._3 = coeffs_l[3][2];
+      alpha_l[i]._4 = coeffs_l[4][0]; beta_l[i]._4 = coeffs_l[4][1]; gamma_l[i]._4 = coeffs_l[4][2];
+
+      alpha_r[i]._0 = coeffs_r[0][0]; beta_r[i]._0 = coeffs_r[0][1]; gamma_r[i]._0 = coeffs_r[0][2];
+      alpha_r[i]._1 = coeffs_r[1][0]; beta_r[i]._1 = coeffs_r[1][1]; gamma_r[i]._1 = coeffs_r[1][2];
+      alpha_r[i]._2 = coeffs_r[2][0]; beta_r[i]._2 = coeffs_r[2][1]; gamma_r[i]._2 = coeffs_r[2][2];
+      alpha_r[i]._3 = coeffs_r[3][0]; beta_r[i]._3 = coeffs_r[3][1]; gamma_r[i]._3 = coeffs_r[3][2];
+      alpha_r[i]._4 = coeffs_r[4][0]; beta_r[i]._4 = coeffs_r[4][1]; gamma_r[i]._4 = coeffs_r[4][2];
+
+      rho_avg[i] = rhosos_avg[0]
+      sos_avg[i] = rhosos_avg[1]
+
+      -- RHS for left sided interpolation
+      r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
+                      + coeffs_l[0][4] * char_values[0][1]
+                      + coeffs_l[0][5] * char_values[0][2]
+                      + coeffs_l[0][6] * char_values[0][3]
+                      + coeffs_l[0][7] * char_values[0][4]
+                      + coeffs_l[0][8] * char_values[0][5]
+                      + coeffs_l[0][9] * char_values[0][6]
+
+      r_prim_l[i].u   = coeffs_l[1][3] * char_values[1][0]
+                      + coeffs_l[1][4] * char_values[1][1]
+                      + coeffs_l[1][5] * char_values[1][2]
+                      + coeffs_l[1][6] * char_values[1][3]
+                      + coeffs_l[1][7] * char_values[1][4]
+                      + coeffs_l[1][8] * char_values[1][5]
+                      + coeffs_l[1][9] * char_values[1][6]
+
+      r_prim_l[i].v   = coeffs_l[2][3] * char_values[2][0]
+                      + coeffs_l[2][4] * char_values[2][1]
+                      + coeffs_l[2][5] * char_values[2][2]
+                      + coeffs_l[2][6] * char_values[2][3]
+                      + coeffs_l[2][7] * char_values[2][4]
+                      + coeffs_l[2][8] * char_values[2][5]
+                      + coeffs_l[2][9] * char_values[2][6]
+
+      r_prim_l[i].w   = coeffs_l[3][3] * char_values[3][0]
+                      + coeffs_l[3][4] * char_values[3][1]
+                      + coeffs_l[3][5] * char_values[3][2]
+                      + coeffs_l[3][6] * char_values[3][3]
+                      + coeffs_l[3][7] * char_values[3][4]
+                      + coeffs_l[3][8] * char_values[3][5]
+                      + coeffs_l[3][9] * char_values[3][6]
+
+      r_prim_l[i].p   = coeffs_l[4][3] * char_values[4][0]
+                      + coeffs_l[4][4] * char_values[4][1]
+                      + coeffs_l[4][5] * char_values[4][2]
+                      + coeffs_l[4][6] * char_values[4][3]
+                      + coeffs_l[4][7] * char_values[4][4]
+                      + coeffs_l[4][8] * char_values[4][5]
+                      + coeffs_l[4][9] * char_values[4][6]
+
+      -- RHS for right sided interpolation
+      r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
+                      + coeffs_r[0][4] * char_values[0][1]
+                      + coeffs_r[0][5] * char_values[0][2]
+                      + coeffs_r[0][6] * char_values[0][3]
+                      + coeffs_r[0][7] * char_values[0][4]
+                      + coeffs_r[0][8] * char_values[0][5]
+                      + coeffs_r[0][9] * char_values[0][6]
+
+      r_prim_r[i].u   = coeffs_r[1][3] * char_values[1][0]
+                      + coeffs_r[1][4] * char_values[1][1]
+                      + coeffs_r[1][5] * char_values[1][2]
+                      + coeffs_r[1][6] * char_values[1][3]
+                      + coeffs_r[1][7] * char_values[1][4]
+                      + coeffs_r[1][8] * char_values[1][5]
+                      + coeffs_r[1][9] * char_values[1][6]
+
+      r_prim_r[i].v   = coeffs_r[2][3] * char_values[2][0]
+                      + coeffs_r[2][4] * char_values[2][1]
+                      + coeffs_r[2][5] * char_values[2][2]
+                      + coeffs_r[2][6] * char_values[2][3]
+                      + coeffs_r[2][7] * char_values[2][4]
+                      + coeffs_r[2][8] * char_values[2][5]
+                      + coeffs_r[2][9] * char_values[2][6]
+
+      r_prim_r[i].w   = coeffs_r[3][3] * char_values[3][0]
+                      + coeffs_r[3][4] * char_values[3][1]
+                      + coeffs_r[3][5] * char_values[3][2]
+                      + coeffs_r[3][6] * char_values[3][3]
+                      + coeffs_r[3][7] * char_values[3][4]
+                      + coeffs_r[3][8] * char_values[3][5]
+                      + coeffs_r[3][9] * char_values[3][6]
+
+      r_prim_r[i].p   = coeffs_r[4][3] * char_values[4][0]
+                      + coeffs_r[4][4] * char_values[4][1]
+                      + coeffs_r[4][5] * char_values[4][2]
+                      + coeffs_r[4][6] * char_values[4][3]
+                      + coeffs_r[4][7] * char_values[4][4]
+                      + coeffs_r[4][8] * char_values[4][5]
+                      + coeffs_r[4][9] * char_values[4][6]
+
+    else
+      var char_values : double[6][5] = get_char_values_z( r_prim_c, rhosos_avg[0], rhosos_avg[1], idx_c, Nx_g, Ny_g, Nz_g )
+
+      var nlweights_l = get_nonlinear_weights_LD_l(char_values)
+      var coeffs_l = get_coefficients_ECI(nlweights_l)
+      var nlweights_r = get_nonlinear_weights_LD_r(char_values)
+      var coeffs_r = get_coefficients_ECI(nlweights_r)
+
+      alpha_l[i]._0 = coeffs_l[0][0]; beta_l[i]._0 = coeffs_l[0][1]; gamma_l[i]._0 = coeffs_l[0][2];
+      alpha_l[i]._1 = coeffs_l[1][0]; beta_l[i]._1 = coeffs_l[1][1]; gamma_l[i]._1 = coeffs_l[1][2];
+      alpha_l[i]._2 = coeffs_l[2][0]; beta_l[i]._2 = coeffs_l[2][1]; gamma_l[i]._2 = coeffs_l[2][2];
+      alpha_l[i]._3 = coeffs_l[3][0]; beta_l[i]._3 = coeffs_l[3][1]; gamma_l[i]._3 = coeffs_l[3][2];
+      alpha_l[i]._4 = coeffs_l[4][0]; beta_l[i]._4 = coeffs_l[4][1]; gamma_l[i]._4 = coeffs_l[4][2];
+
+      alpha_r[i]._0 = coeffs_r[0][0]; beta_r[i]._0 = coeffs_r[0][1]; gamma_r[i]._0 = coeffs_r[0][2];
+      alpha_r[i]._1 = coeffs_r[1][0]; beta_r[i]._1 = coeffs_r[1][1]; gamma_r[i]._1 = coeffs_r[1][2];
+      alpha_r[i]._2 = coeffs_r[2][0]; beta_r[i]._2 = coeffs_r[2][1]; gamma_r[i]._2 = coeffs_r[2][2];
+      alpha_r[i]._3 = coeffs_r[3][0]; beta_r[i]._3 = coeffs_r[3][1]; gamma_r[i]._3 = coeffs_r[3][2];
+      alpha_r[i]._4 = coeffs_r[4][0]; beta_r[i]._4 = coeffs_r[4][1]; gamma_r[i]._4 = coeffs_r[4][2];
+
+      rho_avg[i] = rhosos_avg[0]
+      sos_avg[i] = rhosos_avg[1]
+
+      -- RHS for left sided interpolation
+      r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
+                      + coeffs_l[0][4] * char_values[0][1]
+                      + coeffs_l[0][5] * char_values[0][2]
+                      + coeffs_l[0][6] * char_values[0][3]
+                      + coeffs_l[0][7] * char_values[0][4]
+                      + coeffs_l[0][8] * char_values[0][5]
+
+      r_prim_l[i].u   = coeffs_l[1][3] * char_values[1][0]
+                      + coeffs_l[1][4] * char_values[1][1]
+                      + coeffs_l[1][5] * char_values[1][2]
+                      + coeffs_l[1][6] * char_values[1][3]
+                      + coeffs_l[1][7] * char_values[1][4]
+                      + coeffs_l[1][8] * char_values[1][5]
+
+      r_prim_l[i].v   = coeffs_l[2][3] * char_values[2][0]
+                      + coeffs_l[2][4] * char_values[2][1]
+                      + coeffs_l[2][5] * char_values[2][2]
+                      + coeffs_l[2][6] * char_values[2][3]
+                      + coeffs_l[2][7] * char_values[2][4]
+                      + coeffs_l[2][8] * char_values[2][5]
+
+      r_prim_l[i].w   = coeffs_l[3][3] * char_values[3][0]
+                      + coeffs_l[3][4] * char_values[3][1]
+                      + coeffs_l[3][5] * char_values[3][2]
+                      + coeffs_l[3][6] * char_values[3][3]
+                      + coeffs_l[3][7] * char_values[3][4]
+                      + coeffs_l[3][8] * char_values[3][5]
+
+      r_prim_l[i].p   = coeffs_l[4][3] * char_values[4][0]
+                      + coeffs_l[4][4] * char_values[4][1]
+                      + coeffs_l[4][5] * char_values[4][2]
+                      + coeffs_l[4][6] * char_values[4][3]
+                      + coeffs_l[4][7] * char_values[4][4]
+                      + coeffs_l[4][8] * char_values[4][5]
+
+      -- RHS for right sided interpolation
+      r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
+                      + coeffs_r[0][4] * char_values[0][1]
+                      + coeffs_r[0][5] * char_values[0][2]
+                      + coeffs_r[0][6] * char_values[0][3]
+                      + coeffs_r[0][7] * char_values[0][4]
+                      + coeffs_r[0][8] * char_values[0][5]
+
+      r_prim_r[i].u   = coeffs_r[1][3] * char_values[1][0]
+                      + coeffs_r[1][4] * char_values[1][1]
+                      + coeffs_r[1][5] * char_values[1][2]
+                      + coeffs_r[1][6] * char_values[1][3]
+                      + coeffs_r[1][7] * char_values[1][4]
+                      + coeffs_r[1][8] * char_values[1][5]
+
+      r_prim_r[i].v   = coeffs_r[2][3] * char_values[2][0]
+                      + coeffs_r[2][4] * char_values[2][1]
+                      + coeffs_r[2][5] * char_values[2][2]
+                      + coeffs_r[2][6] * char_values[2][3]
+                      + coeffs_r[2][7] * char_values[2][4]
+                      + coeffs_r[2][8] * char_values[2][5]
+
+      r_prim_r[i].w   = coeffs_r[3][3] * char_values[3][0]
+                      + coeffs_r[3][4] * char_values[3][1]
+                      + coeffs_r[3][5] * char_values[3][2]
+                      + coeffs_r[3][6] * char_values[3][3]
+                      + coeffs_r[3][7] * char_values[3][4]
+                      + coeffs_r[3][8] * char_values[3][5]
+
+      r_prim_r[i].p   = coeffs_r[4][3] * char_values[4][0]
+                      + coeffs_r[4][4] * char_values[4][1]
+                      + coeffs_r[4][5] * char_values[4][2]
+                      + coeffs_r[4][6] * char_values[4][3]
+                      + coeffs_r[4][7] * char_values[4][4]
+                      + coeffs_r[4][8] * char_values[4][5]
+
+    end
+  end
+
+  -- var t_weights = c.legion_get_current_time_in_micros()
+
+  solve_block_tridiagonal_z( alpha_l, beta_l, gamma_l, rho_avg, sos_avg, r_prim_l, block_d, block_Uinv )
+  solve_block_tridiagonal_z( alpha_r, beta_r, gamma_r, rho_avg, sos_avg, r_prim_r, block_d, block_Uinv )
+
+  solve_tridiagonal_z_u( alpha_l, beta_l, gamma_l, r_prim_l, rho_avg )
+  solve_tridiagonal_z_u( alpha_r, beta_r, gamma_r, r_prim_r, sos_avg )
+
+  solve_tridiagonal_z_v( alpha_l, beta_l, gamma_l, r_prim_l, rho_avg )
+  solve_tridiagonal_z_v( alpha_r, beta_r, gamma_r, r_prim_r, sos_avg )
+
+  -- var t_end = c.legion_get_current_time_in_micros()
+
+
+  -- c.printf("Z: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_alloc)*1e-6)
+  -- c.printf("Z: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
+  -- c.printf("Z: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
+  return 1
+end
 
 __demand(__inline)
 task WCHR_interpolation_z( r_prim_c   : region(ispace(int3d), primitive),
