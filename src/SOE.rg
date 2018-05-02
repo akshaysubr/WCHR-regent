@@ -318,6 +318,50 @@ do
 end
 
 __demand(__inline)
+task get_char_values_LB_x( r_prim_c : region(ispace(int3d), primitive),
+                           rho_avg  : double,
+                           sos_avg  : double,
+                           idx      : int3d)
+where
+  reads(r_prim_c)
+do
+  var char_values : double[7][5]
+
+  for i = -3, 4 do
+    var p = int3d {x = idx.x+i, y = idx.y, z = idx.z}
+    char_values[0][i+3] = -0.5*rho_avg*sos_avg * r_prim_c[p].u + 0.5*r_prim_c[p].p
+    char_values[1][i+3] = r_prim_c[p].rho - r_prim_c[p].p/(sos_avg*sos_avg)
+    char_values[2][i+3] = r_prim_c[p].v
+    char_values[3][i+3] = r_prim_c[p].w
+    char_values[4][i+3] = 0.5*rho_avg*sos_avg * r_prim_c[p].u + 0.5*r_prim_c[p].p
+  end
+
+  return char_values
+end
+
+__demand(__inline)
+task get_char_values_RB_x( r_prim_c : region(ispace(int3d), primitive),
+                           rho_avg  : double,
+                           sos_avg  : double,
+                           idx      : int3d)
+where
+  reads(r_prim_c)
+do
+  var char_values : double[7][5]
+
+  for i = -4, 3 do
+    var p = int3d {x = idx.x+i, y = idx.y, z = idx.z}
+    char_values[0][i+4] = -0.5*rho_avg*sos_avg * r_prim_c[p].u + 0.5*r_prim_c[p].p
+    char_values[1][i+4] = r_prim_c[p].rho - r_prim_c[p].p/(sos_avg*sos_avg)
+    char_values[2][i+4] = r_prim_c[p].v
+    char_values[3][i+4] = r_prim_c[p].w
+    char_values[4][i+4] = 0.5*rho_avg*sos_avg * r_prim_c[p].u + 0.5*r_prim_c[p].p
+  end
+
+  return char_values
+end
+
+__demand(__inline)
 task get_char_values_y( r_prim_c : region(ispace(int3d), primitive),
                         rho_avg  : double,
                         sos_avg  : double,
