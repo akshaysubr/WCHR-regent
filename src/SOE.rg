@@ -130,16 +130,13 @@ end
 
 __demand(__inline)
 task get_rho_sos_avg_x( r_prim_c : region(ispace(int3d), primitive),
-                        idx      : int3d,
-                        Nx       : int64,
-                        Ny       : int64,
-                        Nz       : int64)
+                        idx      : int3d)
 where
   reads(r_prim_c)
 do
   var rhosos : double[2]
 
-  var idxm1 = [poff(idx, -1, 0, 0, Nx, Ny, Nz)]
+  var idxm1 = int3d {x = idx.x-1, y = idx.y, z = idx.z}
   rhosos[0] = 0.5*( r_prim_c[ idxm1 ].rho + r_prim_c[ idx ].rho )
   rhosos[1] = 0.5*( get_sos(r_prim_c[idxm1].rho, r_prim_c[idxm1].p) + get_sos(r_prim_c[idx].rho, r_prim_c[idx].p))
 
@@ -148,16 +145,13 @@ end
 
 __demand(__inline)
 task get_rho_sos_avg_y( r_prim_c : region(ispace(int3d), primitive),
-                        idx      : int3d,
-                        Nx       : int64,
-                        Ny       : int64,
-                        Nz       : int64)
+                        idx      : int3d)
 where
   reads(r_prim_c)
 do
   var rhosos : double[2]
 
-  var idxm1 = [poff(idx, 0, -1, 0, Nx, Ny, Nz)]
+  var idxm1 = int3d {x = idx.x, y = idx.y-1, z = idx.z}
   rhosos[0] = 0.5*( r_prim_c[ idxm1 ].rho + r_prim_c[ idx ].rho )
   rhosos[1] = 0.5*( get_sos(r_prim_c[idxm1].rho, r_prim_c[idxm1].p) + get_sos(r_prim_c[idx].rho, r_prim_c[idx].p))
 
@@ -166,16 +160,13 @@ end
 
 __demand(__inline)
 task get_rho_sos_avg_z( r_prim_c : region(ispace(int3d), primitive),
-                        idx      : int3d,
-                        Nx       : int64,
-                        Ny       : int64,
-                        Nz       : int64)
+                        idx      : int3d)
 where
   reads(r_prim_c)
 do
   var rhosos : double[2]
 
-  var idxm1 = [poff(idx, 0, 0, -1, Nx, Ny, Nz)]
+  var idxm1 = int3d {x = idx.x, y = idx.y, z = idx.z-1}
   rhosos[0] = 0.5*( r_prim_c[ idxm1 ].rho + r_prim_c[ idx ].rho )
   rhosos[1] = 0.5*( get_sos(r_prim_c[idxm1].rho, r_prim_c[idxm1].p) + get_sos(r_prim_c[idx].rho, r_prim_c[idx].p))
 
@@ -296,17 +287,14 @@ __demand(__inline)
 task get_char_values_x( r_prim_c : region(ispace(int3d), primitive),
                         rho_avg  : double,
                         sos_avg  : double,
-                        idx      : int3d,
-                        Nx       : int64,
-                        Ny       : int64,
-                        Nz       : int64)
+                        idx      : int3d )
 where
   reads(r_prim_c)
 do
   var char_values : double[6][5]
 
   for i = -3, 3 do
-    var p = [poff(idx, i, 0, 0, Nx, Ny, Nz)]
+    var p = int3d {x = idx.x+i, y = idx.y, z = idx.z}
     char_values[0][i+3] = -0.5*rho_avg*sos_avg * r_prim_c[p].u + 0.5*r_prim_c[p].p
     char_values[1][i+3] = r_prim_c[p].rho - r_prim_c[p].p/(sos_avg*sos_avg)
     char_values[2][i+3] = r_prim_c[p].v
@@ -365,17 +353,14 @@ __demand(__inline)
 task get_char_values_y( r_prim_c : region(ispace(int3d), primitive),
                         rho_avg  : double,
                         sos_avg  : double,
-                        idx      : int3d,
-                        Nx       : int64,
-                        Ny       : int64,
-                        Nz       : int64)
+                        idx      : int3d )
 where
   reads(r_prim_c)
 do
   var char_values : double[6][5]
 
   for i = -3, 3 do
-    var p = [poff(idx, 0, i, 0, Nx, Ny, Nz)]
+    var p = int3d {x = idx.x, y = idx.y+i, z = idx.z}
     char_values[0][i+3] = -0.5*rho_avg*sos_avg * r_prim_c[p].v + 0.5*r_prim_c[p].p
     char_values[1][i+3] = r_prim_c[p].u
     char_values[2][i+3] = r_prim_c[p].rho - r_prim_c[p].p/(sos_avg*sos_avg)
@@ -434,17 +419,14 @@ __demand(__inline)
 task get_char_values_z( r_prim_c : region(ispace(int3d), primitive),
                         rho_avg  : double,
                         sos_avg  : double,
-                        idx      : int3d,
-                        Nx       : int64,
-                        Ny       : int64,
-                        Nz       : int64)
+                        idx      : int3d)
 where
   reads(r_prim_c)
 do
   var char_values : double[6][5]
 
   for i = -3, 3 do
-    var p = [poff(idx, 0, 0, i, Nx, Ny, Nz)]
+    var p = int3d {x = idx.x, y = idx.y, z = idx.z+i}
     char_values[0][i+3] = -0.5*rho_avg*sos_avg * r_prim_c[p].w + 0.5*r_prim_c[p].p
     char_values[1][i+3] = r_prim_c[p].u
     char_values[2][i+3] = r_prim_c[p].v
