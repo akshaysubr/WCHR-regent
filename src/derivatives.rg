@@ -2,14 +2,10 @@ import "regent"
 
 require("fields")
 
-task get_LU_decomposition(LU : region(ispace(int3d), LU_struct),
-                          e  : double,
-                          a  : double,
-                          d  : double,
-                          cc : double,
-                          f  : double)
+task get_LU_decomposition(LU  : region(ispace(int3d), LU_struct),
+                          mat : region(ispace(int3d), LU_coeffs) )
 where
-  reads writes( LU )
+  reads(mat), reads writes( LU )
 do
 
   var N : int64 = LU.ispace.bounds.hi.x + 1
@@ -17,79 +13,79 @@ do
   var pc = LU.ispace.bounds.hi.z
 
   -- Step 1
-  LU[{0,pr,pc}].g = d
-  LU[{1,pr,pc}].b = a/LU[{0,pr,pc}].g
-  LU[{0,pr,pc}].h = cc
-  LU[{0,pr,pc}].k = f/LU[{0,pr,pc}].g
-  LU[{0,pr,pc}].w = a
-  LU[{0,pr,pc}].v = e
-  LU[{0,pr,pc}].l = cc/LU[{0,pr,pc}].g
+  LU[{0,pr,pc}].g = mat[{0,pr,pc}].d
+  LU[{1,pr,pc}].b = mat[{1,pr,pc}].a/LU[{0,pr,pc}].g
+  LU[{0,pr,pc}].h = mat[{0,pr,pc}].c
+  LU[{0,pr,pc}].k = mat[{N-2,pr,pc}].f/LU[{0,pr,pc}].g
+  LU[{0,pr,pc}].w = mat[{0,pr,pc}].a
+  LU[{0,pr,pc}].v = mat[{0,pr,pc}].e
+  LU[{0,pr,pc}].l = mat[{N-1,pr,pc}].c/LU[{0,pr,pc}].g
   
-  LU[{1,pr,pc}].g = d - LU[{1,pr,pc}].b*LU[{0,pr,pc}].h
+  LU[{1,pr,pc}].g = mat[{1,pr,pc}].d - LU[{1,pr,pc}].b*LU[{0,pr,pc}].h
   LU[{1,pr,pc}].k = -LU[{0,pr,pc}].k*LU[{0,pr,pc}].h/LU[{1,pr,pc}].g
-  LU[{1,pr,pc}].w = e - LU[{1,pr,pc}].b*LU[{0,pr,pc}].w
+  LU[{1,pr,pc}].w = mat[{1,pr,pc}].e - LU[{1,pr,pc}].b*LU[{0,pr,pc}].w
   LU[{1,pr,pc}].v = -LU[{1,pr,pc}].b*LU[{0,pr,pc}].v
-  LU[{1,pr,pc}].l = (f - LU[{0,pr,pc}].l*LU[{0,pr,pc}].h) / LU[{1,pr,pc}].g
-  LU[{1,pr,pc}].h = cc - LU[{1,pr,pc}].b*f
+  LU[{1,pr,pc}].l = (mat[{N-1,pr,pc}].f - LU[{0,pr,pc}].l*LU[{0,pr,pc}].h) / LU[{1,pr,pc}].g
+  LU[{1,pr,pc}].h = mat[{1,pr,pc}].c - LU[{1,pr,pc}].b*mat[{0,pr,pc}].f
 
   -- Step 2
   for i = 2,N-3 do
-    LU[{i,pr,pc}].b = ( a - ( e/LU[{i-2,pr,pc}].g )*LU[{i-2,pr,pc}].h ) / LU[{i-1,pr,pc}].g
-    LU[{i,pr,pc}].h = cc - LU[{i,pr,pc}].b*f
-    LU[{i,pr,pc}].g = d - ( e/LU[{i-2,pr,pc}].g )*f - LU[{i,pr,pc}].b*LU[{i-1,pr,pc}].h
+    LU[{i,pr,pc}].b = ( mat[{i,pr,pc}].a - ( mat[{i,pr,pc}].e/LU[{i-2,pr,pc}].g )*LU[{i-2,pr,pc}].h ) / LU[{i-1,pr,pc}].g
+    LU[{i,pr,pc}].h = mat[{i,pr,pc}].c - LU[{i,pr,pc}].b*mat[{i-1,pr,pc}].f
+    LU[{i,pr,pc}].g = mat[{i,pr,pc}].d - ( mat[{i,pr,pc}].e/LU[{i-2,pr,pc}].g )*mat[{i-2,pr,pc}].f - LU[{i,pr,pc}].b*LU[{i-1,pr,pc}].h
   end
 
   -- Step 3
-  LU[{N-3,pr,pc}].b = ( a - ( e/LU[{N-5,pr,pc}].g )*LU[{N-5,pr,pc}].h ) / LU[{N-4,pr,pc}].g
-  LU[{N-3,pr,pc}].g = d - ( e/LU[{N-5,pr,pc}].g )*f - LU[{N-3,pr,pc}].b*LU[{N-4,pr,pc}].h
+  LU[{N-3,pr,pc}].b = ( mat[{N-3,pr,pc}].a - ( mat[{N-3,pr,pc}].e/LU[{N-5,pr,pc}].g )*LU[{N-5,pr,pc}].h ) / LU[{N-4,pr,pc}].g
+  LU[{N-3,pr,pc}].g = mat[{N-3,pr,pc}].d - ( mat[{N-3,pr,pc}].e/LU[{N-5,pr,pc}].g )*mat[{N-5,pr,pc}].f - LU[{N-3,pr,pc}].b*LU[{N-4,pr,pc}].h
 
   -- Step 4
   for i = 2,N-4 do
-    LU[{i,pr,pc}].k = -( LU[{i-2,pr,pc}].k*f + LU[{i-1,pr,pc}].k*LU[{i-1,pr,pc}].h ) / LU[{i,pr,pc}].g
-    LU[{i,pr,pc}].v = -( e/LU[{i-2,pr,pc}].g )*LU[{i-2,pr,pc}].v - LU[{i,pr,pc}].b*LU[{i-1,pr,pc}].v
+    LU[{i,pr,pc}].k = -( LU[{i-2,pr,pc}].k*mat[{i-2,pr,pc}].f + LU[{i-1,pr,pc}].k*LU[{i-1,pr,pc}].h ) / LU[{i,pr,pc}].g
+    LU[{i,pr,pc}].v = -( mat[{i,pr,pc}].e/LU[{i-2,pr,pc}].g )*LU[{i-2,pr,pc}].v - LU[{i,pr,pc}].b*LU[{i-1,pr,pc}].v
   end
 
   -- Step 5
-  LU[{N-4,pr,pc}].k = ( e - LU[{N-6,pr,pc}].k*f - LU[{N-5,pr,pc}].k*LU[{N-5,pr,pc}].h ) / LU[{N-4,pr,pc}].g
-  LU[{N-3,pr,pc}].k = ( a - LU[{N-5,pr,pc}].k*f - LU[{N-4,pr,pc}].k*LU[{N-4,pr,pc}].h ) / LU[{N-3,pr,pc}].g
-  LU[{N-4,pr,pc}].v = f  - ( e/LU[{N-6,pr,pc}].g )*LU[{N-6,pr,pc}].v - LU[{N-4,pr,pc}].b*LU[{N-5,pr,pc}].v
-  LU[{N-3,pr,pc}].v = cc - ( e/LU[{N-5,pr,pc}].g )*LU[{N-5,pr,pc}].v - LU[{N-3,pr,pc}].b*LU[{N-4,pr,pc}].v
-  LU[{N-2,pr,pc}].g = d
+  LU[{N-4,pr,pc}].k = ( mat[{N-2,pr,pc}].e - LU[{N-6,pr,pc}].k*mat[{N-6,pr,pc}].f - LU[{N-5,pr,pc}].k*LU[{N-5,pr,pc}].h ) / LU[{N-4,pr,pc}].g
+  LU[{N-3,pr,pc}].k = ( mat[{N-2,pr,pc}].a - LU[{N-5,pr,pc}].k*mat[{N-5,pr,pc}].f - LU[{N-4,pr,pc}].k*LU[{N-4,pr,pc}].h ) / LU[{N-3,pr,pc}].g
+  LU[{N-4,pr,pc}].v = mat[{N-4,pr,pc}].f  - ( mat[{N-4,pr,pc}].e/LU[{N-6,pr,pc}].g )*LU[{N-6,pr,pc}].v - LU[{N-4,pr,pc}].b*LU[{N-5,pr,pc}].v
+  LU[{N-3,pr,pc}].v = mat[{N-3,pr,pc}].c - ( mat[{N-3,pr,pc}].e/LU[{N-5,pr,pc}].g )*LU[{N-5,pr,pc}].v - LU[{N-3,pr,pc}].b*LU[{N-4,pr,pc}].v
+  LU[{N-2,pr,pc}].g = mat[{N-2,pr,pc}].d
   for i = 0,N-2 do
     LU[{N-2,pr,pc}].g -= LU[{i,pr,pc}].k*LU[{i,pr,pc}].v
   end
 
   -- Step 6
   for i = 2,N-3 do
-    LU[{i,pr,pc}].w = -( e/LU[{i-2,pr,pc}].g )*LU[{i-2,pr,pc}].w - LU[{i,pr,pc}].b*LU[{i-1,pr,pc}].w
-    LU[{i,pr,pc}].l = -( LU[{i-2,pr,pc}].l*f + LU[{i-1,pr,pc}].l*LU[{i-1,pr,pc}].h ) / LU[{i,pr,pc}].g
+    LU[{i,pr,pc}].w = -( mat[{i,pr,pc}].e/LU[{i-2,pr,pc}].g )*LU[{i-2,pr,pc}].w - LU[{i,pr,pc}].b*LU[{i-1,pr,pc}].w
+    LU[{i,pr,pc}].l = -( LU[{i-2,pr,pc}].l*mat[{i-2,pr,pc}].f + LU[{i-1,pr,pc}].l*LU[{i-1,pr,pc}].h ) / LU[{i,pr,pc}].g
   end
 
   -- Step 7
-  LU[{N-3,pr,pc}].w = f - ( e/LU[{N-5,pr,pc}].g )*LU[{N-5,pr,pc}].w - LU[{N-3,pr,pc}].b*LU[{N-4,pr,pc}].w
-  LU[{N-2,pr,pc}].w = cc
+  LU[{N-3,pr,pc}].w = mat[{N-3,pr,pc}].f - ( mat[{N-3,pr,pc}].e/LU[{N-5,pr,pc}].g )*LU[{N-5,pr,pc}].w - LU[{N-3,pr,pc}].b*LU[{N-4,pr,pc}].w
+  LU[{N-2,pr,pc}].w = mat[{N-2,pr,pc}].c
   for i = 0,N-2 do
     LU[{N-2,pr,pc}].w -= LU[{i,pr,pc}].k*LU[{i,pr,pc}].w
   end
-  LU[{N-3,pr,pc}].l = ( e - LU[{N-5,pr,pc}].l*f - LU[{N-4,pr,pc}].l*LU[{N-4,pr,pc}].h ) / LU[{N-3,pr,pc}].g
-  LU[{N-2,pr,pc}].l = a
+  LU[{N-3,pr,pc}].l = ( mat[{N-1,pr,pc}].e - LU[{N-5,pr,pc}].l*mat[{N-5,pr,pc}].f - LU[{N-4,pr,pc}].l*LU[{N-4,pr,pc}].h ) / LU[{N-3,pr,pc}].g
+  LU[{N-2,pr,pc}].l = mat[{N-1,pr,pc}].a
   for i = 0,N-2 do
     LU[{N-2,pr,pc}].l -= LU[{i,pr,pc}].l*LU[{i,pr,pc}].v
   end
   LU[{N-2,pr,pc}].l = LU[{N-2,pr,pc}].l / LU[{N-2,pr,pc}].g
-  LU[{N-1,pr,pc}].g = d
+  LU[{N-1,pr,pc}].g = mat[{N-1,pr,pc}].d
   for i = 0,N-1 do
     LU[{N-1,pr,pc}].g -= LU[{i,pr,pc}].l*LU[{i,pr,pc}].w
   end
 
   -- Set eg = e/g
   for i = 2,N-2 do
-    LU[{i,pr,pc}].eg = e/LU[{i-2,pr,pc}].g
+    LU[{i,pr,pc}].eg = mat[{i,pr,pc}].e/LU[{i-2,pr,pc}].g
   end
 
   -- Set ff = f
   for i = 0,N-4 do
-    LU[{i,pr,pc}].ff = f
+    LU[{i,pr,pc}].ff = mat[{i,pr,pc}].f
   end
 
   -- Set g = 1/g

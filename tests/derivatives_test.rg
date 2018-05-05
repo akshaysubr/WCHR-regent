@@ -64,6 +64,24 @@ local ddy_MND = make_ddy_MND(r_prim, r_prim_e, "rho", r_der, "rho", NX, NY, NZ, 
 local ddz_MND = make_ddz_MND(r_prim, r_prim_e, "rho", r_der, "rho", NX, NY, NZ, ONEBYDX, a06MND, b06MND, c06MND)
 -----------------------------------------------------
 
+task get_derivative_matrix(mat : region(ispace(int3d), LU_coeffs), 
+                           e   : double, 
+                           a   : double,
+                           d   : double,
+                           c   : double,
+                           f   : double)
+where
+  writes(mat)
+do
+  for i in mat do
+    mat[i].e = e
+    mat[i].a = a
+    mat[i].d = d
+    mat[i].c = c
+    mat[i].f = f
+  end
+end
+
 task initialize( coords     : region(ispace(int3d), coordinates),
                  r_prim_c   : region(ispace(int3d), primitive),
                  r_prim_l_x : region(ispace(int3d), primitive),
@@ -179,7 +197,7 @@ task main()
   c.printf("====================================================\n")
 
   --------------------------------------------------------------------------------------------
-  --                       DATA STUCTURES
+  --                       DATA STRUCTURES
   --------------------------------------------------------------------------------------------
   var grid_c     = ispace(int3d, {x = Nx,   y = Ny,   z = Nz  })  -- Cell center index space
 
@@ -195,6 +213,10 @@ task main()
   var r_prim_l_z = region(grid_e_z, primitive)  -- Primitive variables at left z cell edge
   
   var r_der      = region(grid_c,   primitive)  -- RHS for time stepping at cell center
+
+  var mat_x      = region(ispace(int3d, {x = Nx, y = 1, z = 1}), LU_coeffs) -- Data structure to hold x derivative LHS matrix
+  var mat_y      = region(ispace(int3d, {x = Ny, y = 1, z = 1}), LU_coeffs) -- Data structure to hold y derivative LHS matrix
+  var mat_z      = region(ispace(int3d, {x = Nz, y = 1, z = 1}), LU_coeffs) -- Data structure to hold z derivative LHS matrix
 
   var LU_x       = region(ispace(int3d, {x = Nx, y = 1, z = 1}), LU_struct) -- Data structure to hold x derivative LU decomposition
   var LU_y       = region(ispace(int3d, {x = Ny, y = 1, z = 1}), LU_struct) -- Data structure to hold y derivative LU decomposition
@@ -212,7 +234,8 @@ task main()
   var err = 0.0
 
   fill(r_der.rho, 0.0)
-  get_LU_decomposition(LU_x, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
+  get_derivative_matrix(mat_x, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
+  get_LU_decomposition(LU_x, mat_x)
   token += ddx(r_prim_c, r_der, LU_x)
   wait_for(token)
   err = check_ddx(coords, r_der)
@@ -220,7 +243,8 @@ task main()
   regentlib.assert( err <= 1.e-9, "Derivative test failed for task ddx")
 
   fill(r_der.rho, 0.0)
-  get_LU_decomposition(LU_y, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
+  get_derivative_matrix(mat_y, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
+  get_LU_decomposition(LU_y, mat_y)
   token += ddy(r_prim_c, r_der, LU_y)
   wait_for(token)
   err = check_ddy(coords, r_der)
@@ -228,7 +252,8 @@ task main()
   regentlib.assert( err <= 1.e-9, "Derivative test failed for task ddy")
 
   fill(r_der.rho, 0.0)
-  get_LU_decomposition(LU_z, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
+  get_derivative_matrix(mat_z, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
+  get_LU_decomposition(LU_z, mat_z)
   token += ddz(r_prim_c, r_der, LU_z)
   wait_for(token)
   err = check_ddz(coords, r_der)
@@ -238,7 +263,8 @@ task main()
   c.printf("\n")
 
   fill(r_der.rho, 0.0)
-  get_LU_decomposition(LU_x, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  get_derivative_matrix(mat_x, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  get_LU_decomposition(LU_x, mat_x)
   token += ddx_MND(r_prim_c, r_prim_l_x, r_der, LU_x)
   wait_for(token)
   err = check_ddx(coords, r_der)
@@ -246,7 +272,8 @@ task main()
   regentlib.assert( err <= 1.e-09, "Derivative test failed for task ddx_MND")
 
   fill(r_der.rho, 0.0)
-  get_LU_decomposition(LU_y, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  get_derivative_matrix(mat_y, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  get_LU_decomposition(LU_y, mat_y)
   token += ddy_MND(r_prim_c, r_prim_l_y, r_der, LU_y)
   wait_for(token)
   err = check_ddy(coords, r_der)
@@ -254,7 +281,8 @@ task main()
   regentlib.assert( err <= 1.e-09, "Derivative test failed for task ddy_MND")
 
   fill(r_der.rho, 0.0)
-  get_LU_decomposition(LU_z, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  get_derivative_matrix(mat_z, beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+  get_LU_decomposition(LU_z, mat_z)
   token += ddz_MND(r_prim_c, r_prim_l_z, r_der, LU_z)
   wait_for(token)
   err = check_ddz(coords, r_der)
