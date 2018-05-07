@@ -112,6 +112,10 @@ function poff(i, x, y, z, Nx, Ny, Nz)
   return rexpr int3d { x = (i.x + x + Nx)%Nx, y = (i.y + y + Ny)%Ny, z = (i.z + z + Nz)%Nz } end
 end
 
+function off(i, x, y, z)
+  return rexpr int3d { x = i.x + x, y = i.y + y, z = i.z + z } end
+end
+
 task set_zero_cnsr( r_cnsr : region(ispace(int3d), conserved) )
 where
   writes(r_cnsr)

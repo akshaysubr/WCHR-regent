@@ -1,6 +1,44 @@
 import "regent"
 
 require("fields")
+local ip = require("interpolation")
+
+-- Make the node and midpoint-node differencing tasks (Using pentadiagonal solver for this instead of tridiagonal solver)
+alpha06d1 = 1.0/3.0
+beta06d1  = 0.0
+a06d1 = ( 14.0/ 9.0)/2.0
+b06d1 = (  1.0/ 9.0)/4.0
+c06d1 = (  0.0/100.0)/6.0
+
+-- Compact MND finite difference
+-- alpha06MND = -1.0/12.0
+-- beta06MND  = 0.0
+-- a06MND = 16.0/9.0
+-- b06MND = (-17.0/18.0)/2.0
+-- c06MND = (0.0)/3.0
+
+-- Compact staggered finite difference
+alpha06MND = 9.0/62.0
+beta06MND  = 0.0
+a06MND = 63.0/62.0
+b06MND = (0.0/18.0)/2.0
+c06MND = (17.0/62.0)/3.0
+
+a06MND_LB = (40./31.) * ( 41./67200.)
+b06MND_LB = (40./31.) * ( 23./600.)
+c06MND_LB = (40./31.) * ( -349./600.)
+d06MND_LB = (40./31.) * ( -883./960.)
+e06MND_LB = (40./31.) * ( 571./300.)
+f06MND_LB = (40./31.) * ( -35./48.)
+g06MND_LB = (40./31.) * ( 1369./4200.)
+h06MND_LB = (40./31.) * ( -361./9600.)
+
+-- Explicit MND finite difference
+-- alpha06MND = 0.0
+-- beta06MND  = 0.0
+-- a06MND = 3.0/2.0
+-- b06MND = (-3.0/10.0)
+-- c06MND = (1.0)/30.0
 
 task get_LU_decomposition(LU  : region(ispace(int3d), LU_struct),
                           mat : region(ispace(int3d), LU_coeffs) )
@@ -148,31 +186,168 @@ local function make_stencil_pattern(points, f, index, a, b, c, Nx, Ny, Nz, oneby
   return value
 end
 
-local function make_stencil_pattern_MND(points_c, points_e, f, index, a, b, c, Nx, Ny, Nz, onebydx, dir)
+local function make_stencil_pattern_MND_interior(points_c, points_e, f, index, Nx, Ny, Nz, onebydx, dir, periodic)
   local value
+  local Ne = 0
+  local Nx_g = Nx + 2*ip.n_ghosts
+  local Ny_g = Ny + 2*ip.n_ghosts
+  local Nz_g = Nz + 2*ip.n_ghosts
+
+  local a = a06MND
+  local b = b06MND
+  local c = c06MND
+
   if dir == 0 then      -- x direction stencil
-      value = rexpr       - c*points_e[ [poff(index, -1, 0, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value - b*points_c[ [poff(index, -1, 0, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value - a*points_e[ [poff(index, -0, 0, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + a*points_e[ [poff(index,  1, 0, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + b*points_c[ [poff(index,  1, 0, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + c*points_e[ [poff(index,  2, 0, 0, Nx, Ny, Nz)] ].[f] end
+      local index_e = rexpr int3d { x = index.x - ip.n_ghosts, y = index.y, z = index.z}  end
+      if periodic then
+        Ne = Nx
+      else
+        Ne = Nx+1
+      end
+
+      value = rexpr       - b*points_c[ int3d {index.x-1, index.y, index.z} ].[f] end
+      value = rexpr value + b*points_c[ int3d {index.x+1, index.y, index.z} ].[f] end
+
+      value = rexpr value - c*points_e[ [poff(index_e, -1, 0, 0, Ne, Ny_g, Nz_g)] ].[f] end
+      value = rexpr value - a*points_e[ [poff(index_e, -0, 0, 0, Ne, Ny_g, Nz_g)] ].[f] end
+      value = rexpr value + a*points_e[ [poff(index_e,  1, 0, 0, Ne, Ny_g, Nz_g)] ].[f] end
+      value = rexpr value + c*points_e[ [poff(index_e,  2, 0, 0, Ne, Ny_g, Nz_g)] ].[f] end
       value = rexpr onebydx * ( value ) end
   elseif dir == 1 then  -- y direction stencil
-      value = rexpr       - c*points_e[ [poff(index, 0, -1, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value - b*points_c[ [poff(index, 0, -1, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value - a*points_e[ [poff(index, 0, -0, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + a*points_e[ [poff(index, 0,  1, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + b*points_c[ [poff(index, 0,  1, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + c*points_e[ [poff(index, 0,  2, 0, Nx, Ny, Nz)] ].[f] end
+      index_e = rexpr int3d { x = index.x, y = index.y - ip.n_ghosts, z = index.z}  end
+      if periodic then
+        Ne = Ny
+      else
+        Ne = Ny+1
+      end
+
+      value = rexpr       - b*points_c[ int3d {index.x, index.y-1, index.z} ].[f] end
+      value = rexpr value + b*points_c[ int3d {index.x, index.y+1, index.z} ].[f] end
+
+      value = rexpr value - c*points_e[ [poff(index_e, 0, -1, 0, Nx_g, Ne, Nz_g)] ].[f] end
+      value = rexpr value - a*points_e[ [poff(index_e, 0, -0, 0, Nx_g, Ne, Nz_g)] ].[f] end
+      value = rexpr value + a*points_e[ [poff(index_e, 0,  1, 0, Nx_g, Ne, Nz_g)] ].[f] end
+      value = rexpr value + c*points_e[ [poff(index_e, 0,  2, 0, Nx_g, Ne, Nz_g)] ].[f] end
       value = rexpr onebydx * ( value ) end
   elseif dir == 2 then  -- z direction stencil
-      value = rexpr       - c*points_e[ [poff(index, 0, 0, -1, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value - b*points_c[ [poff(index, 0, 0, -1, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value - a*points_e[ [poff(index, 0, 0, -0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + a*points_e[ [poff(index, 0, 0,  1, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + b*points_c[ [poff(index, 0, 0,  1, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + c*points_e[ [poff(index, 0, 0,  2, Nx, Ny, Nz)] ].[f] end
+      index_e = rexpr int3d { x = index.x, y = index.y, z = index.z - ip.n_ghosts}  end
+      if periodic then
+        Ne = Nz
+      else
+        Ne = Nz+1
+      end
+
+      value = rexpr       - b*points_c[ int3d {index.x, index.y, index.z-1} ].[f] end
+      value = rexpr value + b*points_c[ int3d {index.x, index.y, index.z+1} ].[f] end
+
+      value = rexpr value - c*points_e[ [poff(index_e, 0, 0, -1, Nx_g, Ny_g, Ne)] ].[f] end
+      value = rexpr value - a*points_e[ [poff(index_e, 0, 0, -0, Nx_g, Ny_g, Ne)] ].[f] end
+      value = rexpr value + a*points_e[ [poff(index_e, 0, 0,  1, Nx_g, Ny_g, Ne)] ].[f] end
+      value = rexpr value + c*points_e[ [poff(index_e, 0, 0,  2, Nx_g, Ny_g, Ne)] ].[f] end
+      value = rexpr onebydx * ( value ) end
+  end
+  return value
+end
+
+local function make_stencil_pattern_MND_LB(points_c, points_e, f, index, a, b, c, d, e, f, g, h, onebydx, dir)
+  local value
+
+  -- local a = a06MND_LB
+  -- local b = b06MND_LB
+  -- local c = c06MND_LB
+  -- local d = d06MND_LB
+  -- local e = e06MND_LB
+  -- local f = f06MND_LB
+  -- local g = g06MND_LB
+  -- local h = h06MND_LB
+
+  if dir == 0 then      -- x direction stencil
+      local index_e = rexpr int3d { x = index.x - 3, y = index.y, z = index.z}  end
+
+      value = rexpr         a*points_c[ int3d {x = index.x  -2, y = index.y,   z = index.z  } ].[f] end
+      value = rexpr value + b*points_c[ int3d {x = index.x  -1, y = index.y,   z = index.z  } ].[f] end
+      value = rexpr value + c*points_e[ int3d {x = index_e.x+0, y = index_e.y, z = index_e.z} ].[f] end
+      value = rexpr value + d*points_c[ int3d {x = index.x  -0, y = index.y,   z = index.z  } ].[f] end
+      value = rexpr value + e*points_e[ int3d {x = index_e.x+1, y = index_e.y, z = index_e.z} ].[f] end
+      value = rexpr value + f*points_c[ int3d {x = index.x  +1, y = index.y,   z = index.z  } ].[f] end
+      value = rexpr value + g*points_e[ int3d {x = index_e.x+2, y = index_e.y, z = index_e.z} ].[f] end
+      value = rexpr value + h*points_c[ int3d {x = index.x  +2, y = index.y,   z = index.z  } ].[f] end
+      value = rexpr onebydx * ( value ) end
+  elseif dir == 1 then  -- y direction stencil
+      local index_e = rexpr int3d { x = index.x, y = index.y - ip.n_ghosts, z = index.z}  end
+
+      value = rexpr         a*points_c[ int3d {index.x,   index.y  -2, index.z  } ].[f] end
+      value = rexpr value + b*points_c[ int3d {index.x,   index.y  -1, index.z  } ].[f] end
+      value = rexpr value + c*points_e[ int3d {index_e.x, index_e.y+0, index_e.z} ].[f] end
+      value = rexpr value + d*points_c[ int3d {index.x,   index.y  -0, index.z  } ].[f] end
+      value = rexpr value + e*points_e[ int3d {index_e.x, index_e.y+1, index_e.z} ].[f] end
+      value = rexpr value + f*points_c[ int3d {index.x,   index.y  +1, index.z  } ].[f] end
+      value = rexpr value + g*points_e[ int3d {index_e.x, index_e.y+2, index_e.z} ].[f] end
+      value = rexpr value + h*points_c[ int3d {index.x,   index.y  +2, index.z  } ].[f] end
+      value = rexpr onebydx * ( value ) end
+  elseif dir == 2 then  -- z direction stencil
+      local index_e = rexpr int3d { x = index.x, y = index.y, z = index.z - ip.n_ghosts}  end
+
+      value = rexpr         a*points_c[ int3d {index.x,   index.y  , index.z  -2} ].[f] end
+      value = rexpr value + b*points_c[ int3d {index.x,   index.y  , index.z  -1} ].[f] end
+      value = rexpr value + c*points_e[ int3d {index_e.x, index_e.y, index_e.z+0} ].[f] end
+      value = rexpr value + d*points_c[ int3d {index.x,   index.y  , index.z  -0} ].[f] end
+      value = rexpr value + e*points_e[ int3d {index_e.x, index_e.y, index_e.z+1} ].[f] end
+      value = rexpr value + f*points_c[ int3d {index.x,   index.y  , index.z  +1} ].[f] end
+      value = rexpr value + g*points_e[ int3d {index_e.x, index_e.y, index_e.z+2} ].[f] end
+      value = rexpr value + h*points_c[ int3d {index.x,   index.y  , index.z  +2} ].[f] end
+      value = rexpr onebydx * ( value ) end
+  end
+  return value
+end
+
+local function make_stencil_pattern_MND_RB(points_c, points_e, f, index, a, b, c, d, e, f, g, h, onebydx, dir)
+  local value
+
+  -- local a = a06MND_LB
+  -- local b = b06MND_LB
+  -- local c = c06MND_LB
+  -- local d = d06MND_LB
+  -- local e = e06MND_LB
+  -- local f = f06MND_LB
+  -- local g = g06MND_LB
+  -- local h = h06MND_LB
+
+  if dir == 0 then      -- x direction stencil
+      local index_e = rexpr int3d { x = index.x - ip.n_ghosts, y = index.y, z = index.z}  end
+
+      value = rexpr       - a*points_c[ int3d {index.x  +2, index.y,   index.z  } ].[f] end
+      value = rexpr value - b*points_c[ int3d {index.x  +1, index.y,   index.z  } ].[f] end
+      value = rexpr value - c*points_e[ int3d {index_e.x+1, index_e.y, index_e.z} ].[f] end
+      value = rexpr value - d*points_c[ int3d {index.x  +0, index.y,   index.z  } ].[f] end
+      value = rexpr value - e*points_e[ int3d {index_e.x-0, index_e.y, index_e.z} ].[f] end
+      value = rexpr value - f*points_c[ int3d {index.x  -1, index.y,   index.z  } ].[f] end
+      value = rexpr value - g*points_e[ int3d {index_e.x-1, index_e.y, index_e.z} ].[f] end
+      value = rexpr value - h*points_c[ int3d {index.x  -2, index.y,   index.z  } ].[f] end
+      value = rexpr onebydx * ( value ) end
+  elseif dir == 1 then  -- y direction stencil
+      local index_e = rexpr int3d { x = index.x, y = index.y - ip.n_ghosts, z = index.z}  end
+
+      value = rexpr       - a*points_c[ int3d {index.x,   index.y  +2, index.z  } ].[f] end
+      value = rexpr value - b*points_c[ int3d {index.x,   index.y  +1, index.z  } ].[f] end
+      value = rexpr value - c*points_e[ int3d {index_e.x, index_e.y+1, index_e.z} ].[f] end
+      value = rexpr value - d*points_c[ int3d {index.x,   index.y  +0, index.z  } ].[f] end
+      value = rexpr value - e*points_e[ int3d {index_e.x, index_e.y-0, index_e.z} ].[f] end
+      value = rexpr value - f*points_c[ int3d {index.x,   index.y  -1, index.z  } ].[f] end
+      value = rexpr value - g*points_e[ int3d {index_e.x, index_e.y-1, index_e.z} ].[f] end
+      value = rexpr value - h*points_c[ int3d {index.x,   index.y  -2, index.z  } ].[f] end
+      value = rexpr onebydx * ( value ) end
+  elseif dir == 2 then  -- z direction stencil
+      local index_e = rexpr int3d { x = index.x, y = index.y, z = index.z - ip.n_ghosts}  end
+
+      value = rexpr       - a*points_c[ int3d {index.x,   index.y  , index.z  +2} ].[f] end
+      value = rexpr value - b*points_c[ int3d {index.x,   index.y  , index.z  +1} ].[f] end
+      value = rexpr value - c*points_e[ int3d {index_e.x, index_e.y, index_e.z+1} ].[f] end
+      value = rexpr value - d*points_c[ int3d {index.x,   index.y  , index.z  +0} ].[f] end
+      value = rexpr value - e*points_e[ int3d {index_e.x, index_e.y, index_e.z-0} ].[f] end
+      value = rexpr value - f*points_c[ int3d {index.x,   index.y  , index.z  -1} ].[f] end
+      value = rexpr value - g*points_e[ int3d {index_e.x, index_e.y, index_e.z-1} ].[f] end
+      value = rexpr value - h*points_c[ int3d {index.x,   index.y  , index.z  -2} ].[f] end
       value = rexpr onebydx * ( value ) end
   end
   return value
@@ -190,13 +365,29 @@ local function make_stencil(r1, privileges_r1, f1, r2, privileges_r2, f2, Nx, Ny
   return rhs
 end
 
-local function make_stencil_MND(r1, privileges_r1, f1, r2, privileges_r2, r3, privileges_r3, f3, Nx, Ny, Nz, onebydx, a, b, c, dir, der)
+local function make_stencil_MND(r1, privileges_r1, f1, r2, privileges_r2, r3, privileges_r3, f3, Nx, Ny, Nz, onebydx, dir, der, periodic)
   local rhs __demand(__inline) task rhs( [r1], [r2], [r3] )
   where
     [privileges_r1], [privileges_r2], [privileges_r3]
   do
-    for i in r3 do
-      [r3][i].[f3] = [make_stencil_pattern_MND(r1, r2, f1, i, a, b, c, Nx, Ny, Nz, onebydx, dir, der)]
+    for i in r3.ispace do
+      var idir = 0
+      if (dir == 0) then
+        idir = i.x
+      elseif (dir == 1) then
+        idir = i.y
+      elseif (dir == 2) then
+        idir = i.z
+      end
+
+      if ((not periodic) and (idir == ip.n_ghosts) ) then
+        [r3][i].[f3] = [make_stencil_pattern_MND_LB(r1, r2, f1, i, a06MND_LB, b06MND_LB, c06MND_LB, d06MND_LB, e06MND_LB, f06MND_LB, g06MND_LB, h06MND_LB, onebydx, dir)]
+      elseif ((not periodic) and (idir == Nx+ip.n_ghosts-1)) then
+        [r3][i].[f3] = [make_stencil_pattern_MND_RB(r1, r2, f1, i, a06MND_LB, b06MND_LB, c06MND_LB, d06MND_LB, e06MND_LB, f06MND_LB, g06MND_LB, h06MND_LB, onebydx, dir)]
+      else
+        [r3][i].[f3] = [make_stencil_pattern_MND_interior(r1, r2, f1, i, Nx, Ny, Nz, onebydx, dir, der, periodic)]
+      end
+
     end
   end
   return rhs
@@ -407,7 +598,7 @@ function make_ddz(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
   return ddz
 end
 
-function make_ddx_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
+function make_ddx_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, periodic)
   local privileges_r_func   = regentlib.privilege(regentlib.reads,  r_func,   f_func)
   local privileges_r_func_e = regentlib.privilege(regentlib.reads,  r_func_e, f_func)
   
@@ -415,7 +606,7 @@ function make_ddx_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYD
   local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
   local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
 
-  local ComputeXRHS_MND  = make_stencil_MND(r_func, privileges_r_func, f_func, r_func_e, privileges_r_func_e, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 0, 1)
+  local ComputeXRHS_MND  = make_stencil_MND(r_func, privileges_r_func, f_func, r_func_e, privileges_r_func_e, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, 0, 1, periodic)
   local SolveXLU         = make_SolveXLU(r_der, privileges_r_der, f_der)
 
   local ddx_MND __demand(__inline) task ddx_MND( [r_func],
@@ -433,7 +624,7 @@ function make_ddx_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYD
   return ddx_MND
 end
 
-function make_ddy_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
+function make_ddy_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, periodic)
   local privileges_r_func   = regentlib.privilege(regentlib.reads,  r_func,   f_func)
   local privileges_r_func_e = regentlib.privilege(regentlib.reads,  r_func_e, f_func)
   
@@ -441,7 +632,7 @@ function make_ddy_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYD
   local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
   local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
 
-  local ComputeYRHS_MND  = make_stencil_MND(r_func, privileges_r_func, f_func, r_func_e, privileges_r_func_e, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 1, 1)
+  local ComputeYRHS_MND  = make_stencil_MND(r_func, privileges_r_func, f_func, r_func_e, privileges_r_func_e, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, 1, 1, periodic)
   local SolveYLU         = make_SolveYLU(r_der, privileges_r_der, f_der)
 
   local ddy_MND __demand(__inline) task ddy_MND( [r_func],
@@ -459,7 +650,7 @@ function make_ddy_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYD
   return ddy_MND
 end
 
-function make_ddz_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
+function make_ddz_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, periodic)
   local privileges_r_func   = regentlib.privilege(regentlib.reads,  r_func,   f_func)
   local privileges_r_func_e = regentlib.privilege(regentlib.reads,  r_func_e, f_func)
   
@@ -467,7 +658,7 @@ function make_ddz_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYD
   local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
   local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
 
-  local ComputeZRHS_MND  = make_stencil_MND(r_func, privileges_r_func, f_func, r_func_e, privileges_r_func_e, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 2, 1)
+  local ComputeZRHS_MND  = make_stencil_MND(r_func, privileges_r_func, f_func, r_func_e, privileges_r_func_e, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, 2, 1, periodic)
   local SolveZLU         = make_SolveZLU(r_der, privileges_r_der, f_der)
 
   local ddz_MND __demand(__inline) task ddz_MND( [r_func],
