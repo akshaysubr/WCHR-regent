@@ -177,10 +177,7 @@ task add_xflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
                            sos_avg    : region(ispace(int3d), double),
                            block_d    : region(ispace(int3d), double[9]),
                            block_Uinv : region(ispace(int3d), double[9]),
-                           LU_x       : region(ispace(int3d), LU_struct),
-                           Nx         : int64,
-                           Ny         : int64,
-                           Nz         : int64 )
+                           LU_x       : region(ispace(int3d), LU_struct) )
 where
   reads( r_prim_c, LU_x ),
   reads writes( r_prim_l_x, r_prim_r_x, r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs),
@@ -191,7 +188,7 @@ do
 
   if (nx >= 8) then
     WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, alpha_l, beta_l, gamma_l,
-                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv, Nx, Ny, Nz )
+                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
     -- positivity_enforcer_x( r_prim_c, r_prim_l_x, r_prim_r_x, Nx, Ny, Nz )
     HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
     get_xfluxes_r( r_prim_c, r_flux_c )
@@ -221,10 +218,7 @@ task add_viscous_xflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive)
                                    r_flux_c   : region(ispace(int3d), conserved),
                                    r_fder_c_x : region(ispace(int3d), conserved),
                                    r_rhs      : region(ispace(int3d), conserved),
-                                   LU_x       : region(ispace(int3d), LU_struct),
-                                   Nx         : int64,
-                                   Ny         : int64,
-                                   Nz         : int64 )
+                                   LU_x       : region(ispace(int3d), LU_struct) )
 where
   reads( r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_11, _12, _13}, LU_x ),
   reads writes( r_q._1, r_flux_c, r_fder_c_x, r_rhs)
@@ -279,10 +273,7 @@ task add_yflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
                            sos_avg    : region(ispace(int3d), double),
                            block_d    : region(ispace(int3d), double[9]),
                            block_Uinv : region(ispace(int3d), double[9]),
-                           LU_y       : region(ispace(int3d), LU_struct),
-                           Nx         : int64,
-                           Ny         : int64,
-                           Nz         : int64 )
+                           LU_y       : region(ispace(int3d), LU_struct) )
 where
   reads( r_prim_c, LU_y ),
   reads writes( r_prim_l_y, r_prim_r_y, r_flux_c, r_flux_e_y, r_fder_c_y, r_rhs),
@@ -293,7 +284,7 @@ do
 
   if (ny >= 8) then
     WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y, alpha_l, beta_l, gamma_l,
-                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv, Nx, Ny, Nz )
+                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
     -- positivity_enforcer_y( r_prim_c, r_prim_l_y, r_prim_r_y, Nx, Ny, Nz )
     HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
     get_yfluxes_r( r_prim_c, r_flux_c )
@@ -322,10 +313,7 @@ task add_viscous_yflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive)
                                    r_flux_c   : region(ispace(int3d), conserved),
                                    r_fder_c_y : region(ispace(int3d), conserved),
                                    r_rhs      : region(ispace(int3d), conserved),
-                                   LU_y       : region(ispace(int3d), LU_struct),
-                                   Nx         : int64,
-                                   Ny         : int64,
-                                   Nz         : int64 )
+                                   LU_y       : region(ispace(int3d), LU_struct) )
 where
   reads( r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_12, _22, _23}, LU_y ),
   reads writes( r_q._2, r_flux_c, r_fder_c_y, r_rhs)
@@ -380,10 +368,7 @@ task add_zflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
                            sos_avg    : region(ispace(int3d), double),
                            block_d    : region(ispace(int3d), double[9]),
                            block_Uinv : region(ispace(int3d), double[9]),
-                           LU_z       : region(ispace(int3d), LU_struct),
-                           Nx         : int64,
-                           Ny         : int64,
-                           Nz         : int64 )
+                           LU_z       : region(ispace(int3d), LU_struct) )
 where
   reads( r_prim_c, LU_z ),
   reads writes( r_prim_l_z, r_prim_r_z, r_flux_c, r_flux_e_z, r_fder_c_z, r_rhs),
@@ -394,7 +379,7 @@ do
 
   if (nz >= 8) then
     WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z, alpha_l, beta_l, gamma_l,
-                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv, Nx, Ny, Nz )
+                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
     -- positivity_enforcer_z( r_prim_c, r_prim_l_z, r_prim_r_z, Nx, Ny, Nz )
     HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
     get_zfluxes_r( r_prim_c, r_flux_c )
@@ -424,10 +409,7 @@ task add_viscous_zflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive)
                                    r_flux_c   : region(ispace(int3d), conserved),
                                    r_fder_c_z : region(ispace(int3d), conserved),
                                    r_rhs      : region(ispace(int3d), conserved),
-                                   LU_z       : region(ispace(int3d), LU_struct),
-                                   Nx         : int64,
-                                   Ny         : int64,
-                                   Nz         : int64 )
+                                   LU_z       : region(ispace(int3d), LU_struct) )
 where
   reads( r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_13, _23, _33}, LU_z ),
   reads writes( r_q._3, r_flux_c, r_fder_c_z, r_rhs)
