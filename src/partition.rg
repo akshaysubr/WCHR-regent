@@ -25,6 +25,27 @@ task partition_LU( LU     : region(ispace(int3d), LU_struct),
   return p
 end
 
+task partition_mat( mat    : region(ispace(int3d), LU_coeffs),
+                    pencil : ispace(int2d) )
+  var coloring = c.legion_domain_point_coloring_create()
+
+  var prow = pencil.bounds.hi.x + 1
+  var pcol = pencil.bounds.hi.y + 1
+
+  var bounds = mat.ispace.bounds
+  var N = bounds.hi.x + 1
+
+  for i in pencil do
+    var lo = int3d { x = 0,   y = i.x, z = i.y }
+    var hi = int3d { x = N-1, y = i.x, z = i.y }
+    var rect = rect3d { lo = lo, hi = hi }
+    c.legion_domain_point_coloring_color_domain(coloring, i, rect)
+  end
+  var p = partition(disjoint, mat, coloring, pencil)
+  c.legion_domain_point_coloring_destroy(coloring)
+  return p
+end
+
 local function make_partition2D(r)
   local task partition2D( [r],
                           pencil : ispace(int2d) )

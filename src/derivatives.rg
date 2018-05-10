@@ -249,29 +249,29 @@ local function make_stencil_pattern_MND_interior(points_c, points_e, f, index, N
   return value
 end
 
-local function make_stencil_pattern_MND_LB(points_c, points_e, fs, index, a, b, c, d, e, f, g, h, onebydx, dir)
+local function make_stencil_pattern_MND_LB(points_c, points_e, fs, index, onebydx, dir)
   local value
 
-  -- local a = a06MND_LB
-  -- local b = b06MND_LB
-  -- local c = c06MND_LB
-  -- local d = d06MND_LB
-  -- local e = e06MND_LB
-  -- local f = f06MND_LB
-  -- local g = g06MND_LB
-  -- local h = h06MND_LB
+  local a = a06MND_LB
+  local b = b06MND_LB
+  local c = c06MND_LB
+  local d = d06MND_LB
+  local e = e06MND_LB
+  local f = f06MND_LB
+  local g = g06MND_LB
+  local h = h06MND_LB
 
   if dir == 0 then      -- x direction stencil
       local index_e = rexpr int3d { x = index.x - 3, y = index.y, z = index.z}  end
 
-      value = rexpr         a*points_c[ int3d {x = index.x  -2, y = index.y,   z = index.z  } ].[fs] end
-      value = rexpr value + b*points_c[ int3d {x = index.x  -1, y = index.y,   z = index.z  } ].[fs] end
-      value = rexpr value + c*points_e[ int3d {x = index_e.x+0, y = index_e.y, z = index_e.z} ].[fs] end
-      value = rexpr value + d*points_c[ int3d {x = index.x  -0, y = index.y,   z = index.z  } ].[fs] end
-      value = rexpr value + e*points_e[ int3d {x = index_e.x+1, y = index_e.y, z = index_e.z} ].[fs] end
-      value = rexpr value + f*points_c[ int3d {x = index.x  +1, y = index.y,   z = index.z  } ].[fs] end
-      value = rexpr value + g*points_e[ int3d {x = index_e.x+2, y = index_e.y, z = index_e.z} ].[fs] end
-      value = rexpr value + h*points_c[ int3d {x = index.x  +2, y = index.y,   z = index.z  } ].[fs] end
+      value = rexpr         a*points_c[ int3d {index.x  -2, index.y,   index.z  } ].[fs] end
+      value = rexpr value + b*points_c[ int3d {index.x  -1, index.y,   index.z  } ].[fs] end
+      value = rexpr value + c*points_e[ int3d {index_e.x+0, index_e.y, index_e.z} ].[fs] end
+      value = rexpr value + d*points_c[ int3d {index.x  -0, index.y,   index.z  } ].[fs] end
+      value = rexpr value + e*points_e[ int3d {index_e.x+1, index_e.y, index_e.z} ].[fs] end
+      value = rexpr value + f*points_c[ int3d {index.x  +1, index.y,   index.z  } ].[fs] end
+      value = rexpr value + g*points_e[ int3d {index_e.x+2, index_e.y, index_e.z} ].[fs] end
+      value = rexpr value + h*points_c[ int3d {index.x  +2, index.y,   index.z  } ].[fs] end
       value = rexpr onebydx * ( value ) end
   elseif dir == 1 then  -- y direction stencil
       local index_e = rexpr int3d { x = index.x, y = index.y - ip.n_ghosts, z = index.z}  end
@@ -301,17 +301,17 @@ local function make_stencil_pattern_MND_LB(points_c, points_e, fs, index, a, b, 
   return value
 end
 
-local function make_stencil_pattern_MND_RB(points_c, points_e, fs, index, a, b, c, d, e, f, g, h, onebydx, dir)
+local function make_stencil_pattern_MND_RB(points_c, points_e, fs, index, onebydx, dir)
   local value
 
-  -- local a = a06MND_LB
-  -- local b = b06MND_LB
-  -- local c = c06MND_LB
-  -- local d = d06MND_LB
-  -- local e = e06MND_LB
-  -- local f = f06MND_LB
-  -- local g = g06MND_LB
-  -- local h = h06MND_LB
+  local a = a06MND_LB
+  local b = b06MND_LB
+  local c = c06MND_LB
+  local d = d06MND_LB
+  local e = e06MND_LB
+  local f = f06MND_LB
+  local g = g06MND_LB
+  local h = h06MND_LB
 
   if dir == 0 then      -- x direction stencil
       local index_e = rexpr int3d { x = index.x - ip.n_ghosts, y = index.y, z = index.z}  end
@@ -382,9 +382,9 @@ local function make_stencil_MND(r1, privileges_r1, f1, r2, privileges_r2, r3, pr
       end
 
       if ((not periodic) and (idir == ip.n_ghosts) ) then
-        [r3][i].[f3] = [make_stencil_pattern_MND_LB(r1, r2, f1, i, a06MND_LB, b06MND_LB, c06MND_LB, d06MND_LB, e06MND_LB, f06MND_LB, g06MND_LB, h06MND_LB, onebydx, dir)]
+        [r3][i].[f3] = [make_stencil_pattern_MND_LB(r1, r2, f1, i, onebydx, dir)]
       elseif ((not periodic) and (idir == Nx+ip.n_ghosts-1)) then
-        [r3][i].[f3] = [make_stencil_pattern_MND_RB(r1, r2, f1, i, a06MND_LB, b06MND_LB, c06MND_LB, d06MND_LB, e06MND_LB, f06MND_LB, g06MND_LB, h06MND_LB, onebydx, dir)]
+        [r3][i].[f3] = [make_stencil_pattern_MND_RB(r1, r2, f1, i, onebydx, dir)]
       else
         [r3][i].[f3] = [make_stencil_pattern_MND_interior(r1, r2, f1, i, Nx, Ny, Nz, onebydx, dir, der, periodic)]
       end
@@ -400,35 +400,35 @@ local function make_SolveXLU(r, privileges_r, f)
     [privileges_r], reads(LU)
   do
     var bounds = [r].ispace.bounds
-    var N = bounds.hi.x + 1
+    var N = bounds.hi.x + 1 - 2*ip.n_ghosts
     var pr = LU.ispace.bounds.hi.y
     var pc = LU.ispace.bounds.hi.z
   
-    for j = bounds.lo.y, bounds.hi.y+1 do
-      for k = bounds.lo.z, bounds.hi.z+1 do
+    for k = bounds.lo.z, bounds.hi.z+1 do
+      for j = bounds.lo.y, bounds.hi.y+1 do
   
         -- Step 8
-        [r][{1,j,k}].[f] = [r][{1,j,k}].[f] - LU[{1,pr,pc}].b*[r][{0,j,k}].[f]
-        var sum1 : double = LU[{0,pr,pc}].k*[r][{0,j,k}].[f] + LU[{1,pr,pc}].k*[r][{1,j,k}].[f]
-        var sum2 : double = LU[{0,pr,pc}].l*[r][{0,j,k}].[f] + LU[{1,pr,pc}].l*[r][{1,j,k}].[f]
+        [r][{1+ip.n_ghosts,j,k}].[f] = [r][{1+ip.n_ghosts,j,k}].[f] - LU[{1,pr,pc}].b*[r][{0+ip.n_ghosts,j,k}].[f]
+        var sum1 : double = LU[{0,pr,pc}].k*[r][{0+ip.n_ghosts,j,k}].[f] + LU[{1,pr,pc}].k*[r][{1+ip.n_ghosts,j,k}].[f]
+        var sum2 : double = LU[{0,pr,pc}].l*[r][{0+ip.n_ghosts,j,k}].[f] + LU[{1,pr,pc}].l*[r][{1+ip.n_ghosts,j,k}].[f]
   
         -- Step 9
         for i = 2,N-2 do
-          [r][{i,j,k}].[f] = [r][{i,j,k}].[f] - LU[{i,pr,pc}].b*[r][{i-1,j,k}].[f] - LU[{i,pr,pc}].eg*[r][{i-2,j,k}].[f]
-          sum1 += LU[{i,pr,pc}].k*[r][{i,j,k}].[f]
-          sum2 += LU[{i,pr,pc}].l*[r][{i,j,k}].[f]
+          [r][{i+ip.n_ghosts,j,k}].[f] = [r][{i+ip.n_ghosts,j,k}].[f] - LU[{i,pr,pc}].b*[r][{i-1+ip.n_ghosts,j,k}].[f] - LU[{i,pr,pc}].eg*[r][{i-2+ip.n_ghosts,j,k}].[f]
+          sum1 += LU[{i,pr,pc}].k*[r][{i+ip.n_ghosts,j,k}].[f]
+          sum2 += LU[{i,pr,pc}].l*[r][{i+ip.n_ghosts,j,k}].[f]
         end
   
         -- Step 10
-        [r][{N-2,j,k}].[f] = [r][{N-2,j,k}].[f] - sum1;
-        [r][{N-1,j,k}].[f] = ( [r][{N-1,j,k}].[f] - sum2 - LU[{N-2,pr,pc}].l*[r][{N-2,j,k}].[f] )*LU[{N-1,pr,pc}].g;
+        [r][{N-2+ip.n_ghosts,j,k}].[f] = [r][{N-2+ip.n_ghosts,j,k}].[f] - sum1;
+        [r][{N-1+ip.n_ghosts,j,k}].[f] = ( [r][{N-1+ip.n_ghosts,j,k}].[f] - sum2 - LU[{N-2,pr,pc}].l*[r][{N-2+ip.n_ghosts,j,k}].[f] )*LU[{N-1,pr,pc}].g;
   
         -- Step 11
-        [r][{N-2,j,k}].[f] = ( [r][{N-2,j,k}].[f] - LU[{N-2,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{N-2,pr,pc}].g;
-        [r][{N-3,j,k}].[f] = ( [r][{N-3,j,k}].[f] - LU[{N-3,pr,pc}].v*[r][{N-2,j,k}].[f] - LU[{N-3,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{N-3,pr,pc}].g;
-        [r][{N-4,j,k}].[f] = ( [r][{N-4,j,k}].[f] - LU[{N-4,pr,pc}].h*[r][{N-3,j,k}].[f] - LU[{N-4,pr,pc}].v*[r][{N-2,j,k}].[f] - LU[{N-4,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{N-4,pr,pc}].g;
+        [r][{N-2+ip.n_ghosts,j,k}].[f] = ( [r][{N-2+ip.n_ghosts,j,k}].[f] - LU[{N-2,pr,pc}].w*[r][{N-1+ip.n_ghosts,j,k}].[f] )*LU[{N-2,pr,pc}].g;
+        [r][{N-3+ip.n_ghosts,j,k}].[f] = ( [r][{N-3+ip.n_ghosts,j,k}].[f] - LU[{N-3,pr,pc}].v*[r][{N-2+ip.n_ghosts,j,k}].[f] - LU[{N-3,pr,pc}].w*[r][{N-1+ip.n_ghosts,j,k}].[f] )*LU[{N-3,pr,pc}].g;
+        [r][{N-4+ip.n_ghosts,j,k}].[f] = ( [r][{N-4+ip.n_ghosts,j,k}].[f] - LU[{N-4,pr,pc}].h*[r][{N-3+ip.n_ghosts,j,k}].[f] - LU[{N-4,pr,pc}].v*[r][{N-2+ip.n_ghosts,j,k}].[f] - LU[{N-4,pr,pc}].w*[r][{N-1+ip.n_ghosts,j,k}].[f] )*LU[{N-4,pr,pc}].g;
         for i = N-5,-1,-1 do
-          [r][{i,j,k}].[f] = ( [r][{i,j,k}].[f] - LU[{i,pr,pc}].h*[r][{i+1,j,k}].[f] - LU[{i,pr,pc}].ff*[r][{i+2,j,k}].[f] - LU[{i,pr,pc}].v*[r][{N-2,j,k}].[f] - LU[{i,pr,pc}].w*[r][{N-1,j,k}].[f] )*LU[{i,pr,pc}].g;
+          [r][{i+ip.n_ghosts,j,k}].[f] = ( [r][{i+ip.n_ghosts,j,k}].[f] - LU[{i,pr,pc}].h*[r][{i+1+ip.n_ghosts,j,k}].[f] - LU[{i,pr,pc}].ff*[r][{i+2+ip.n_ghosts,j,k}].[f] - LU[{i,pr,pc}].v*[r][{N-2+ip.n_ghosts,j,k}].[f] - LU[{i,pr,pc}].w*[r][{N-1+ip.n_ghosts,j,k}].[f] )*LU[{i,pr,pc}].g;
         end
   
       end
