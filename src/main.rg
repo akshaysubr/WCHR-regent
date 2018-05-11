@@ -12,6 +12,7 @@ require("derivatives")
 require("SOE")
 require("RHS")
 require("partition")
+require("boundary")
 local interpolation = require("interpolation")
 local use_io = require("IO")
 
@@ -150,16 +151,25 @@ task main()
   var r_qrhs     = region(grid_c,   conserved)  -- buffer for RK45 time stepping
 
   -- data structure to hold x derivative LU decomposition
-  var LU_x       = region(ispace(int3d, {x = Nx,   y = config.prow, z = config.pcol}), LU_struct) -- For staggered finite difference
-  var LU_N_x     = region(ispace(int3d, {x = Nx_g, y = config.prow, z = config.pcol}), LU_struct) -- For nodal finite difference
+  var mat_x      = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For staggered finite difference
+  var mat_N_x    = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal finite difference
+  
+  var LU_x       = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For staggered finite difference
+  var LU_N_x     = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal finite difference
   
   -- data structure to hold y derivative LU decomposition
-  var LU_y       = region(ispace(int3d, {x = Ny,   y = config.prow, z = config.pcol}), LU_struct) -- For staggered finite difference
-  var LU_N_y     = region(ispace(int3d, {x = Ny_g, y = config.prow, z = config.pcol}), LU_struct) -- For nodal finite difference
+  var mat_y      = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For staggered finite difference
+  var mat_N_y    = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal finite difference
+  
+  var LU_y       = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For staggered finite difference
+  var LU_N_y     = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal finite difference
 
   -- data structure to hold z derivative LU decomposition
-  var LU_z       = region(ispace(int3d, {x = Nz,   y = config.prow, z = config.pcol}), LU_struct) -- For staggered finite difference
-  var LU_N_z     = region(ispace(int3d, {x = Nz_g, y = config.prow, z = config.pcol}), LU_struct) -- For nodal finite difference
+  var mat_z      = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For staggered finite difference
+  var mat_N_z    = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal finite difference
+  
+  var LU_z       = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For staggered finite difference
+  var LU_N_z     = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal finite difference
 
   var pencil = ispace(int2d, int2d {config.prow+2, config.pcol+2}) -- All pencil partitions including the ghost pencils
   var pencil_interior = ispace(int2d, int2d {config.prow, config.pcol}, int2d {1, 1}) -- Only the interior pencil partitions
@@ -241,25 +251,25 @@ task main()
   var p_aux_c_y     = partition_ypencil_aux (r_aux_c,     n_ghosts, false, pencil)
   var p_aux_c_z     = partition_zpencil_aux (r_aux_c,     n_ghosts, false, pencil)
 
-  var p_aux_c_x_wg  = partition_xpencil_aux (r_aux_c,     n_ghosts,  true, pencil)
-  var p_aux_c_y_wg  = partition_ypencil_aux (r_aux_c,     n_ghosts,  true, pencil)
-  var p_aux_c_z_wg  = partition_zpencil_aux (r_aux_c,     n_ghosts,  true, pencil)
+  var p_visc_x      = partition_xpencil_visc(r_visc,      n_ghosts, false, pencil)
+  var p_visc_y      = partition_ypencil_visc(r_visc,      n_ghosts, false, pencil)
+  var p_visc_z      = partition_zpencil_visc(r_visc,      n_ghosts, false, pencil)
 
-  var p_visc_x_wg   = partition_xpencil_visc(r_visc,      n_ghosts,  true, pencil)
-  var p_visc_y_wg   = partition_ypencil_visc(r_visc,      n_ghosts,  true, pencil)
-  var p_visc_z_wg   = partition_zpencil_visc(r_visc,      n_ghosts,  true, pencil)
+  var p_q_x         = partition_xpencil_vect(r_q,         n_ghosts, false, pencil)
+  var p_q_y         = partition_ypencil_vect(r_q,         n_ghosts, false, pencil)
+  var p_q_z         = partition_zpencil_vect(r_q,         n_ghosts, false, pencil)
 
-  var p_q_x_wg      = partition_xpencil_vect(r_q,         n_ghosts,  true, pencil)
-  var p_q_y_wg      = partition_ypencil_vect(r_q,         n_ghosts,  true, pencil)
-  var p_q_z_wg      = partition_zpencil_vect(r_q,         n_ghosts,  true, pencil)
+  var p_gradu_x     = partition_xpencil_tnsr2(r_gradu,    n_ghosts, false, pencil)
+  var p_gradu_y     = partition_ypencil_tnsr2(r_gradu,    n_ghosts, false, pencil)
+  var p_gradu_z     = partition_zpencil_tnsr2(r_gradu,    n_ghosts, false, pencil)
 
-  var p_gradu_x_wg  = partition_xpencil_tnsr2(r_gradu,    n_ghosts,  true, pencil)
-  var p_gradu_y_wg  = partition_ypencil_tnsr2(r_gradu,    n_ghosts,  true, pencil)
-  var p_gradu_z_wg  = partition_zpencil_tnsr2(r_gradu,    n_ghosts,  true, pencil)
+  var p_tauij_x     = partition_xpencil_tnsr2symm(r_tauij, n_ghosts, false, pencil)
+  var p_tauij_y     = partition_ypencil_tnsr2symm(r_tauij, n_ghosts, false, pencil)
+  var p_tauij_z     = partition_zpencil_tnsr2symm(r_tauij, n_ghosts, false, pencil)
 
-  var p_tauij_x_wg  = partition_xpencil_tnsr2symm(r_tauij, n_ghosts, true, pencil)
-  var p_tauij_y_wg  = partition_ypencil_tnsr2symm(r_tauij, n_ghosts, true, pencil)
-  var p_tauij_z_wg  = partition_zpencil_tnsr2symm(r_tauij, n_ghosts, true, pencil)
+  var p_flux_c_x    = partition_xpencil_cnsr(r_flux_c,   n_ghosts, false, pencil)
+  var p_flux_c_y    = partition_ypencil_cnsr(r_flux_c,   n_ghosts, false, pencil)
+  var p_flux_c_z    = partition_zpencil_cnsr(r_flux_c,   n_ghosts, false, pencil)
 
   var p_flux_c_x_wg = partition_xpencil_cnsr(r_flux_c,   n_ghosts,  true, pencil)
   var p_flux_c_y_wg = partition_ypencil_cnsr(r_flux_c,   n_ghosts,  true, pencil)
@@ -273,10 +283,6 @@ task main()
   var p_fder_c_y    = partition_ypencil_cnsr(r_fder_c_y, n_ghosts, false, pencil)
   var p_fder_c_z    = partition_zpencil_cnsr(r_fder_c_z, n_ghosts, false, pencil)
 
-  var p_fder_c_x_wg = partition_xpencil_cnsr(r_fder_c_x, n_ghosts,  true, pencil)
-  var p_fder_c_y_wg = partition_ypencil_cnsr(r_fder_c_y, n_ghosts,  true, pencil)
-  var p_fder_c_z_wg = partition_zpencil_cnsr(r_fder_c_z, n_ghosts,  true, pencil)
-
   var p_rhs_x       = partition_xpencil_cnsr(r_rhs,      n_ghosts, false, pencil)
   var p_rhs_y       = partition_ypencil_cnsr(r_rhs,      n_ghosts, false, pencil)
   var p_rhs_z       = partition_zpencil_cnsr(r_rhs,      n_ghosts, false, pencil)
@@ -285,9 +291,17 @@ task main()
   var p_qrhs_y      = partition_ypencil_cnsr(r_qrhs,     n_ghosts, false, pencil)
   var p_qrhs_z      = partition_zpencil_cnsr(r_qrhs,     n_ghosts, false, pencil)
 
+  var p_mat_x       = partition_mat(mat_x, pencil)
+  var p_mat_y       = partition_mat(mat_y, pencil)
+  var p_mat_z       = partition_mat(mat_z, pencil)
+
   var p_LU_x        = partition_LU(LU_x, pencil)
   var p_LU_y        = partition_LU(LU_y, pencil)
   var p_LU_z        = partition_LU(LU_z, pencil)
+
+  var p_mat_N_x     = partition_mat(mat_N_x, pencil)
+  var p_mat_N_y     = partition_mat(mat_N_y, pencil)
+  var p_mat_N_z     = partition_mat(mat_N_z, pencil)
 
   var p_LU_N_x      = partition_LU(LU_N_x, pencil)
   var p_LU_N_y      = partition_LU(LU_N_y, pencil)
@@ -343,27 +357,43 @@ task main()
   -- Initialize derivatives stuff.
   __demand(__parallel)
   for i in pencil do
-    token += get_LU_decomposition(p_LU_x[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+    get_MND_matrix(p_mat_x[i], problem.periodic_x)
   end
   __demand(__parallel)
   for i in pencil do
-    token += get_LU_decomposition(p_LU_y[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+    get_MND_matrix(p_mat_y[i], problem.periodic_y)
   end
   __demand(__parallel)
   for i in pencil do
-    token += get_LU_decomposition(p_LU_z[i], beta06MND, alpha06MND, 1.0, alpha06MND, beta06MND)
+    get_MND_matrix(p_mat_z[i], problem.periodic_z)
+  end
+
+  __demand(__parallel)
+  for i in pencil do
+    token += get_LU_decomposition(p_LU_x[i], p_mat_x[i])
   end
   __demand(__parallel)
   for i in pencil do
-    token += get_LU_decomposition(p_LU_N_x[i], beta06d1, alpha06d1, 1.0, alpha06d1, beta06d1)
+    token += get_LU_decomposition(p_LU_y[i], p_mat_y[i])
   end
   __demand(__parallel)
   for i in pencil do
-    token += get_LU_decomposition(p_LU_N_y[i], beta06d1, alpha06d1, 1.0, alpha06d1, beta06d1)
+    token += get_LU_decomposition(p_LU_z[i], p_mat_z[i])
+  end
+
+  -- TODO: Initialize nodal derivative matrices
+
+  __demand(__parallel)
+  for i in pencil do
+    token += get_LU_decomposition(p_LU_N_x[i], p_mat_N_x[i])
   end
   __demand(__parallel)
   for i in pencil do
-    token += get_LU_decomposition(p_LU_N_z[i], beta06d1, alpha06d1, 1.0, alpha06d1, beta06d1)
+    token += get_LU_decomposition(p_LU_N_y[i], p_mat_N_y[i])
+  end
+  __demand(__parallel)
+  for i in pencil do
+    token += get_LU_decomposition(p_LU_N_z[i], p_mat_N_z[i])
   end
   wait_for(token)
   c.printf("Finished LU initialization\n")
@@ -390,46 +420,62 @@ task main()
     __demand(__parallel)
     for i in pencil_interior do
       -- Initialize everything in y decomposition.
-      token += problem.initialize(p_coords_y[i], p_prim_c_y[i], dx, dy, dz)
+      token += problem.initialize(p_coords_y[i], p_prim_c_y[i], dx, dy, dz, n_ghosts)
     end
     c.printf("Finished initialization\n")
   end
 
-  -- TODO
-  -- __demand(__parallel)
-  -- for i in pencil do
-  --   -- Fill in ghost cells
-  -- end
+  if problem.periodic_x then
+    __demand(__parallel)
+    for i in pencil_interior do
+      -- Fill in ghost cells
+      periodic_ghost_cells_x(p_prim_c_x_wg[i], n_ghosts)
+    end
+  end
+  if problem.periodic_y then
+    __demand(__parallel)
+    for i in pencil_interior do
+      -- Fill in ghost cells
+      periodic_ghost_cells_y(p_prim_c_y_wg[i], n_ghosts)
+    end
+  end
+  if problem.periodic_z then
+    __demand(__parallel)
+    for i in pencil_interior do
+      -- Fill in ghost cells
+      periodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
+    end
+  end
 
   __demand(__parallel)
-  for i in pencil do
+  for i in pencil_interior do
     -- Get temperature from the initial primitive variables
-    token += get_temperature_r( p_prim_c_y_wg[i], p_aux_c_y_wg[i] )
+    token += get_temperature_r( p_prim_c_y[i], p_aux_c_y[i] )
   end
 
   -- Get the velocity derivatives at initial condition 
   __demand(__parallel)
-  for i in pencil do
-    token += get_velocity_x_derivatives( p_prim_c_x_wg[i], p_gradu_x_wg[i], p_LU_N_x[i] )
+  for i in pencil_interior do
+    token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
   end
   __demand(__parallel)
-  for i in pencil do
-    token += get_velocity_y_derivatives( p_prim_c_y_wg[i], p_gradu_y_wg[i], p_LU_N_y[i] )
+  for i in pencil_interior do
+    token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
   end
   __demand(__parallel)
-  for i in pencil do
-    token += get_velocity_z_derivatives( p_prim_c_z_wg[i], p_gradu_z_wg[i], p_LU_N_z[i] )
+  for i in pencil_interior do
+    token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
   end
  
   var TKE0 : double = 1.0e-16
-  -- do
-  --   var t : double = 0.0
-  --   __demand(__parallel)
-  --   for i in pencil do
-  --     t += problem.TKE(p_prim_c_y[i])
-  --   end
-  --   TKE0 = wait_for_double(t)
-  -- end
+  do
+    var t : double = 0.0
+    __demand(__parallel)
+    for i in pencil_interior do
+      t += problem.TKE(p_prim_c_y[i])
+    end
+    TKE0 = wait_for_double(t)
+  end
 
   var enstrophy0 : double = 1.0e-16
   -- do
@@ -537,14 +583,14 @@ task main()
       if problem.viscous then
         -- Get the transport coefficients.
         __demand(__parallel)
-        for i in pencil do
-          problem.get_transport_coeffs( p_prim_c_y_wg[i], p_aux_c_y_wg[i], p_visc_y_wg[i] )
+        for i in pencil_interior do
+          problem.get_transport_coeffs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i] )
         end
 
         -- Get the viscous stress tensor.
         __demand(__parallel)
-        for i in pencil do
-          get_tauij( p_gradu_y_wg[i], p_tauij_y_wg[i], p_visc_y_wg[i] )
+        for i in pencil_interior do
+          get_tauij( p_gradu_y[i], p_tauij_y[i], p_visc_y[i] )
         end
       end
 
@@ -558,9 +604,9 @@ task main()
 
       -- Add x-direction viscous flux derivative to RHS.
       __demand(__parallel)
-      for i in pencil do
-        add_viscous_xflux_der_to_rhs( p_prim_c_x_wg[i], p_aux_c_x_wg[i], p_visc_x_wg[i], p_tauij_x_wg[i], p_q_x_wg[i],
-                                      p_flux_c_x_wg[i], p_fder_c_x_wg[i], p_rhs_x[i], p_LU_N_x[i] )
+      for i in pencil_interior do
+        add_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_q_x[i],
+                                      p_flux_c_x[i], p_fder_c_x[i], p_rhs_x[i], p_LU_N_x[i] )
       end
 
       -- Add y-direction convective flux derivative to RHS.
@@ -573,9 +619,9 @@ task main()
 
       -- Add y-direction viscous flux derivative to RHS.
       __demand(__parallel)
-      for i in pencil do
-        add_viscous_yflux_der_to_rhs( p_prim_c_y_wg[i], p_aux_c_y_wg[i], p_visc_y_wg[i], p_tauij_y_wg[i], p_q_y_wg[i],
-                                      p_flux_c_y_wg[i], p_fder_c_y_wg[i], p_rhs_y[i], p_LU_N_y[i] )
+      for i in pencil_interior do
+        add_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_q_y[i],
+                                      p_flux_c_y[i], p_fder_c_y[i], p_rhs_y[i], p_LU_N_y[i] )
       end
 
       -- Add z-direction convective flux derivative to RHS.
@@ -588,9 +634,9 @@ task main()
 
       -- Add z-direction viscous flux derivative to RHS.
       __demand(__parallel)
-      for i in pencil do
-        add_viscous_zflux_der_to_rhs( p_prim_c_z_wg[i], p_aux_c_z_wg[i], p_visc_z_wg[i], p_tauij_z_wg[i], p_q_z_wg[i],
-                                      p_flux_c_z_wg[i], p_fder_c_z_wg[i], p_rhs_z[i], p_LU_N_z[i] )
+      for i in pencil_interior do
+        add_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_q_z[i],
+                                      p_flux_c_z[i], p_fder_c_z[i], p_rhs_z[i], p_LU_N_z[i] )
       end
 
       -- Update solution in this substep.
@@ -609,31 +655,47 @@ task main()
         token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
       end
 
-      -- TODO
-      -- __demand(__parallel)
-      -- for i in pencil do
-      --   -- Fill in ghost cells
-      -- end
+      if problem.periodic_x then
+        __demand(__parallel)
+        for i in pencil_interior do
+          -- Fill in ghost cells
+          periodic_ghost_cells_x(p_prim_c_x_wg[i], n_ghosts)
+        end
+      end
+      if problem.periodic_y then
+        __demand(__parallel)
+        for i in pencil_interior do
+          -- Fill in ghost cells
+          periodic_ghost_cells_y(p_prim_c_y_wg[i], n_ghosts)
+        end
+      end
+      if problem.periodic_z then
+        __demand(__parallel)
+        for i in pencil_interior do
+          -- Fill in ghost cells
+          periodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
+        end
+      end
 
       -- Update temperature.
       __demand(__parallel)
-      for i in pencil do
-        token += get_temperature_r( p_prim_c_y_wg[i], p_aux_c_y_wg[i] )
+      for i in pencil_interior do
+        token += get_temperature_r( p_prim_c_y[i], p_aux_c_y[i] )
       end
 
       if problem.viscous then
         -- Update velocity gradient tensor.
         __demand(__parallel)
-        for i in pencil do
-          token += get_velocity_x_derivatives( p_prim_c_x_wg[i], p_gradu_x_wg[i], p_LU_N_x[i] )
+        for i in pencil_interior do
+          token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
         end
         __demand(__parallel)
-        for i in pencil do
-          token += get_velocity_y_derivatives( p_prim_c_y_wg[i], p_gradu_y_wg[i], p_LU_N_y[i] )
+        for i in pencil_interior do
+          token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
         end
         __demand(__parallel)
-        for i in pencil do
-          token += get_velocity_z_derivatives( p_prim_c_z_wg[i], p_gradu_z_wg[i], p_LU_N_z[i] )
+        for i in pencil_interior do
+          token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
         end
       end
  
@@ -650,10 +712,10 @@ task main()
 
     if (step-1)%config.nstats == 0 then
       var TKE : double = 0.0
-      -- __demand(__parallel)
-      -- for i in pencil do
-      --   TKE += problem.TKE(p_prim_c_y[i])
-      -- end
+      __demand(__parallel)
+      for i in pencil_interior do
+        TKE += problem.TKE(p_prim_c_y[i])
+      end
 
       var enstrophy : double = 0.0
       -- __demand(__parallel)

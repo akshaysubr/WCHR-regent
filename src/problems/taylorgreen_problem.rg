@@ -25,6 +25,15 @@ problem.periodic_x = true
 problem.periodic_y = true
 problem.periodic_z = true
 
+-- Boundary (id not periodic)
+--                    Type     rho  u   v   w   p
+problem.bc_l_x = { "DIRICHLET", 1., 0., 0., 0., 1. }
+problem.bc_r_x = { "DIRICHLET", 1., 0., 0., 0., 1. }
+problem.bc_l_y = { "DIRICHLET", 1., 0., 0., 0., 1. }
+problem.bc_r_y = { "DIRICHLET", 1., 0., 0., 0., 1. }
+problem.bc_l_z = { "DIRICHLET", 1., 0., 0., 0., 1. }
+problem.bc_r_z = { "DIRICHLET", 1., 0., 0., 0., 1. }
+
 -- Domain size
 problem.LX = 2.0*PI
 problem.LY = 2.0*PI
@@ -52,14 +61,15 @@ task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
                          dx         : double,
                          dy         : double,
-                         dz         : double )
+                         dz         : double,
+                         n_ghosts   : int64 )
 where
   reads writes(coords, r_prim_c)
 do
   for i in coords.ispace do
-    coords[i].x_c = problem.X1 + (i.x + 0.5) * dx
-    coords[i].y_c = problem.Y1 + (i.y + 0.5) * dy
-    coords[i].z_c = problem.Z1 + (i.z + 0.5) * dz
+    coords[i].x_c = problem.X1 + (i.x - n_ghosts + 0.5) * dx
+    coords[i].y_c = problem.Y1 + (i.y - n_ghosts + 0.5) * dy
+    coords[i].z_c = problem.Z1 + (i.z - n_ghosts + 0.5) * dz
 
     r_prim_c[i].rho = 1.0
     r_prim_c[i].u   = cmath.sin(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.cos(coords[i].z_c)

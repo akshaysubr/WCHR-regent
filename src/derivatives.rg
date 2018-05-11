@@ -40,6 +40,31 @@ h06MND_LB = (40./31.) * ( -361./9600.)
 -- b06MND = (-3.0/10.0)
 -- c06MND = (1.0)/30.0
 
+task get_MND_matrix(mat      : region(ispace(int3d), LU_coeffs),
+                    periodic : bool)
+where
+  writes(mat)
+do
+  var N = mat.ispace.bounds.hi.x + 1
+
+  for i in mat do
+    mat[i].e = beta06MND
+    mat[i].a = alpha06MND
+    mat[i].d = 1.0
+    mat[i].c = alpha06MND
+    mat[i].f = beta06MND
+
+    if ((not periodic) and (i.x == 0)) then
+      mat[i].e = 0.0
+      mat[i].a = 0.0
+    elseif ((not periodic) and (i.x == 0)) then
+      mat[i].c = 0.0
+      mat[i].f = 0.0
+    end
+  end
+
+end
+
 task get_LU_decomposition(LU  : region(ispace(int3d), LU_struct),
                           mat : region(ispace(int3d), LU_coeffs) )
 where
@@ -204,6 +229,7 @@ local function make_stencil_pattern_MND_interior(points_c, points_e, f, index, N
       else
         Ne = Nx+1
       end
+      print(Ne)
 
       value = rexpr       - b*points_c[ int3d {index.x-1, index.y, index.z} ].[f] end
       value = rexpr value + b*points_c[ int3d {index.x+1, index.y, index.z} ].[f] end
@@ -400,7 +426,7 @@ local function make_SolveXLU(r, privileges_r, f)
     [privileges_r], reads(LU)
   do
     var bounds = [r].ispace.bounds
-    var N = bounds.hi.x + 1 - 2*ip.n_ghosts
+    var N = bounds.hi.x + 1 - ip.n_ghosts
     var pr = LU.ispace.bounds.hi.y
     var pc = LU.ispace.bounds.hi.z
   
@@ -444,35 +470,35 @@ local function make_SolveYLU(r, privileges_r, f)
     [privileges_r], reads(LU)
   do
     var bounds = [r].ispace.bounds
-    var N = bounds.hi.y + 1
+    var N = bounds.hi.y + 1 - ip.n_ghosts
     var pr = LU.ispace.bounds.hi.y
     var pc = LU.ispace.bounds.hi.z
   
-    for i = bounds.lo.x, bounds.hi.x+1 do
-      for k = bounds.lo.z, bounds.hi.z+1 do
+    for k = bounds.lo.z, bounds.hi.z+1 do
+      for i = bounds.lo.x, bounds.hi.x+1 do
   
         -- Step 8
-        [r][{i,1,k}].[f] = [r][{i,1,k}].[f] - LU[{1,pr,pc}].b*[r][{i,0,k}].[f]
-        var sum1 : double = LU[{0,pr,pc}].k*[r][{i,0,k}].[f] + LU[{1,pr,pc}].k*[r][{i,1,k}].[f]
-        var sum2 : double = LU[{0,pr,pc}].l*[r][{i,0,k}].[f] + LU[{1,pr,pc}].l*[r][{i,1,k}].[f]
+        [r][{i,1+ip.n_ghosts,k}].[f] = [r][{i,1+ip.n_ghosts,k}].[f] - LU[{1,pr,pc}].b*[r][{i,0+ip.n_ghosts,k}].[f]
+        var sum1 : double = LU[{0,pr,pc}].k*[r][{i,0+ip.n_ghosts,k}].[f] + LU[{1,pr,pc}].k*[r][{i,1+ip.n_ghosts,k}].[f]
+        var sum2 : double = LU[{0,pr,pc}].l*[r][{i,0+ip.n_ghosts,k}].[f] + LU[{1,pr,pc}].l*[r][{i,1+ip.n_ghosts,k}].[f]
   
         -- Step 9
         for j = 2,N-2 do
-          [r][{i,j,k}].[f] = [r][{i,j,k}].[f] - LU[{j,pr,pc}].b*[r][{i,j-1,k}].[f] - LU[{j,pr,pc}].eg*[r][{i,j-2,k}].[f]
-          sum1 += LU[{j,pr,pc}].k*[r][{i,j,k}].[f]
-          sum2 += LU[{j,pr,pc}].l*[r][{i,j,k}].[f]
+          [r][{i,j+ip.n_ghosts,k}].[f] = [r][{i,j+ip.n_ghosts,k}].[f] - LU[{j,pr,pc}].b*[r][{i,j-1+ip.n_ghosts,k}].[f] - LU[{j,pr,pc}].eg*[r][{i,j-2+ip.n_ghosts,k}].[f]
+          sum1 += LU[{j,pr,pc}].k*[r][{i,j+ip.n_ghosts,k}].[f]
+          sum2 += LU[{j,pr,pc}].l*[r][{i,j+ip.n_ghosts,k}].[f]
         end
   
         -- Step 10
-        [r][{i,N-2,k}].[f] = [r][{i,N-2,k}].[f] - sum1;
-        [r][{i,N-1,k}].[f] = ( [r][{i,N-1,k}].[f] - sum2 - LU[{N-2,pr,pc}].l*[r][{i,N-2,k}].[f] )*LU[{N-1,pr,pc}].g;
+        [r][{i,N-2+ip.n_ghosts,k}].[f] = [r][{i,N-2+ip.n_ghosts,k}].[f] - sum1;
+        [r][{i,N-1+ip.n_ghosts,k}].[f] = ( [r][{i,N-1+ip.n_ghosts,k}].[f] - sum2 - LU[{N-2,pr,pc}].l*[r][{i,N-2+ip.n_ghosts,k}].[f] )*LU[{N-1,pr,pc}].g;
   
         -- Step 11
-        [r][{i,N-2,k}].[f] = ( [r][{i,N-2,k}].[f] - LU[{N-2,pr,pc}].w*[r][{i,N-1,k}].[f] )*LU[{N-2,pr,pc}].g;
-        [r][{i,N-3,k}].[f] = ( [r][{i,N-3,k}].[f] - LU[{N-3,pr,pc}].v*[r][{i,N-2,k}].[f] - LU[{N-3,pr,pc}].w*[r][{i,N-1,k}].[f] )*LU[{N-3,pr,pc}].g;
-        [r][{i,N-4,k}].[f] = ( [r][{i,N-4,k}].[f] - LU[{N-4,pr,pc}].h*[r][{i,N-3,k}].[f] - LU[{N-4,pr,pc}].v*[r][{i,N-2,k}].[f] - LU[{N-4,pr,pc}].w*[r][{i,N-1,k}].[f] )*LU[{N-4,pr,pc}].g
+        [r][{i,N-2+ip.n_ghosts,k}].[f] = ( [r][{i,N-2+ip.n_ghosts,k}].[f] - LU[{N-2,pr,pc}].w*[r][{i,N-1+ip.n_ghosts,k}].[f] )*LU[{N-2,pr,pc}].g;
+        [r][{i,N-3+ip.n_ghosts,k}].[f] = ( [r][{i,N-3+ip.n_ghosts,k}].[f] - LU[{N-3,pr,pc}].v*[r][{i,N-2+ip.n_ghosts,k}].[f] - LU[{N-3,pr,pc}].w*[r][{i,N-1+ip.n_ghosts,k}].[f] )*LU[{N-3,pr,pc}].g;
+        [r][{i,N-4+ip.n_ghosts,k}].[f] = ( [r][{i,N-4+ip.n_ghosts,k}].[f] - LU[{N-4,pr,pc}].h*[r][{i,N-3+ip.n_ghosts,k}].[f] - LU[{N-4,pr,pc}].v*[r][{i,N-2+ip.n_ghosts,k}].[f] - LU[{N-4,pr,pc}].w*[r][{i,N-1+ip.n_ghosts,k}].[f] )*LU[{N-4,pr,pc}].g
         for j = N-5,-1,-1 do
-          [r][{i,j,k}].[f] = ( [r][{i,j,k}].[f] - LU[{j,pr,pc}].h*[r][{i,j+1,k}].[f] - LU[{j,pr,pc}].ff*[r][{i,j+2,k}].[f] - LU[{j,pr,pc}].v*[r][{i,N-2,k}].[f] - LU[{j,pr,pc}].w*[r][{i,N-1,k}].[f] )*LU[{j,pr,pc}].g
+          [r][{i,j+ip.n_ghosts,k}].[f] = ( [r][{i,j+ip.n_ghosts,k}].[f] - LU[{j,pr,pc}].h*[r][{i,j+1+ip.n_ghosts,k}].[f] - LU[{j,pr,pc}].ff*[r][{i,j+2+ip.n_ghosts,k}].[f] - LU[{j,pr,pc}].v*[r][{i,N-2+ip.n_ghosts,k}].[f] - LU[{j,pr,pc}].w*[r][{i,N-1+ip.n_ghosts,k}].[f] )*LU[{j,pr,pc}].g
         end
   
       end
@@ -489,35 +515,35 @@ local function make_SolveZLU(r, privileges_r, f)
     [privileges_r], reads(LU)
   do
     var bounds = [r].ispace.bounds
-    var N = bounds.hi.z + 1
+    var N = bounds.hi.z + 1 - ip.n_ghosts
     var pr = LU.ispace.bounds.hi.y
     var pc = LU.ispace.bounds.hi.z
   
-    for i = bounds.lo.x, bounds.hi.x+1 do
-      for j = bounds.lo.y, bounds.hi.y+1 do
+    for j = bounds.lo.y, bounds.hi.y+1 do
+      for i = bounds.lo.x, bounds.hi.x+1 do
   
         -- Step 8
-        [r][{i,j,1}].[f] = [r][{i,j,1}].[f] - LU[{1,pr,pc}].b*[r][{i,j,0}].[f]
-        var sum1 : double = LU[{0,pr,pc}].k*[r][{i,j,0}].[f] + LU[{1,pr,pc}].k*[r][{i,j,1}].[f]
-        var sum2 : double = LU[{0,pr,pc}].l*[r][{i,j,0}].[f] + LU[{1,pr,pc}].l*[r][{i,j,1}].[f]
+        [r][{i,j,ip.n_ghosts+1}].[f] = [r][{i,j,ip.n_ghosts+1}].[f] - LU[{1,pr,pc}].b*[r][{i,j,ip.n_ghosts+0}].[f]
+        var sum1 : double = LU[{0,pr,pc}].k*[r][{i,j,ip.n_ghosts+0}].[f] + LU[{1,pr,pc}].k*[r][{i,j,ip.n_ghosts+1}].[f]
+        var sum2 : double = LU[{0,pr,pc}].l*[r][{i,j,ip.n_ghosts+0}].[f] + LU[{1,pr,pc}].l*[r][{i,j,ip.n_ghosts+1}].[f]
   
         -- Step 9
         for k = 2,N-2 do
-          [r][{i,j,k}].[f] = [r][{i,j,k}].[f] - LU[{k,pr,pc}].b*[r][{i,j,k-1}].[f] - LU[{k,pr,pc}].eg*[r][{i,j,k-2}].[f]
-          sum1 += LU[{k,pr,pc}].k*[r][{i,j,k}].[f]
-          sum2 += LU[{k,pr,pc}].l*[r][{i,j,k}].[f]
+          [r][{i,j,ip.n_ghosts+k}].[f] = [r][{i,j,ip.n_ghosts+k}].[f] - LU[{k,pr,pc}].b*[r][{i,j,ip.n_ghosts+k-1}].[f] - LU[{k,pr,pc}].eg*[r][{i,j,ip.n_ghosts+k-2}].[f]
+          sum1 += LU[{k,pr,pc}].k*[r][{i,j,ip.n_ghosts+k}].[f]
+          sum2 += LU[{k,pr,pc}].l*[r][{i,j,ip.n_ghosts+k}].[f]
         end
   
         -- Step 10
-        [r][{i,j,N-2}].[f] = [r][{i,j,N-2}].[f] - sum1;
-        [r][{i,j,N-1}].[f] = ( [r][{i,j,N-1}].[f] - sum2 - LU[{N-2,pr,pc}].l*[r][{i,j,N-2}].[f] )*LU[{N-1,pr,pc}].g;
+        [r][{i,j,ip.n_ghosts+N-2}].[f] = [r][{i,j,ip.n_ghosts+N-2}].[f] - sum1;
+        [r][{i,j,ip.n_ghosts+N-1}].[f] = ( [r][{i,j,ip.n_ghosts+N-1}].[f] - sum2 - LU[{N-2,pr,pc}].l*[r][{i,j,ip.n_ghosts+N-2}].[f] )*LU[{N-1,pr,pc}].g;
   
         -- Step 11
-        [r][{i,j,N-2}].[f] = ( [r][{i,j,N-2}].[f] - LU[{N-2,pr,pc}].w*[r][{i,j,N-1}].[f] )*LU[{N-2,pr,pc}].g;
-        [r][{i,j,N-3}].[f] = ( [r][{i,j,N-3}].[f] - LU[{N-3,pr,pc}].v*[r][{i,j,N-2}].[f] - LU[{N-3,pr,pc}].w*[r][{i,j,N-1}].[f] )*LU[{N-3,pr,pc}].g;
-        [r][{i,j,N-4}].[f] = ( [r][{i,j,N-4}].[f] - LU[{N-4,pr,pc}].h*[r][{i,j,N-3}].[f] - LU[{N-4,pr,pc}].v*[r][{i,j,N-2}].[f] - LU[{N-4,pr,pc}].w*[r][{i,j,N-1}].[f] )*LU[{N-4,pr,pc}].g
+        [r][{i,j,ip.n_ghosts+N-2}].[f] = ( [r][{i,j,ip.n_ghosts+N-2}].[f] - LU[{N-2,pr,pc}].w*[r][{i,j,ip.n_ghosts+N-1}].[f] )*LU[{N-2,pr,pc}].g;
+        [r][{i,j,ip.n_ghosts+N-3}].[f] = ( [r][{i,j,ip.n_ghosts+N-3}].[f] - LU[{N-3,pr,pc}].v*[r][{i,j,ip.n_ghosts+N-2}].[f] - LU[{N-3,pr,pc}].w*[r][{i,j,ip.n_ghosts+N-1}].[f] )*LU[{N-3,pr,pc}].g;
+        [r][{i,j,ip.n_ghosts+N-4}].[f] = ( [r][{i,j,ip.n_ghosts+N-4}].[f] - LU[{N-4,pr,pc}].h*[r][{i,j,ip.n_ghosts+N-3}].[f] - LU[{N-4,pr,pc}].v*[r][{i,j,ip.n_ghosts+N-2}].[f] - LU[{N-4,pr,pc}].w*[r][{i,j,ip.n_ghosts+N-1}].[f] )*LU[{N-4,pr,pc}].g
         for k = N-5,-1,-1 do
-          [r][{i,j,k}].[f] = ( [r][{i,j,k}].[f] - LU[{k,pr,pc}].h*[r][{i,j,k+1}].[f] - LU[{k,pr,pc}].ff*[r][{i,j,k+2}].[f] - LU[{k,pr,pc}].v*[r][{i,j,N-2}].[f] - LU[{k,pr,pc}].w*[r][{i,j,N-1}].[f] )*LU[{k,pr,pc}].g
+          [r][{i,j,ip.n_ghosts+k}].[f] = ( [r][{i,j,ip.n_ghosts+k}].[f] - LU[{k,pr,pc}].h*[r][{i,j,ip.n_ghosts+k+1}].[f] - LU[{k,pr,pc}].ff*[r][{i,j,ip.n_ghosts+k+2}].[f] - LU[{k,pr,pc}].v*[r][{i,j,ip.n_ghosts+N-2}].[f] - LU[{k,pr,pc}].w*[r][{i,j,ip.n_ghosts+N-1}].[f] )*LU[{k,pr,pc}].g
         end
   
       end
