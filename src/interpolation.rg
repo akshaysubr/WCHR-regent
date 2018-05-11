@@ -13,7 +13,11 @@ local periodic_x = problem.periodic_x
 local periodic_y = problem.periodic_y
 local periodic_z = problem.periodic_z
 
-local xi = 2.0/3.0
+local xi  = 2.0/3.0
+local xi0 = 9.0/152.0
+local xi1 = -14445.0/171608.0
+local xi2 = -3182085.0/37433632.0 - (45.0*cmath.sqrt(723535913.0))/37433632.0
+local xi3 = -(9.0*cmath.sqrt(723535913.0))/7659176.0 + 96676.0/957397.0
  
 alpha06CI = - 45.*( xi - 1. ) / ( 16.*(xi + 5) )
 beta06CI  = ( 53.*xi - 5. ) / ( 8.*(xi + 5) )
@@ -238,19 +242,16 @@ end
 
 local function make_get_nonlinear_weights_LD_LBLB(get_beta, is_left_biased, is_left_boundary)
   local get_nonlinear_weights_LD_LBLB __demand(__inline) task get_nonlinear_weights_LD_LBLB( values : double[7][5] )
-    var xi1 : double = -76185.0/170936.0
-    var xi2 : double = 1925.0/14424.0
-
     var nlweights : double[4][5]
 
-    var d_5 = array( (32.0*xi2 - 5.0)/(3.0*(104.0*xi2 - 35.0)),
-                     5.0*(56.0*xi2 - 11.0)/(3.0*(104.0*xi2 - 35.0)),
-                     -15.0/(104.0*xi2 - 35.0),
+    var d_5 = array( (56.0*xi0 - 5.0)/(24.0*(24.0*xi0 - 5.0)),
+                     (5.0*(104.0*xi0 - 11.0))/(24.0*(24.0*xi0 - 5.0)), 
+                     -5.0/(48.0*xi0 - 10.0), 
                      0.0 )
-    var d_6 = array( (3488.0*xi1*xi2 - 716.0*xi1 + 264.0*xi2 - 75.0)/(12.0*(3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)),
-                     (80576.0*xi1*xi2 - 20456.0*xi1 + 6840.0*xi2 - 2385.0)/(24.0*(3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)),
-                     -(936.0*xi1+135.0)/((3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)),
-                     (296.0*xi2-35.0)/(8.0*(3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)) )
+    var d_6 = array( (6560.0*xi0*xi1 + 552.0*xi0 - 716.0*xi1 - 75.0)/(24.0*(3648.0*xi0*xi1 + 376.0*xi0 - 1080.0*xi1 - 145.0)),
+                     (161984.0*xi0*xi1 + 15480.0*xi0 - 20456.0*xi1 - 2385.0)/(48.0*(3648.0*xi0*xi1 + 376.0*xi0 - 1080.0*xi1 - 145.0)),
+                     -(624.0*xi1 + 90.0)/(3648.0*xi0*xi1 + 376.0*xi0 - 1080.0*xi1 - 145.0),
+                     (488.0*xi0 - 35.0)/(16.0*(3648.0*xi0*xi1 + 376.0*xi0 - 1080.0*xi1 - 145.0)) )
 
     for eq = 0, 5 do 
       var beta = [get_beta](values, eq)
@@ -328,19 +329,16 @@ end
 
 local function make_get_nonlinear_weights_LD_LBRB(get_beta, is_left_biased, is_left_boundary)
   local get_nonlinear_weights_LD_LBRB __demand(__inline) task get_nonlinear_weights_LD_LBRB( values : double[7][5] )
-    var xi1 : double = -1262925.0/14529472.0 - 3.0*cmath.sqrt(37682533905.0)/14529472.0
-    var xi2 : double = 5644033.0/25100728.0 - 9.0*cmath.sqrt(37682533905.0)/15687955.0
-
     var nlweights : double[4][5]
 
-    var d_5 = array( (32.0*xi2 - 5.0)/(2.0*(352.0*xi1*xi2 - 340.0*xi1 + 56.0*xi2 - 65.0)),
-                     -(228.0*xi1 + 45.0)/((352.0*xi1*xi2 - 340.0*xi1 + 56.0*xi2 - 65.0)),
-                     (704.0*xi1*xi2 - 224.0*xi1 + 80.0*xi2 - 35.0)/(2.0*(352.0*xi1*xi2 - 340.0*xi1 + 56.0*xi2 - 65.0)),
+    var d_5 = array( (56.0*xi3 - 5.0)/(32.0*(48.0*xi2*xi3 - 26.0*xi2 + 8.0*xi3 - 5.0)),
+                     -(76.0*xi2 + 15.0)/(4.0*(48.0*xi2*xi3 - 26.0*xi2 + 8.0*xi3 - 5.0)),
+                     (1536.0*xi2*xi3 - 224.0*xi2 + 200.0*xi3 - 35.0)/(32.0*(48.0*xi2*xi3 - 26.0*xi2 + 8.0*xi3 - 5.0)),
                      0.0 )
-    var d_6 = array( (296.0*xi2-35.0)/(8.0*(3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)),
-                     -(936.0*xi1+135.0)/((3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)),
-                     (80576.0*xi1*xi2 - 20456.0*xi1 + 6840.0*xi2 - 2385.0)/(24.0*(3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)),
-                     (3488.0*xi1*xi2 - 716.0*xi1 + 264.0*xi2 - 75.0)/(12.0*(3648.0*xi1*xi2 - 1848.0*xi1 + 344.0*xi2 - 245.0)) )
+    var d_6 = array( (488.0*xi3 - 35.0)/(16.0*(3648.0*xi2*xi3 + 376.0*xi3 - 1080.0*xi2 - 145.0)),
+                     -(624.0*xi2 + 90.0)/(3648.0*xi2*xi3 + 376.0*xi3 - 1080.0*xi2 - 145.0),
+                     -(161984.0*xi2*xi3 - 20456.0*xi2 + 15480.0*xi3 - 2385.0)/(48.0*(3648.0*xi2*xi3 + 376.0*xi3 - 1080.0*xi2 - 145.0)),
+                     (6560.0*xi2*xi3 - 716.0*xi2 + 552.0*xi3 - 75.0)/(24.0*(3648.0*xi2*xi3 + 376.0*xi3 - 1080.0*xi2 - 145.0)) )
 
     for eq = 0, 5 do 
       var beta = [get_beta](values, eq)
@@ -446,13 +444,10 @@ end
 
 __demand(__inline)
 task get_coefficients_ECI_LBLB( nlweights : double[4][5] )
-  var xi1 : double = -76185.0/170936.0
-  var xi2 : double = 1925.0/14424.0
-
-  var lcoeff0 = array(0.0, 1.0, 0.0,                      3.0/8.0, -5.0/4.0, 15.0/8.0,           0.0,           0.0,               0.0,                0.0)
-  var lcoeff1 = array(0.0, 1.0, 0.0,                      0.0,     -1.0/8.0, 3.0/4.0,            3.0/8.0,       0.0,               0.0,                0.0)
-  var lcoeff2 = array(0.0, 1.0, 8.0*xi2/3.0 + 1.0/3.0,    0.0,     0.0,      -xi2/3.0 + 1.0/3.0, 2.0*xi2 + 1.0, xi2,               0.0,                0.0)
-  var lcoeff3 = array(0.0, 1.0, 0.0,                      0.0,     0.0,      0.0,                -xi1+15.0/8.0, 3.0*xi1 - 5.0/4.0, -3.0*xi1 + 3.0/8.0, xi1)
+  var lcoeff0 = array(0.0, 1.0,                0.0,                   3.0/8.0, -5.0/4.0, 15.0/8.0,        0.0,           0.0,               0.0,                0.0)
+  var lcoeff1 = array(0.0, 1.0,                0.0,                   0.0,     -1.0/8.0, 3.0/4.0,         3.0/8.0,       0.0,               0.0,                0.0)
+  var lcoeff2 = array(0.0, -2.0*xi0 + 3.0/4.0, 2.0*xi0 + 1.0/4.0,     0.0,     0.0,       -xi0 + 1.0/4.0, 3.0/4.0,       xi0,               0.0,                0.0)
+  var lcoeff3 = array(0.0, 1.0,                0.0,                   0.0,     0.0,      0.0,             -xi1+15.0/8.0, 3.0*xi1 - 5.0/4.0, -3.0*xi1 + 3.0/8.0, xi1)
 
   var coeffs : double[10][5]
 
@@ -467,13 +462,10 @@ end
 
 __demand(__inline)
 task get_coefficients_ECI_LBRB( nlweights : double[4][5] )
-  var xi1 : double = -1262925.0/14529472.0 - 3.0*cmath.sqrt(37682533905.0)/14529472.0
-  var xi2 : double = 5644033.0/25100728.0 - 9.0*cmath.sqrt(37682533905.0)/15687955.0
-
-  var lcoeff0 = array(0.0,                   1.0, 0.0,    xi1, -3.0*xi1 + 3.0/8.0, 3.0*xi1 - 5.0/4.0, -xi1+15.0/8.0, 0.0,                0.0,      0.0)
-  var lcoeff1 = array(8.0*xi2/3.0 + 1.0/3.0, 1.0, 0.0,    0.0, 0.0,                xi2,               2.0*xi2 + 1.0, -xi2/3.0 + 1.0/3.0, 0.0,      0.0)
-  var lcoeff2 = array(0.0,                   1.0, 0.0,    0.0, 0.0,                0.0,               3.0/8.0,       3.0/4.0,            -1.0/8.0, 0.0)
-  var lcoeff3 = array(0.0,                   1.0, 0.0,    0.0, 0.0,                0.0,               0.0,           15.0/8.0,           -5.0/4.0, 3.0/8.0)
+  var lcoeff0 = array(0.0,               1.0,                0.0,     xi2, -3.0*xi2 + 3.0/8.0, 3.0*xi2 - 5.0/4.0, -xi2+15.0/8.0,           0.0,            0.0,      0.0)
+  var lcoeff1 = array(2.0*xi3 + 1.0/4.0, -2.0*xi3 + 3.0/4.0, 0.0,     0.0, 0.0,                xi3,               3.0/4.0,                 -xi3 + 1.0/4.0, 0.0,      0.0)
+  var lcoeff2 = array(0.0,               1.0,                0.0,     0.0, 0.0,                0.0,               3.0/8.0,                 3.0/4.0,        -1.0/8.0, 0.0)
+  var lcoeff3 = array(0.0,               1.0,                0.0,     0.0, 0.0,                0.0,               0.0,                     15.0/8.0,       -5.0/4.0, 3.0/8.0)
 
   var coeffs : double[10][5]
 
