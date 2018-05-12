@@ -25,14 +25,14 @@ problem.periodic_x = true
 problem.periodic_y = true
 problem.periodic_z = true
 
--- Boundary (id not periodic)
---                    Type     rho  u   v   w   p
-problem.bc_l_x = { "DIRICHLET", 1., 0., 0., 0., 1. }
-problem.bc_r_x = { "DIRICHLET", 1., 0., 0., 0., 1. }
-problem.bc_l_y = { "DIRICHLET", 1., 0., 0., 0., 1. }
-problem.bc_r_y = { "DIRICHLET", 1., 0., 0., 0., 1. }
-problem.bc_l_z = { "DIRICHLET", 1., 0., 0., 0., 1. }
-problem.bc_r_z = { "DIRICHLET", 1., 0., 0., 0., 1. }
+-- Boundary (if not periodic)
+-- condition: DIRICHLET, EXTRAPOLATION, SUBSONIC_INFLOW, SUBSONIC_OUTFLOW
+problem.boundary_l_x = { condition="DIRICHLET", rho=1., u=0., v=0., w=0., p=1. }
+problem.boundary_r_x = { condition="DIRICHLET", rho=1., u=0., v=0., w=0., p=1. }
+problem.boundary_l_y = { condition="DIRICHLET", rho=1., u=0., v=0., w=0., p=1. }
+problem.boundary_r_y = { condition="DIRICHLET", rho=1., u=0., v=0., w=0., p=1. }
+problem.boundary_l_z = { condition="DIRICHLET", rho=1., u=0., v=0., w=0., p=1. }
+problem.boundary_r_z = { condition="DIRICHLET", rho=1., u=0., v=0., w=0., p=1. }
 
 -- Domain size
 problem.LX = 2.0*PI

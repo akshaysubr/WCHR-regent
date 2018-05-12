@@ -431,6 +431,12 @@ task main()
       -- Fill in ghost cells
       periodic_ghost_cells_x(p_prim_c_x_wg[i], n_ghosts)
     end
+  else
+    __demand(__parallel)
+    for i in pencil_interior do
+      -- Fill in ghost cells
+      nonperiodic_ghost_cells_x(p_prim_c_x_wg[i], n_ghosts)
+    end
   end
   if problem.periodic_y then
     __demand(__parallel)
@@ -438,12 +444,24 @@ task main()
       -- Fill in ghost cells
       periodic_ghost_cells_y(p_prim_c_y_wg[i], n_ghosts)
     end
+  else
+    __demand(__parallel)
+    for i in pencil_interior do
+      -- Fill in ghost cells
+      nonperiodic_ghost_cells_y(p_prim_c_y_wg[i], n_ghosts)
+    end
   end
   if problem.periodic_z then
     __demand(__parallel)
     for i in pencil_interior do
       -- Fill in ghost cells
       periodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
+    end
+  else
+    __demand(__parallel)
+    for i in pencil_interior do
+      -- Fill in ghost cells
+      nonperiodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
     end
   end
 
