@@ -415,6 +415,137 @@ do
   return 1
 end
 
+function make_ddx_left_sided(r_func, f_func, ONEBYDX)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddx_left_sided __demand(__inline) task ddx_left_sided( [r_func],
+                                                               idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdx = 0.5*[ONEBYDX]* (   3.0*[r_func][ int3d { idx.x,     idx.y, idx.z } ].[f_func]
+                                - 4.0*[r_func][ int3d { idx.x - 1, idx.y, idx.z } ].[f_func]
+                                + 1.0*[r_func][ int3d { idx.x - 2, idx.y, idx.z } ].[f_func] )
+    return dQdx
+  end
+  return ddx_left_sided
+end
+
+function make_ddx_right_sided(r_func, f_func, ONEBYDX)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddx_right_sided __demand(__inline) task ddx_right_sided( [r_func],
+                                                                 idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdx = 0.5*[ONEBYDX]* ( - 3.0*[r_func][ int3d { idx.x,     idx.y, idx.z } ].[f_func]
+                                + 4.0*[r_func][ int3d { idx.x + 1, idx.y, idx.z } ].[f_func]
+                                - 1.0*[r_func][ int3d { idx.x + 2, idx.y, idx.z } ].[f_func] )
+    return dQdx
+  end
+  return ddx_right_sided
+end
+
+function make_ddy_left_sided(r_func, f_func, ONEBYDY)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddy_left_sided __demand(__inline) task ddy_left_sided( [r_func],
+                                                               idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdy = 0.5*[ONEBYDY]* (   3.0*[r_func][ int3d { idx.x, idx.y,     idx.z } ].[f_func]
+                                - 4.0*[r_func][ int3d { idx.x, idx.y - 1, idx.z } ].[f_func]
+                                + 1.0*[r_func][ int3d { idx.x, idx.y - 2, idx.z } ].[f_func] )
+    return dQdy
+  end
+  return ddy_left_sided
+end
+
+function make_ddy_right_sided(r_func, f_func, ONEBYDY)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddy_right_sided __demand(__inline) task ddy_right_sided( [r_func],
+                                                                 idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdy = 0.5*[ONEBYDY]* ( - 3.0*[r_func][ int3d { idx.x, idx.y,     idx.z } ].[f_func]
+                                + 4.0*[r_func][ int3d { idx.x, idx.y + 1, idx.z } ].[f_func]
+                                - 1.0*[r_func][ int3d { idx.x, idx.y + 2, idx.z } ].[f_func] )
+    return dQdy
+  end
+  return ddy_right_sided
+end
+
+function make_ddz_left_sided(r_func, f_func, ONEBYDZ)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddz_left_sided __demand(__inline) task ddz_left_sided( [r_func],
+                                                               idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdz = 0.5*[ONEBYDZ]* (   3.0*[r_func][ int3d { idx.x, idx.y, idx.z     } ].[f_func]
+                                - 4.0*[r_func][ int3d { idx.x, idx.y, idx.z - 1 } ].[f_func]
+                                + 1.0*[r_func][ int3d { idx.x, idx.y, idx.z - 2 } ].[f_func] )
+    return dQdz
+  end
+  return ddz_left_sided
+end
+
+function make_ddz_right_sided(r_func, f_func, ONEBYDZ)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddz_right_sided __demand(__inline) task ddz_right_sided( [r_func],
+                                                                 idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdz = 0.5*[ONEBYDZ]* ( - 3.0*[r_func][ int3d { idx.x, idx.y, idx.z     } ].[f_func]
+                                + 4.0*[r_func][ int3d { idx.x, idx.y, idx.z + 1 } ].[f_func]
+                                - 1.0*[r_func][ int3d { idx.x, idx.y, idx.z + 2 } ].[f_func] )
+    return dQdz
+  end
+  return ddz_right_sided
+end
+
+local r_prim = regentlib.newsymbol(region(ispace(int3d), primitive), "r_primitive")
+
+local ddx_left_sided_rho  = make_ddx_left_sided(r_prim,  "rho", problem.ONEBYDX)
+local ddx_right_sided_rho = make_ddx_right_sided(r_prim, "rho", problem.ONEBYDX)
+local ddx_left_sided_u    = make_ddx_left_sided(r_prim,  "u",   problem.ONEBYDX)
+local ddx_right_sided_u   = make_ddx_right_sided(r_prim, "u",   problem.ONEBYDX)
+local ddx_left_sided_v    = make_ddx_left_sided(r_prim,  "v",   problem.ONEBYDX)
+local ddx_right_sided_v   = make_ddx_right_sided(r_prim, "v",   problem.ONEBYDX)
+local ddx_left_sided_w    = make_ddx_left_sided(r_prim,  "w",   problem.ONEBYDX)
+local ddx_right_sided_w   = make_ddx_right_sided(r_prim, "w",   problem.ONEBYDX)
+local ddx_left_sided_p    = make_ddx_left_sided(r_prim,  "p",   problem.ONEBYDX)
+local ddx_right_sided_p   = make_ddx_right_sided(r_prim, "p",   problem.ONEBYDX)
+
+local ddy_left_sided_rho  = make_ddy_left_sided(r_prim,  "rho", problem.ONEBYDY)
+local ddy_right_sided_rho = make_ddy_right_sided(r_prim, "rho", problem.ONEBYDY)
+local ddy_left_sided_u    = make_ddy_left_sided(r_prim,  "u",   problem.ONEBYDY)
+local ddy_right_sided_u   = make_ddy_right_sided(r_prim, "u",   problem.ONEBYDY)
+local ddy_left_sided_v    = make_ddy_left_sided(r_prim,  "v",   problem.ONEBYDY)
+local ddy_right_sided_v   = make_ddy_right_sided(r_prim, "v",   problem.ONEBYDY)
+local ddy_left_sided_w    = make_ddy_left_sided(r_prim,  "w",   problem.ONEBYDY)
+local ddy_right_sided_w   = make_ddy_right_sided(r_prim, "w",   problem.ONEBYDY)
+local ddy_left_sided_p    = make_ddy_left_sided(r_prim,  "p",   problem.ONEBYDY)
+local ddy_right_sided_p   = make_ddy_right_sided(r_prim, "p",   problem.ONEBYDY)
+
+local ddz_left_sided_rho  = make_ddz_left_sided(r_prim,  "rho", problem.ONEBYDZ)
+local ddz_right_sided_rho = make_ddz_right_sided(r_prim, "rho", problem.ONEBYDZ)
+local ddz_left_sided_u    = make_ddz_left_sided(r_prim,  "u",   problem.ONEBYDZ)
+local ddz_right_sided_u   = make_ddz_right_sided(r_prim, "u",   problem.ONEBYDZ)
+local ddz_left_sided_v    = make_ddz_left_sided(r_prim,  "v",   problem.ONEBYDZ)
+local ddz_right_sided_v   = make_ddz_right_sided(r_prim, "v",   problem.ONEBYDZ)
+local ddz_left_sided_w    = make_ddz_left_sided(r_prim,  "w",   problem.ONEBYDZ)
+local ddz_right_sided_w   = make_ddz_right_sided(r_prim, "w",   problem.ONEBYDZ)
+local ddz_left_sided_p    = make_ddz_left_sided(r_prim,  "p",   problem.ONEBYDZ)
+local ddz_right_sided_p   = make_ddz_right_sided(r_prim, "p",   problem.ONEBYDZ)
+
 task nonperiodic_ghost_cells_x( r_prim_c  : region(ispace(int3d), primitive),
                                 n_ghosts  : int64 )
 where
