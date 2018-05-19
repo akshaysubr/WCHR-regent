@@ -415,6 +415,394 @@ do
   return 1
 end
 
+function make_ddx_left_sided(r_func, f_func, ONEBYDX)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddx_left_sided __demand(__inline) task ddx_left_sided( [r_func],
+                                                               idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdx = 0.5*[ONEBYDX]* (   3.0*[r_func][ int3d { idx.x,     idx.y, idx.z } ].[f_func]
+                                - 4.0*[r_func][ int3d { idx.x - 1, idx.y, idx.z } ].[f_func]
+                                + 1.0*[r_func][ int3d { idx.x - 2, idx.y, idx.z } ].[f_func] )
+    return dQdx
+  end
+  return ddx_left_sided
+end
+
+function make_ddx_right_sided(r_func, f_func, ONEBYDX)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddx_right_sided __demand(__inline) task ddx_right_sided( [r_func],
+                                                                 idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdx = 0.5*[ONEBYDX]* ( - 3.0*[r_func][ int3d { idx.x,     idx.y, idx.z } ].[f_func]
+                                + 4.0*[r_func][ int3d { idx.x + 1, idx.y, idx.z } ].[f_func]
+                                - 1.0*[r_func][ int3d { idx.x + 2, idx.y, idx.z } ].[f_func] )
+    return dQdx
+  end
+  return ddx_right_sided
+end
+
+function make_ddy_left_sided(r_func, f_func, ONEBYDY)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddy_left_sided __demand(__inline) task ddy_left_sided( [r_func],
+                                                               idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdy = 0.5*[ONEBYDY]* (   3.0*[r_func][ int3d { idx.x, idx.y,     idx.z } ].[f_func]
+                                - 4.0*[r_func][ int3d { idx.x, idx.y - 1, idx.z } ].[f_func]
+                                + 1.0*[r_func][ int3d { idx.x, idx.y - 2, idx.z } ].[f_func] )
+    return dQdy
+  end
+  return ddy_left_sided
+end
+
+function make_ddy_right_sided(r_func, f_func, ONEBYDY)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddy_right_sided __demand(__inline) task ddy_right_sided( [r_func],
+                                                                 idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdy = 0.5*[ONEBYDY]* ( - 3.0*[r_func][ int3d { idx.x, idx.y,     idx.z } ].[f_func]
+                                + 4.0*[r_func][ int3d { idx.x, idx.y + 1, idx.z } ].[f_func]
+                                - 1.0*[r_func][ int3d { idx.x, idx.y + 2, idx.z } ].[f_func] )
+    return dQdy
+  end
+  return ddy_right_sided
+end
+
+function make_ddz_left_sided(r_func, f_func, ONEBYDZ)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddz_left_sided __demand(__inline) task ddz_left_sided( [r_func],
+                                                               idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdz = 0.5*[ONEBYDZ]* (   3.0*[r_func][ int3d { idx.x, idx.y, idx.z     } ].[f_func]
+                                - 4.0*[r_func][ int3d { idx.x, idx.y, idx.z - 1 } ].[f_func]
+                                + 1.0*[r_func][ int3d { idx.x, idx.y, idx.z - 2 } ].[f_func] )
+    return dQdz
+  end
+  return ddz_left_sided
+end
+
+function make_ddz_right_sided(r_func, f_func, ONEBYDZ)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddz_right_sided __demand(__inline) task ddz_right_sided( [r_func],
+                                                                 idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdz = 0.5*[ONEBYDZ]* ( - 3.0*[r_func][ int3d { idx.x, idx.y, idx.z     } ].[f_func]
+                                + 4.0*[r_func][ int3d { idx.x, idx.y, idx.z + 1 } ].[f_func]
+                                - 1.0*[r_func][ int3d { idx.x, idx.y, idx.z + 2 } ].[f_func] )
+    return dQdz
+  end
+  return ddz_right_sided
+end
+
+function make_extrapolate_l_x(r_func, f_func, DX)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local extrapolate_l_x __demand(__inline) task extrapolate_l_x( [r_func],
+                                                                 idx      : int3d,
+                                                                 dQdx     : double )
+  where
+    [privileges_r_func]
+  do
+    var Q_g : double[4]
+
+    Q_g[3] = [r_func][ int3d { idx.x + 1, idx.y, idx.z } ].[f_func]
+             - 2.0*DX*dQdx
+
+    Q_g[2] = - 2.0*[r_func][ int3d { idx.x + 1, idx.y, idx.z } ].[f_func]
+             - 3.0*[r_func][ int3d { idx.x,     idx.y, idx.z } ].[f_func]
+             + 6.0*Q_g[3]
+             + 6.0*DX*dQdx
+
+    Q_g[1] =    3.0*[r_func][ int3d { idx.x + 1, idx.y, idx.z } ].[f_func]
+             + 10.0*[r_func][ int3d { idx.x,     idx.y, idx.z } ].[f_func]
+             - 18.0*Q_g[3]
+             +  6.0*Q_g[2]
+             - 12.0*DX*dQdx
+
+    Q_g[0] = -      4.0*[r_func][ int3d { idx.x + 1, idx.y, idx.z } ].[f_func]
+             - 65.0/3.0*[r_func][ int3d { idx.x,     idx.y, idx.z } ].[f_func]
+             +     40.0*Q_g[3]
+             -     20.0*Q_g[2]
+             + 20.0/3.0*Q_g[1]
+             + 20.0*DX*dQdx
+
+    return Q_g
+  end
+  return extrapolate_l_x
+end
+
+function make_extrapolate_r_x(r_func, f_func, DX)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local extrapolate_r_x __demand(__inline) task extrapolate_r_x( [r_func],
+                                                                 idx      : int3d,
+                                                                 dQdx     : double )
+  where
+    [privileges_r_func]
+  do
+    var Q_g : double[4]
+
+    Q_g[0] = [r_func][ int3d { idx.x - 1, idx.y, idx.z } ].[f_func]
+             + 2.0*DX*dQdx
+
+    Q_g[1] = - 2.0*[r_func][ int3d { idx.x - 1, idx.y, idx.z } ].[f_func]
+             - 3.0*[r_func][ int3d { idx.x,     idx.y, idx.z } ].[f_func]
+             + 6.0*Q_g[0]
+             - 6.0*DX*dQdx
+
+    Q_g[2] =    3.0*[r_func][ int3d { idx.x - 1, idx.y, idx.z } ].[f_func]
+             + 10.0*[r_func][ int3d { idx.x,     idx.y, idx.z } ].[f_func]
+             - 18.0*Q_g[0]
+             +  6.0*Q_g[1]
+             + 12.0*DX*dQdx
+
+    Q_g[3] = -      4.0*[r_func][ int3d { idx.x - 1, idx.y, idx.z } ].[f_func]
+             - 65.0/3.0*[r_func][ int3d { idx.x,     idx.y, idx.z } ].[f_func]
+             +     40.0*Q_g[0]
+             -     20.0*Q_g[1]
+             + 20.0/3.0*Q_g[2]
+             - 20.0*DX*dQdx
+
+    return Q_g
+  end
+  return extrapolate_r_x
+end
+
+function make_extrapolate_l_y(r_func, f_func, DY)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local extrapolate_l_y __demand(__inline) task extrapolate_l_y( [r_func],
+                                                                 idx      : int3d,
+                                                                 dQdy     : double )
+  where
+    [privileges_r_func]
+  do
+    var Q_g : double[4]
+
+    Q_g[3] = [r_func][ int3d { idx.x, idx.y + 1, idx.z } ].[f_func]
+             - 2.0*DY*dQdy
+
+    Q_g[2] = - 2.0*[r_func][ int3d { idx.x, idx.y + 1, idx.z } ].[f_func]
+             - 3.0*[r_func][ int3d { idx.x, idx.y    , idx.z } ].[f_func]
+             + 6.0*Q_g[3]
+             + 6.0*DY*dQdy
+
+    Q_g[1] =    3.0*[r_func][ int3d { idx.x, idx.y + 1, idx.z } ].[f_func]
+             + 10.0*[r_func][ int3d { idx.x, idx.y    , idx.z } ].[f_func]
+             - 18.0*Q_g[3]
+             +  6.0*Q_g[2]
+             - 12.0*DY*dQdy
+
+    Q_g[0] = -      4.0*[r_func][ int3d { idx.x, idx.y + 1, idx.z } ].[f_func]
+             - 65.0/3.0*[r_func][ int3d { idx.x, idx.y    , idx.z } ].[f_func]
+             +     40.0*Q_g[3]
+             -     20.0*Q_g[2]
+             + 20.0/3.0*Q_g[1]
+             + 20.0*DY*dQdy
+
+    return Q_g
+  end
+  return extrapolate_l_y
+end
+
+function make_extrapolate_r_y(r_func, f_func, DY)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local extrapolate_r_y __demand(__inline) task extrapolate_r_y( [r_func],
+                                                                 idx      : int3d,
+                                                                 dQdy     : double )
+  where
+    [privileges_r_func]
+  do
+    var Q_g : double[4]
+
+    Q_g[0] = [r_func][ int3d { idx.x, idx.y - 1, idx.z } ].[f_func]
+             + 2.0*DY*dQdy
+
+    Q_g[1] = - 2.0*[r_func][ int3d { idx.x, idx.y - 1, idx.z } ].[f_func]
+             - 3.0*[r_func][ int3d { idx.x, idx.y    , idx.z } ].[f_func]
+             + 6.0*Q_g[0]
+             - 6.0*DY*dQdy
+
+    Q_g[2] =    3.0*[r_func][ int3d { idx.x, idx.y - 1, idx.z } ].[f_func]
+             + 10.0*[r_func][ int3d { idx.x, idx.y    , idx.z } ].[f_func]
+             - 18.0*Q_g[0]
+             +  6.0*Q_g[1]
+             + 12.0*DY*dQdy
+
+    Q_g[3] = -      4.0*[r_func][ int3d { idx.x, idx.y - 1, idx.z } ].[f_func]
+             - 65.0/3.0*[r_func][ int3d { idx.x, idx.y    , idx.z } ].[f_func]
+             +     40.0*Q_g[0]
+             -     20.0*Q_g[1]
+             + 20.0/3.0*Q_g[2]
+             - 20.0*DY*dQdy
+
+    return Q_g
+  end
+  return extrapolate_r_y
+end
+
+function make_extrapolate_l_z(r_func, f_func, DZ)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local extrapolate_l_z __demand(__inline) task extrapolate_l_z( [r_func],
+                                                                 idx      : int3d,
+                                                                 dQdz     : double )
+  where
+    [privileges_r_func]
+  do
+    var Q_g : double[4]
+
+    Q_g[3] = [r_func][ int3d { idx.x, idx.y, idx.z + 1 } ].[f_func]
+             - 2.0*DZ*dQdz
+
+    Q_g[2] = - 2.0*[r_func][ int3d { idx.x, idx.y, idx.z + 1 } ].[f_func]
+             - 3.0*[r_func][ int3d { idx.x, idx.y, idx.z     } ].[f_func]
+             + 6.0*Q_g[3]
+             + 6.0*DZ*dQdz
+
+    Q_g[1] =    3.0*[r_func][ int3d { idx.x, idx.y, idx.z + 1 } ].[f_func]
+             + 10.0*[r_func][ int3d { idx.x, idx.y, idx.z     } ].[f_func]
+             - 18.0*Q_g[3]
+             +  6.0*Q_g[2]
+             - 12.0*DZ*dQdz
+
+    Q_g[0] = -      4.0*[r_func][ int3d { idx.x, idx.y, idx.z + 1 } ].[f_func]
+             - 65.0/3.0*[r_func][ int3d { idx.x, idx.y, idx.z     } ].[f_func]
+             +     40.0*Q_g[3]
+             -     20.0*Q_g[2]
+             + 20.0/3.0*Q_g[1]
+             + 20.0*DZ*dQdz
+
+    return Q_g
+  end
+  return extrapolate_l_z
+end
+
+function make_extrapolate_r_z(r_func, f_func, DZ)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local extrapolate_r_z __demand(__inline) task extrapolate_r_z( [r_func],
+                                                                 idx      : int3d,
+                                                                 dQdz     : double )
+  where
+    [privileges_r_func]
+  do
+    var Q_g : double[4]
+
+    Q_g[0] = [r_func][ int3d { idx.x, idx.y, idx.z - 1 } ].[f_func]
+             + 2.0*DZ*dQdz
+
+    Q_g[1] = - 2.0*[r_func][ int3d { idx.x, idx.y, idx.z - 1 } ].[f_func]
+             - 3.0*[r_func][ int3d { idx.x, idx.y, idx.z     } ].[f_func]
+             + 6.0*Q_g[0]
+             - 6.0*DZ*dQdz
+
+    Q_g[2] =    3.0*[r_func][ int3d { idx.x, idx.y, idx.z - 1 } ].[f_func]
+             + 10.0*[r_func][ int3d { idx.x, idx.y, idx.z     } ].[f_func]
+             - 18.0*Q_g[0]
+             +  6.0*Q_g[1]
+             + 12.0*DZ*dQdz
+
+    Q_g[3] = -      4.0*[r_func][ int3d { idx.x, idx.y, idx.z - 1 } ].[f_func]
+             - 65.0/3.0*[r_func][ int3d { idx.x, idx.y, idx.z     } ].[f_func]
+             +     40.0*Q_g[0]
+             -     20.0*Q_g[1]
+             + 20.0/3.0*Q_g[2]
+             - 20.0*DZ*dQdz
+
+    return Q_g
+  end
+  return extrapolate_r_z
+end
+
+
+
+local r_prim = regentlib.newsymbol(region(ispace(int3d), primitive), "r_primitive")
+
+local ddx_left_sided_rho  = make_ddx_left_sided(r_prim,  "rho", problem.ONEBYDX)
+local ddx_right_sided_rho = make_ddx_right_sided(r_prim, "rho", problem.ONEBYDX)
+local ddx_left_sided_u    = make_ddx_left_sided(r_prim,  "u",   problem.ONEBYDX)
+local ddx_right_sided_u   = make_ddx_right_sided(r_prim, "u",   problem.ONEBYDX)
+local ddx_left_sided_v    = make_ddx_left_sided(r_prim,  "v",   problem.ONEBYDX)
+local ddx_right_sided_v   = make_ddx_right_sided(r_prim, "v",   problem.ONEBYDX)
+local ddx_left_sided_w    = make_ddx_left_sided(r_prim,  "w",   problem.ONEBYDX)
+local ddx_right_sided_w   = make_ddx_right_sided(r_prim, "w",   problem.ONEBYDX)
+local ddx_left_sided_p    = make_ddx_left_sided(r_prim,  "p",   problem.ONEBYDX)
+local ddx_right_sided_p   = make_ddx_right_sided(r_prim, "p",   problem.ONEBYDX)
+
+local ddy_left_sided_rho  = make_ddy_left_sided(r_prim,  "rho", problem.ONEBYDY)
+local ddy_right_sided_rho = make_ddy_right_sided(r_prim, "rho", problem.ONEBYDY)
+local ddy_left_sided_u    = make_ddy_left_sided(r_prim,  "u",   problem.ONEBYDY)
+local ddy_right_sided_u   = make_ddy_right_sided(r_prim, "u",   problem.ONEBYDY)
+local ddy_left_sided_v    = make_ddy_left_sided(r_prim,  "v",   problem.ONEBYDY)
+local ddy_right_sided_v   = make_ddy_right_sided(r_prim, "v",   problem.ONEBYDY)
+local ddy_left_sided_w    = make_ddy_left_sided(r_prim,  "w",   problem.ONEBYDY)
+local ddy_right_sided_w   = make_ddy_right_sided(r_prim, "w",   problem.ONEBYDY)
+local ddy_left_sided_p    = make_ddy_left_sided(r_prim,  "p",   problem.ONEBYDY)
+local ddy_right_sided_p   = make_ddy_right_sided(r_prim, "p",   problem.ONEBYDY)
+
+local ddz_left_sided_rho  = make_ddz_left_sided(r_prim,  "rho", problem.ONEBYDZ)
+local ddz_right_sided_rho = make_ddz_right_sided(r_prim, "rho", problem.ONEBYDZ)
+local ddz_left_sided_u    = make_ddz_left_sided(r_prim,  "u",   problem.ONEBYDZ)
+local ddz_right_sided_u   = make_ddz_right_sided(r_prim, "u",   problem.ONEBYDZ)
+local ddz_left_sided_v    = make_ddz_left_sided(r_prim,  "v",   problem.ONEBYDZ)
+local ddz_right_sided_v   = make_ddz_right_sided(r_prim, "v",   problem.ONEBYDZ)
+local ddz_left_sided_w    = make_ddz_left_sided(r_prim,  "w",   problem.ONEBYDZ)
+local ddz_right_sided_w   = make_ddz_right_sided(r_prim, "w",   problem.ONEBYDZ)
+local ddz_left_sided_p    = make_ddz_left_sided(r_prim,  "p",   problem.ONEBYDZ)
+local ddz_right_sided_p   = make_ddz_right_sided(r_prim, "p",   problem.ONEBYDZ)
+
+local extrapolate_l_x_rho = make_extrapolate_l_x(r_prim, "rho", problem.DX)
+local extrapolate_r_x_rho = make_extrapolate_r_x(r_prim, "rho", problem.DX)
+local extrapolate_l_x_u   = make_extrapolate_l_x(r_prim, "u",   problem.DX)
+local extrapolate_r_x_u   = make_extrapolate_r_x(r_prim, "u",   problem.DX)
+local extrapolate_l_x_v   = make_extrapolate_l_x(r_prim, "v",   problem.DX)
+local extrapolate_r_x_v   = make_extrapolate_r_x(r_prim, "v",   problem.DX)
+local extrapolate_l_x_w   = make_extrapolate_l_x(r_prim, "w",   problem.DX)
+local extrapolate_r_x_w   = make_extrapolate_r_x(r_prim, "w",   problem.DX)
+local extrapolate_l_x_p   = make_extrapolate_l_x(r_prim, "p",   problem.DX)
+local extrapolate_r_x_p   = make_extrapolate_r_x(r_prim, "p",   problem.DX)
+
+local extrapolate_l_y_rho = make_extrapolate_l_y(r_prim, "rho", problem.DY)
+local extrapolate_r_y_rho = make_extrapolate_r_y(r_prim, "rho", problem.DY)
+local extrapolate_l_y_u   = make_extrapolate_l_y(r_prim, "u",   problem.DY)
+local extrapolate_r_y_u   = make_extrapolate_r_y(r_prim, "u",   problem.DY)
+local extrapolate_l_y_v   = make_extrapolate_l_y(r_prim, "v",   problem.DY)
+local extrapolate_r_y_v   = make_extrapolate_r_y(r_prim, "v",   problem.DY)
+local extrapolate_l_y_w   = make_extrapolate_l_y(r_prim, "w",   problem.DY)
+local extrapolate_r_y_w   = make_extrapolate_r_y(r_prim, "w",   problem.DY)
+local extrapolate_l_y_p   = make_extrapolate_l_y(r_prim, "p",   problem.DY)
+local extrapolate_r_y_p   = make_extrapolate_r_y(r_prim, "p",   problem.DY)
+
+local extrapolate_l_z_rho = make_extrapolate_l_z(r_prim, "rho", problem.DZ)
+local extrapolate_r_z_rho = make_extrapolate_r_z(r_prim, "rho", problem.DZ)
+local extrapolate_l_z_u   = make_extrapolate_l_z(r_prim, "u",   problem.DZ)
+local extrapolate_r_z_u   = make_extrapolate_r_z(r_prim, "u",   problem.DZ)
+local extrapolate_l_z_v   = make_extrapolate_l_z(r_prim, "v",   problem.DZ)
+local extrapolate_r_z_v   = make_extrapolate_r_z(r_prim, "v",   problem.DZ)
+local extrapolate_l_z_w   = make_extrapolate_l_z(r_prim, "w",   problem.DZ)
+local extrapolate_r_z_w   = make_extrapolate_r_z(r_prim, "w",   problem.DZ)
+local extrapolate_l_z_p   = make_extrapolate_l_z(r_prim, "p",   problem.DZ)
+local extrapolate_r_z_p   = make_extrapolate_r_z(r_prim, "p",   problem.DZ)
+
 task nonperiodic_ghost_cells_x( r_prim_c  : region(ispace(int3d), primitive),
                                 n_ghosts  : int64 )
 where
