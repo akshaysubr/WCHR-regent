@@ -16,6 +16,10 @@ local r_flux   = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux")
 local r_flux_e = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux_e")
 local r_der    = regentlib.newsymbol(region(ispace(int3d), conserved), "r_der")
 
+print("Periodicity in X: ", problem.periodic_x)
+print("Periodicity in Y: ", problem.periodic_y)
+print("Periodicity in Z: ", problem.periodic_z)
+
 -- Midpoint-and-Node-Differencing tasks to compute flux derivatives
 local ddx_MND_rho  = make_ddx_MND(r_flux, r_flux_e, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, problem.periodic_x)
 local ddx_MND_rhou = make_ddx_MND(r_flux, r_flux_e, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, problem.periodic_x)
@@ -36,46 +40,46 @@ local ddz_MND_rhow = make_ddz_MND(r_flux, r_flux_e, "rhow", r_der, "rhow", probl
 local ddz_MND_rhoE = make_ddz_MND(r_flux, r_flux_e, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, problem.periodic_z)
 
 -- Node differencing tasks to compute flux derivatives
-local ddx_rho  = make_ddx(r_flux, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddx_rhou = make_ddx(r_flux, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddx_rhov = make_ddx(r_flux, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddx_rhow = make_ddx(r_flux, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddx_rhoE = make_ddx(r_flux, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
+local ddx_rho  = make_ddx(r_flux, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddx_rhou = make_ddx(r_flux, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddx_rhov = make_ddx(r_flux, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddx_rhow = make_ddx(r_flux, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddx_rhoE = make_ddx(r_flux, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
 
-local ddy_rho  = make_ddy(r_flux, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddy_rhou = make_ddy(r_flux, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddy_rhov = make_ddy(r_flux, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddy_rhow = make_ddy(r_flux, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddy_rhoE = make_ddy(r_flux, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
+local ddy_rho  = make_ddy(r_flux, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddy_rhou = make_ddy(r_flux, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddy_rhov = make_ddy(r_flux, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddy_rhow = make_ddy(r_flux, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddy_rhoE = make_ddy(r_flux, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
 
-local ddz_rho  = make_ddz(r_flux, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
-local ddz_rhou = make_ddz(r_flux, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
-local ddz_rhov = make_ddz(r_flux, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
-local ddz_rhow = make_ddz(r_flux, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
-local ddz_rhoE = make_ddz(r_flux, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
+local ddz_rho  = make_ddz(r_flux, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+local ddz_rhou = make_ddz(r_flux, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+local ddz_rhov = make_ddz(r_flux, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+local ddz_rhow = make_ddz(r_flux, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+local ddz_rhoE = make_ddz(r_flux, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
 
 local r_prim   = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim")
 local r_prim_e = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim_e")
 local r_der    = regentlib.newsymbol(region(ispace(int3d), tensor2),   "r_der")
 
-local ddx_u   = make_ddx(r_prim, "u", r_der, "_11", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddy_u   = make_ddy(r_prim, "u", r_der, "_12", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddz_u   = make_ddz(r_prim, "u", r_der, "_13", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
+local ddx_u   = make_ddx(r_prim, "u", r_der, "_11", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_u   = make_ddy(r_prim, "u", r_der, "_12", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_u   = make_ddz(r_prim, "u", r_der, "_13", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
 
-local ddx_v   = make_ddx(r_prim, "v", r_der, "_21", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddy_v   = make_ddy(r_prim, "v", r_der, "_22", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddz_v   = make_ddz(r_prim, "v", r_der, "_23", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
+local ddx_v   = make_ddx(r_prim, "v", r_der, "_21", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_v   = make_ddy(r_prim, "v", r_der, "_22", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_v   = make_ddz(r_prim, "v", r_der, "_23", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
 
-local ddx_w   = make_ddx(r_prim, "w", r_der, "_31", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddy_w   = make_ddy(r_prim, "w", r_der, "_32", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddz_w   = make_ddz(r_prim, "w", r_der, "_33", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
+local ddx_w   = make_ddx(r_prim, "w", r_der, "_31", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_w   = make_ddy(r_prim, "w", r_der, "_32", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_w   = make_ddz(r_prim, "w", r_der, "_33", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
 
 local r_aux   = regentlib.newsymbol(region(ispace(int3d), auxiliary), "r_aux")
 local r_der   = regentlib.newsymbol(region(ispace(int3d), vect),    "r_der")
 
-local ddx_T   = make_ddx(r_aux, "T", r_der, "_1", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddy_T   = make_ddy(r_aux, "T", r_der, "_2", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddz_T   = make_ddz(r_aux, "T", r_der, "_3", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
+local ddx_T   = make_ddx(r_aux, "T", r_der, "_1", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_T   = make_ddy(r_aux, "T", r_der, "_2", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_T   = make_ddz(r_aux, "T", r_der, "_3", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
 
 -----------------------------------------------------
 
@@ -189,7 +193,7 @@ do
   if (nx >= 8) then
     WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, alpha_l, beta_l, gamma_l,
                           alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
-    -- positivity_enforcer_x( r_prim_c, r_prim_l_x, r_prim_r_x, Nx, Ny, Nz )
+    positivity_enforcer_x( r_prim_c, r_prim_l_x, r_prim_r_x, interpolation.n_ghosts )
     HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
     get_xfluxes_r( r_prim_c, r_flux_c )
    
@@ -285,7 +289,7 @@ do
   if (ny >= 8) then
     WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y, alpha_l, beta_l, gamma_l,
                           alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
-    -- positivity_enforcer_y( r_prim_c, r_prim_l_y, r_prim_r_y, Nx, Ny, Nz )
+    positivity_enforcer_y( r_prim_c, r_prim_l_y, r_prim_r_y, interpolation.n_ghosts )
     HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
     get_yfluxes_r( r_prim_c, r_flux_c )
     
@@ -380,7 +384,7 @@ do
   if (nz >= 8) then
     WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z, alpha_l, beta_l, gamma_l,
                           alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
-    -- positivity_enforcer_z( r_prim_c, r_prim_l_z, r_prim_r_z, Nx, Ny, Nz )
+    positivity_enforcer_z( r_prim_c, r_prim_l_z, r_prim_r_z, interpolation.n_ghosts )
     HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
     get_zfluxes_r( r_prim_c, r_flux_c )
 
@@ -487,7 +491,7 @@ task get_velocity_x_derivatives( r_prim_c : region(ispace(int3d), primitive),
 where
   reads (r_prim_c.{u, v, w}, LU_x), reads writes (r_gradu.{_11, _21, _31})
 do
-  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+  var nx = r_gradu.ispace.bounds.hi.x - r_gradu.ispace.bounds.lo.x + 1
 
   var token = 1
   if (nx < 8) then
@@ -512,7 +516,7 @@ task get_velocity_y_derivatives( r_prim_c : region(ispace(int3d), primitive),
 where
   reads (r_prim_c.{u, v, w}, LU_y), reads writes (r_gradu.{_12, _22, _32})
 do
-  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+  var ny = r_gradu.ispace.bounds.hi.y - r_gradu.ispace.bounds.lo.y + 1
 
   var token = 1
   if (ny < 8) then
@@ -537,7 +541,7 @@ task get_velocity_z_derivatives( r_prim_c : region(ispace(int3d), primitive),
 where
   reads (r_prim_c.{u, v, w}, LU_z), reads writes (r_gradu.{_13, _23, _33})
 do
-  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+  var nz = r_gradu.ispace.bounds.hi.z - r_gradu.ispace.bounds.lo.z + 1
 
   var token = 1
   if (nz < 8) then

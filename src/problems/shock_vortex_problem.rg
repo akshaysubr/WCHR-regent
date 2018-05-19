@@ -10,23 +10,50 @@ local problem = {}
 
 -- Problem specific parameters
 problem.gamma    = 1.4
+problem.Rgas  = 1.0
+problem.viscous = false
+
 problem.x_shock  = 0.
 problem.M_v      = 1.
 problem.x_vortex = 4.
 problem.y_vortex = 0.
 problem.R_vortex = 1.
 
+local Mach    = 1.2
+
+local rho_pre = 1.0
+local p_pre   = 1.0 / problem.gamma
+local u_pre   = - Mach * math.sqrt( problem.gamma * p_pre / rho_pre )
+
+local rho_post = rho_pre * (problem.gamma + 1.)*Mach*Mach / ( 2. + (problem.gamma - 1)*Mach*Mach )
+local u_post   = rho_pre * u_pre / rho_post
+local p_post   = p_pre * ( 1. + 2*problem.gamma/(problem.gamma+1) * (Mach*Mach - 1.) )
+
 -- Grid dimensions
-problem.NX = 1024
+problem.NX = 512
 problem.NY = 512
 problem.NZ = 1
 
+-- Periodicity
+problem.periodic_x = false
+problem.periodic_y = true
+problem.periodic_z = true
+
+-- Boundary (if not periodic)
+-- condition: DIRICHLET, EXTRAPOLATION, SUBSONIC_INFLOW, SUBSONIC_OUTFLOW
+problem.boundary_l_x = { condition="DIRICHLET", rho=rho_post, u=u_post, v=0., w=0., p=p_post }
+problem.boundary_r_x = { condition="DIRICHLET", rho=rho_pre,  u=u_pre,  v=0., w=0., p=p_pre  }
+problem.boundary_l_y = { condition="EXTRAPOLATION", rho=1., u=0., v=0., w=0., p=1. }
+problem.boundary_r_y = { condition="EXTRAPOLATION", rho=1., u=0., v=0., w=0., p=1. }
+problem.boundary_l_z = { condition="EXTRAPOLATION", rho=1., u=0., v=0., w=0., p=1. }
+problem.boundary_r_z = { condition="EXTRAPOLATION", rho=1., u=0., v=0., w=0., p=1. }
+
 -- Domain size
-problem.LX = 80.
+problem.LX = 40.
 problem.LY = 40.
 problem.LZ = 1.0
 
-problem.X1 = -40.
+problem.X1 = -30.
 problem.Y1 = -20.
 problem.Z1 = -0.5
 
@@ -48,20 +75,11 @@ task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
                          dx         : double,
                          dy         : double,
-                         dz         : double )
+                         dz         : double,
+                         n_ghosts   : int64 )
 where
   reads writes(coords, r_prim_c)
 do
-  var Mach    : double = 1.2
-
-  var rho_pre : double = 1.0
-  var p_pre   : double = 1.0 / problem.gamma
-  var u_pre   : double = - Mach * cmath.sqrt( problem.gamma * p_pre / rho_pre )
-
-  var rho_post : double = rho_pre * (problem.gamma + 1.)*Mach*Mach / ( 2. + (problem.gamma - 1)*Mach*Mach )
-  var u_post   : double = rho_pre * u_pre / rho_post
-  var p_post   : double = p_pre * ( 1. + 2*problem.gamma/(problem.gamma+1) * (Mach*Mach - 1.) )
-
   c.printf("======================\n")
   c.printf("Pre-shock state:\n")
   c.printf("    rho = %g\n", rho_pre)
@@ -74,9 +92,10 @@ do
   c.printf("======================\n\n")
 
   for i in coords.ispace do
-    coords[i].x_c = problem.X1 + (i.x + 0.5) * dx
-    coords[i].y_c = problem.Y1 + (i.y + 0.5) * dy
-    coords[i].z_c = problem.Z1 + (i.z + 0.5) * dz
+    var idx = int3d {x = i.x - n_ghosts, y = i.y - n_ghosts, z = i.z - n_ghosts}
+    coords[i].x_c = problem.X1 + (idx.x + 0.5) * dx
+    coords[i].y_c = problem.Y1 + (idx.y + 0.5) * dy
+    coords[i].z_c = problem.Z1 + (idx.z + 0.5) * dz
 
     if coords[i].x_c <= problem.x_shock then
       r_prim_c[i].rho = rho_post
@@ -102,6 +121,19 @@ do
   end
 
   return 1
+end
+
+task problem.get_transport_coeffs( r_prim : region(ispace(int3d), primitive),
+                                   r_aux  : region(ispace(int3d), auxiliary),
+                                   r_visc : region(ispace(int3d), transport_coeffs) )
+where
+  reads(r_prim.{}, r_aux.T), writes(r_visc)
+do
+  for i in r_visc do
+    r_visc[i].mu_s  = 0.
+    r_visc[i].mu_b  = 0.
+    r_visc[i].kappa = 0.
+  end
 end
 
 task problem.get_errors( coords     : region(ispace(int3d), coordinates),

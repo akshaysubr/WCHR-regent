@@ -1,1 +1,1 @@
-problems/taylorgreen_problem.rg
+problems/advection_boundary_1D_z.rg

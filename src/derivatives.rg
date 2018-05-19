@@ -10,6 +10,31 @@ a06d1 = ( 14.0/ 9.0)/2.0
 b06d1 = (  1.0/ 9.0)/4.0
 c06d1 = (  0.0/100.0)/6.0
 
+alpha06d1_1   =  3.
+p06d1_1       = 17. / 6.
+q06d1_1       =  3. / 2.
+r06d1_1       =  3. / 2.
+s06d1_1       = -1. / 6. 
+
+q06d1_2       = 3./4.
+alpha06d1_2   = 1./4.
+
+alpha06d1_2 = ((40*alpha06d1 - 1)*q06d1_1  + 7*(4*alpha06d1 -  1)*s06d1_1)/(16*(alpha06d1 + 2)*q06d1_1 + 8*(1 -  4*alpha06d1)*s06d1_1)
+q06d1_2     = (1./3.)*(alpha06d1_2 + 2)
+r06d1_2     = (1./12.)*(4*alpha06d1_2 - 1)
+s06d1_2     =  0.
+
+w06d1_1 = (2*alpha06d1 + 1)/(2*(q06d1_1 + s06d1_1))
+w06d1_2 = ((8*alpha06d1 + 7)*q06d1_1 - 6*(2*alpha06d1 + 1)*r06d1_1 + (8*alpha06d1 + 7)*s06d1_1)/(9*(q06d1_1 + s06d1_1))
+w06d1_3 = (4*(alpha06d1 + 2)*q06d1_1 + 2*(1 - 4*alpha06d1)*s06d1_1) / (9*(q06d1_1 + s06d1_1))
+
+
+alpha06d2 = 2.0/11.0
+beta06d2  = 0.0
+a06d2 = ( 12.0/ 11.0)/1.0
+b06d2 = (  3.0/ 11.0)/4.0
+c06d2 = (  0.0/100.0)/6.0
+
 -- Compact MND finite difference
 -- alpha06MND = -1.0/12.0
 -- beta06MND  = 0.0
@@ -40,6 +65,36 @@ h06MND_LB = (40./31.) * ( -361./9600.)
 -- b06MND = (-3.0/10.0)
 -- c06MND = (1.0)/30.0
 
+function poff_wg(i, x, y, z, Nx, Ny, Nz)
+  return rexpr int3d { x = (i.x - ip.n_ghosts + x + Nx)%Nx + ip.n_ghosts, y = (i.y - ip.n_ghosts + y + Ny)%Ny + ip.n_ghosts, z = (i.z - ip.n_ghosts + z + Nz)%Nz + ip.n_ghosts } end
+end
+
+task get_compact_matrix(mat      : region(ispace(int3d), LU_coeffs),
+                        periodic : bool)
+where
+  writes(mat)
+do
+  var N = mat.ispace.bounds.hi.x + 1
+
+  for i in mat do
+    mat[i].e = beta06d1
+    mat[i].a = alpha06d1
+    mat[i].d = 1.0
+    mat[i].c = alpha06d1
+    mat[i].f = beta06d1
+
+    -- Assuming tridiagonal :P
+    if ((not periodic) and (i.x == 0)) then
+      mat[i].e = 0.0
+      mat[i].a = 0.0
+    elseif ((not periodic) and (i.x == N-1)) then
+      mat[i].c = 0.0
+      mat[i].f = 0.0
+    end
+  end
+
+end
+
 task get_MND_matrix(mat      : region(ispace(int3d), LU_coeffs),
                     periodic : bool)
 where
@@ -57,7 +112,7 @@ do
     if ((not periodic) and (i.x == 0)) then
       mat[i].e = 0.0
       mat[i].a = 0.0
-    elseif ((not periodic) and (i.x == 0)) then
+    elseif ((not periodic) and (i.x == N-1)) then
       mat[i].c = 0.0
       mat[i].f = 0.0
     end
@@ -159,52 +214,66 @@ do
   return 1
 end
 
-local function make_stencil_pattern(points, f, index, a, b, c, Nx, Ny, Nz, onebydx, dir, der)
+local function make_stencil_pattern(points, f, index, nx, ny, nz, onebydx, dir, der)
   local value
+
+  local a = a06d1
+  local b = b06d1
+  local c = c06d1
+
+  if der == 1 then
+    a = a06d1
+    b = b06d1
+    c = c06d1
+  elseif der == 2 then
+    a = a06d2
+    b = b06d2
+    c = c06d2
+  end
 
   if dir == 0 then      -- x direction stencil
     if der == 1 then
-      value = rexpr       - c*points[ [poff(index, -3, 0, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value - b*points[ [poff(index, -2, 0, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value - a*points[ [poff(index, -1, 0, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + a*points[ [poff(index,  1, 0, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + b*points[ [poff(index,  2, 0, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + c*points[ [poff(index,  3, 0, 0, Nx, Ny, Nz)] ].[f] end
+      value = rexpr       - c*points[ [poff_wg(index,-3, 0, 0, nx, ny, nz)] ].[f] end
+      value = rexpr value - b*points[ [poff_wg(index,-2, 0, 0, nx, ny, nz)] ].[f] end
+      value = rexpr value - a*points[ [poff_wg(index,-1, 0, 0, nx, ny, nz)] ].[f] end
+      value = rexpr value + a*points[ [poff_wg(index, 1, 0, 0, nx, ny, nz)] ].[f] end
+      value = rexpr value + b*points[ [poff_wg(index, 2, 0, 0, nx, ny, nz)] ].[f] end
+      value = rexpr value + c*points[ [poff_wg(index, 3, 0, 0, nx, ny, nz)] ].[f] end
       value = rexpr onebydx * ( value ) end
     elseif der == 2 then
-      value = rexpr         a*( points[ [poff(index, -1, 0, 0, Nx, Ny, Nz)] ].[f] - 2.0*points[ index ].[f] + points[ [poff(index, 1, 0, 0, Nx, Ny, Nz)] ].[f] ) end
-      value = rexpr value + b*( points[ [poff(index, -2, 0, 0, Nx, Ny, Nz)] ].[f] - 2.0*points[ index ].[f] + points[ [poff(index, 2, 0, 0, Nx, Ny, Nz)] ].[f] ) end
-      value = rexpr value + c*( points[ [poff(index, -3, 0, 0, Nx, Ny, Nz)] ].[f] - 2.0*points[ index ].[f] + points[ [poff(index, 3, 0, 0, Nx, Ny, Nz)] ].[f] ) end
+      value = rexpr         a*( points[ [poff_wg(index,-1,0,0,nx,ny,nz)] ].[f] - 2.0*points[index].[f] + points[ [poff_wg(index,1,0,0,nx,ny,nz)] ].[f] ) end
+      value = rexpr value + b*( points[ [poff_wg(index,-2,0,0,nx,ny,nz)] ].[f] - 2.0*points[index].[f] + points[ [poff_wg(index,2,0,0,nx,ny,nz)] ].[f] ) end
+      value = rexpr value + c*( points[ [poff_wg(index,-3,0,0,nx,ny,nz)] ].[f] - 2.0*points[index].[f] + points[ [poff_wg(index,3,0,0,nx,ny,nz)] ].[f] ) end
       value = rexpr onebydx*onebydx * (value) end
     end
   elseif dir == 1 then  -- y direction stencil
     if der == 1 then
-      value = rexpr       - c*points[ [poff(index, 0, -3, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value - b*points[ [poff(index, 0, -2, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value - a*points[ [poff(index, 0, -1, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + a*points[ [poff(index, 0,  1, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + b*points[ [poff(index, 0,  2, 0, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + c*points[ [poff(index, 0,  3, 0, Nx, Ny, Nz)] ].[f] end
+      value = rexpr       - c*points[ [poff_wg(index, 0,-3, 0, nx, ny, nz)] ].[f] end
+      value = rexpr value - b*points[ [poff_wg(index, 0,-2, 0, nx, ny, nz)] ].[f] end
+      value = rexpr value - a*points[ [poff_wg(index, 0,-1, 0, nx, ny, nz)] ].[f] end
+      value = rexpr value + a*points[ [poff_wg(index, 0, 1, 0, nx, ny, nz)] ].[f] end
+      value = rexpr value + b*points[ [poff_wg(index, 0, 2, 0, nx, ny, nz)] ].[f] end
+      value = rexpr value + c*points[ [poff_wg(index, 0, 3, 0, nx, ny, nz)] ].[f] end
       value = rexpr onebydx * ( value ) end
     elseif der == 2 then
-      value = rexpr         a*( points[ [poff(index, 0, -1, 0, Nx, Ny, Nz)] ].[f] - 2.0*points[ index ].[f] + points[ [poff(index, 0, 1, 0, Nx, Ny, Nz)] ].[f] ) end
-      value = rexpr value + b*( points[ [poff(index, 0, -2, 0, Nx, Ny, Nz)] ].[f] - 2.0*points[ index ].[f] + points[ [poff(index, 0, 2, 0, Nx, Ny, Nz)] ].[f] ) end
-      value = rexpr value + c*( points[ [poff(index, 0, -3, 0, Nx, Ny, Nz)] ].[f] - 2.0*points[ index ].[f] + points[ [poff(index, 0, 3, 0, Nx, Ny, Nz)] ].[f] ) end
+      value = rexpr         a*( points[ [poff_wg(index,0,-1,0,nx,ny,nz)] ].[f] - 2.0*points[index].[f] + points[ [poff_wg(index,0,1,0,nx,ny,nz)] ].[f] ) end
+      value = rexpr value + b*( points[ [poff_wg(index,0,-2,0,nx,ny,nz)] ].[f] - 2.0*points[index].[f] + points[ [poff_wg(index,0,2,0,nx,ny,nz)] ].[f] ) end
+      value = rexpr value + c*( points[ [poff_wg(index,0,-3,0,nx,ny,nz)] ].[f] - 2.0*points[index].[f] + points[ [poff_wg(index,0,3,0,nx,ny,nz)] ].[f] ) end
       value = rexpr onebydx*onebydx * (value) end
     end
   elseif dir == 2 then  -- z direction stencil
     if der == 1 then
-      value = rexpr       - c*points[ [poff(index, 0, 0, -3, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value - b*points[ [poff(index, 0, 0, -2, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value - a*points[ [poff(index, 0, 0, -1, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + a*points[ [poff(index, 0, 0,  1, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + b*points[ [poff(index, 0, 0,  2, Nx, Ny, Nz)] ].[f] end
-      value = rexpr value + c*points[ [poff(index, 0, 0,  3, Nx, Ny, Nz)] ].[f] end
+      value = rexpr       - c*points[ [poff_wg(index, 0, 0,-3, nx, ny, nz)] ].[f] end
+      value = rexpr value - b*points[ [poff_wg(index, 0, 0,-2, nx, ny, nz)] ].[f] end
+      value = rexpr value - a*points[ [poff_wg(index, 0, 0,-1, nx, ny, nz)] ].[f] end
+      value = rexpr value + a*points[ [poff_wg(index, 0, 0, 1, nx, ny, nz)] ].[f] end
+      value = rexpr value + b*points[ [poff_wg(index, 0, 0, 2, nx, ny, nz)] ].[f] end
+      value = rexpr value + c*points[ [poff_wg(index, 0, 0, 3, nx, ny, nz)] ].[f] end
       value = rexpr onebydx * ( value ) end
     elseif der == 2 then
-      value = rexpr         a*( points[ [poff(index, 0, 0, -1, Nx, Ny, Nz)] ].[f] - 2.0*points[ index ].[f] + points[ [poff(index, 0, 0, 1, Nx, Ny, Nz)] ].[f] ) end
-      value = rexpr value + b*( points[ [poff(index, 0, 0, -2, Nx, Ny, Nz)] ].[f] - 2.0*points[ index ].[f] + points[ [poff(index, 0, 0, 2, Nx, Ny, Nz)] ].[f] ) end
-      value = rexpr value + c*( points[ [poff(index, 0, 0, -3, Nx, Ny, Nz)] ].[f] - 2.0*points[ index ].[f] + points[ [poff(index, 0, 0, 3, Nx, Ny, Nz)] ].[f] ) end
+      value = rexpr         a*( points[ [poff_wg(index,0,0,-1,nx,ny,nz)] ].[f] - 2.0*points[index].[f] + points[ [poff_wg(index,0,0,1,nx,ny,nz)] ].[f] ) end
+      value = rexpr value + b*( points[ [poff_wg(index,0,0,-2,nx,ny,nz)] ].[f] - 2.0*points[index].[f] + points[ [poff_wg(index,0,0,2,nx,ny,nz)] ].[f] ) end
+      value = rexpr value + c*( points[ [poff_wg(index,0,0,-3,nx,ny,nz)] ].[f] - 2.0*points[index].[f] + points[ [poff_wg(index,0,0,3,nx,ny,nz)] ].[f] ) end
       value = rexpr onebydx*onebydx * (value) end
     end
   end
@@ -229,7 +298,9 @@ local function make_stencil_pattern_MND_interior(points_c, points_e, f, index, N
       else
         Ne = Nx+1
       end
-      print(Ne)
+      print("X direction Ne = ", Ne)
+      print("X direction periodic = ", periodic)
+      print(type(periodic))
 
       value = rexpr       - b*points_c[ int3d {index.x-1, index.y, index.z} ].[f] end
       value = rexpr value + b*points_c[ int3d {index.x+1, index.y, index.z} ].[f] end
@@ -379,19 +450,20 @@ local function make_stencil_pattern_MND_RB(points_c, points_e, fs, index, onebyd
   return value
 end
 
-local function make_stencil(r1, privileges_r1, f1, r2, privileges_r2, f2, Nx, Ny, Nz, onebydx, a, b, c, dir, der)
+local function make_stencil(r1, privileges_r1, f1, r2, privileges_r2, f2, nx, ny, nz, onebydx, dir, der)
   local rhs __demand(__inline) task rhs( [r1], [r2] )
   where
     [privileges_r1], [privileges_r2]
   do
     for i in r2 do
-      [r2][i].[f2] = [make_stencil_pattern(r1, f1, i, a, b, c, Nx, Ny, Nz, onebydx, dir, der)]
+      [r2][i].[f2] = [make_stencil_pattern(r1, f1, i, nx, ny, nz, onebydx, dir, der)]
     end
   end
   return rhs
 end
 
 local function make_stencil_MND(r1, privileges_r1, f1, r2, privileges_r2, r3, privileges_r3, f3, Nx, Ny, Nz, onebydx, dir, der, periodic)
+  print('make_stencil_MND, periodic = ', periodic)
 
   local rhs __demand(__inline) task rhs( [r1], [r2], [r3] )
   where
@@ -412,7 +484,7 @@ local function make_stencil_MND(r1, privileges_r1, f1, r2, privileges_r2, r3, pr
       elseif ((not periodic) and (idir == Nx+ip.n_ghosts-1)) then
         [r3][i].[f3] = [make_stencil_pattern_MND_RB(r1, r2, f1, i, onebydx, dir)]
       else
-        [r3][i].[f3] = [make_stencil_pattern_MND_interior(r1, r2, f1, i, Nx, Ny, Nz, onebydx, dir, der, periodic)]
+        [r3][i].[f3] = [make_stencil_pattern_MND_interior(r1, r2, f1, i, Nx, Ny, Nz, onebydx, dir, periodic)]
       end
 
     end
@@ -553,14 +625,14 @@ local function make_SolveZLU(r, privileges_r, f)
   return SolveZLU
 end
 
-function make_ddx(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
+function make_ddx(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX)
   local privileges_r_func = regentlib.privilege(regentlib.reads,  r_func, f_func)
   
   local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
   local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
   local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
 
-  local ComputeXRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 0, 1)
+  local ComputeXRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, 0, 1)
   local SolveXLU     = make_SolveXLU(r_der, privileges_r_der, f_der)
 
   local ddx __demand(__inline) task ddx( [r_func],
@@ -577,14 +649,14 @@ function make_ddx(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
   return ddx
 end
 
-function make_ddy(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
+function make_ddy(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX)
   local privileges_r_func = regentlib.privilege(regentlib.reads,  r_func, f_func)
   
   local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
   local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
   local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
 
-  local ComputeYRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 1, 1)
+  local ComputeYRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, 1, 1)
   local SolveYLU     = make_SolveYLU(r_der, privileges_r_der, f_der)
 
   local ddy __demand(__inline) task ddy( [r_func],
@@ -601,14 +673,14 @@ function make_ddy(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
   return ddy
 end
 
-function make_ddz(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c)
+function make_ddz(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX)
   local privileges_r_func = regentlib.privilege(regentlib.reads,  r_func, f_func)
   
   local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
   local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
   local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
 
-  local ComputeZRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, a, b, c, 2, 1)
+  local ComputeZRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, 2, 1)
   local SolveZLU     = make_SolveZLU(r_der, privileges_r_der, f_der)
 
   local ddz __demand(__inline) task ddz( [r_func],
@@ -629,6 +701,7 @@ function make_ddx_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYD
   local privileges_r_func   = regentlib.privilege(regentlib.reads,  r_func,   f_func)
   local privileges_r_func_e = regentlib.privilege(regentlib.reads,  r_func_e, f_func)
   
+  print("make_ddx_MND, periodic = ", periodic)
   local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
   local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
   local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})

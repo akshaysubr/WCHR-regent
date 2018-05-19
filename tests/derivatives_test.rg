@@ -38,11 +38,11 @@ local periodic_z = true
 
 -- Make the node and midpoint-node differencing tasks (Using pentadiagonal solver for this instead of tridiagonal solver)
 require("derivatives")
-local alpha10d1 = 1.0/3.0
-local beta10d1  = 0.0
-local a06d1 = ( 14.0/ 9.0)/2.0
-local b06d1 = (  1.0/ 9.0)/4.0
-local c06d1 = (  0.0/100.0)/6.0
+-- local alpha10d1 = 1.0/3.0
+-- local beta10d1  = 0.0
+-- local a06d1 = ( 14.0/ 9.0)/2.0
+-- local b06d1 = (  1.0/ 9.0)/4.0
+-- local c06d1 = (  0.0/100.0)/6.0
 
 -- Compact MND finite difference
 -- local alpha06MND = -1.0/12.0
@@ -52,19 +52,19 @@ local c06d1 = (  0.0/100.0)/6.0
 -- local c06MND = (0.0)/3.0
 
 -- Compact staggered finite difference
-local alpha06MND = 9.0/62.0
-local beta06MND  = 0.0
-local a06MND = 63.0/62.0
-local b06MND = (0.0/18.0)/2.0
-local c06MND = (17.0/62.0)/3.0
+-- local alpha06MND = 9.0/62.0
+-- local beta06MND  = 0.0
+-- local a06MND = 63.0/62.0
+-- local b06MND = (0.0/18.0)/2.0
+-- local c06MND = (17.0/62.0)/3.0
 
 local r_prim       = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim")
 local r_prim_e     = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim_e")
 local r_derivative = regentlib.newsymbol(region(ispace(int3d), primitive), "r_derivative")
 
--- local ddx     = make_ddx(r_prim, "rho", r_derivative, "rho", NX, NY, NZ, ONEBYDX, a06d1, b06d1, c06d1)
--- local ddy     = make_ddy(r_prim, "rho", r_derivative, "rho", NX, NY, NZ, ONEBYDX, a06d1, b06d1, c06d1)
--- local ddz     = make_ddz(r_prim, "rho", r_derivative, "rho", NX, NY, NZ, ONEBYDX, a06d1, b06d1, c06d1)
+local ddx     = make_ddx(r_prim, "rho", r_derivative, "rho", NX, NY, NZ, ONEBYDX)
+local ddy     = make_ddy(r_prim, "rho", r_derivative, "rho", NX, NY, NZ, ONEBYDY)
+local ddz     = make_ddz(r_prim, "rho", r_derivative, "rho", NX, NY, NZ, ONEBYDZ)
 
 local ddx_MND = make_ddx_MND(r_prim, r_prim_e, "rho", r_derivative, "rho", NX, NY, NZ, ONEBYDX, periodic_x)
 local ddy_MND = make_ddy_MND(r_prim, r_prim_e, "rho", r_derivative, "rho", NX, NY, NZ, ONEBYDY, periodic_y)
@@ -270,34 +270,52 @@ task main()
 
   var err = 0.0
 
-  -- fill(r_der.rho, 0.0)
-  -- get_derivative_matrix(mat_x, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
-  -- get_LU_decomposition(LU_x, mat_x)
-  -- token += ddx(r_prim_c, r_der, LU_x)
-  -- wait_for(token)
-  -- err = check_ddx(coords, r_der)
-  -- c.printf("Error in ddx     = %g\n", err)
-  -- regentlib.assert( err <= 1.e-9, "Derivative test failed for task ddx")
+  fill(r_der.rho, 0.0)
+  for i in pencil_interior do
+    get_compact_matrix(p_mat_x[i], periodic_x)
+    get_LU_decomposition(p_LU_x[i], p_mat_x[i])
+  end
+  for i in pencil_interior do
+    token += ddx(p_prim_c_x[i], p_der_x[i], p_LU_x[i])
+  end
+  wait_for(token)
+  for i in pencil_interior do
+    err = check_ddx(p_coords_x[i], p_der_x[i])
+  end
+  c.printf("Error in ddx     = %g\n", err)
+  regentlib.assert( err <= 1.e-9, "Derivative test failed for task ddx")
 
-  -- fill(r_der.rho, 0.0)
-  -- get_derivative_matrix(mat_y, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
-  -- get_LU_decomposition(LU_y, mat_y)
-  -- token += ddy(r_prim_c, r_der, LU_y)
-  -- wait_for(token)
-  -- err = check_ddy(coords, r_der)
-  -- c.printf("Error in ddy     = %g\n", err)
-  -- regentlib.assert( err <= 1.e-9, "Derivative test failed for task ddy")
+  fill(r_der.rho, 0.0)
+  for i in pencil_interior do
+    get_compact_matrix(p_mat_y[i], periodic_y)
+    get_LU_decomposition(p_LU_y[i], p_mat_y[i])
+  end
+  for i in pencil_interior do
+    token += ddy(p_prim_c_y[i], p_der_y[i], p_LU_y[i])
+  end
+  wait_for(token)
+  for i in pencil_interior do
+    err = check_ddy(p_coords_y[i], p_der_y[i])
+  end
+  c.printf("Error in ddy     = %g\n", err)
+  regentlib.assert( err <= 1.e-9, "Derivative test failed for task ddy")
 
-  -- fill(r_der.rho, 0.0)
-  -- get_derivative_matrix(mat_z, beta10d1, alpha10d1, 1.0, alpha10d1, beta10d1)
-  -- get_LU_decomposition(LU_z, mat_z)
-  -- token += ddz(r_prim_c, r_der, LU_z)
-  -- wait_for(token)
-  -- err = check_ddz(coords, r_der)
-  -- c.printf("Error in ddz     = %g\n", err)
-  -- regentlib.assert( err <= 1.e-9, "Derivative test failed for task ddz")
+  fill(r_der.rho, 0.0)
+  for i in pencil_interior do
+    get_compact_matrix(p_mat_z[i], periodic_z)
+    get_LU_decomposition(p_LU_z[i], p_mat_z[i])
+  end
+  for i in pencil_interior do
+    token += ddz(p_prim_c_z[i], p_der_z[i], p_LU_z[i])
+  end
+  wait_for(token)
+  for i in pencil_interior do
+    err = check_ddz(p_coords_z[i], p_der_z[i])
+  end
+  c.printf("Error in ddz     = %g\n", err)
+  regentlib.assert( err <= 1.e-9, "Derivative test failed for task ddz")
 
-  -- c.printf("\n")
+  c.printf("\n")
 
   fill(r_der.rho, 0.0)
   for i in pencil_interior do

@@ -354,45 +354,57 @@ task main()
 
   var token : int = 0
 
-  -- Initialize derivatives stuff.
+  -- Initialize MND derivatives stuff.
   __demand(__parallel)
-  for i in pencil do
+  for i in pencil_interior do
     get_MND_matrix(p_mat_x[i], problem.periodic_x)
   end
   __demand(__parallel)
-  for i in pencil do
+  for i in pencil_interior do
     get_MND_matrix(p_mat_y[i], problem.periodic_y)
   end
   __demand(__parallel)
-  for i in pencil do
+  for i in pencil_interior do
     get_MND_matrix(p_mat_z[i], problem.periodic_z)
   end
 
   __demand(__parallel)
-  for i in pencil do
+  for i in pencil_interior do
     token += get_LU_decomposition(p_LU_x[i], p_mat_x[i])
   end
   __demand(__parallel)
-  for i in pencil do
+  for i in pencil_interior do
     token += get_LU_decomposition(p_LU_y[i], p_mat_y[i])
   end
   __demand(__parallel)
-  for i in pencil do
+  for i in pencil_interior do
     token += get_LU_decomposition(p_LU_z[i], p_mat_z[i])
   end
 
-  -- TODO: Initialize nodal derivative matrices
+  -- Initialize nodal derivatives stuff
+  __demand(__parallel)
+  for i in pencil_interior do
+    get_compact_matrix(p_mat_N_x[i], problem.periodic_x)
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    get_compact_matrix(p_mat_N_y[i], problem.periodic_y)
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    get_compact_matrix(p_mat_N_z[i], problem.periodic_z)
+  end
 
   __demand(__parallel)
-  for i in pencil do
+  for i in pencil_interior do
     token += get_LU_decomposition(p_LU_N_x[i], p_mat_N_x[i])
   end
   __demand(__parallel)
-  for i in pencil do
+  for i in pencil_interior do
     token += get_LU_decomposition(p_LU_N_y[i], p_mat_N_y[i])
   end
   __demand(__parallel)
-  for i in pencil do
+  for i in pencil_interior do
     token += get_LU_decomposition(p_LU_N_z[i], p_mat_N_z[i])
   end
   wait_for(token)
@@ -403,14 +415,14 @@ task main()
     c.printf("Restarting using viz dump\n")
     __demand(__parallel)
     for i in pencil_interior do
-      read_coords(p_coords_y[i], config.filename_prefix, i)
+      read_coords(p_coords_y[i], config.filename_prefix, n_ghosts, i)
     end
     c.printf("Finished reading in coords\n")
 
     vizcount = config.restart_count
     __demand(__parallel)
     for i in pencil_interior do
-      read_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, i)
+      read_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, n_ghosts, i)
     end
     c.printf("Finished restarting using viz dump %d\n", vizcount)
     tsim = tviz*vizcount
@@ -425,17 +437,35 @@ task main()
     c.printf("Finished initialization\n")
   end
 
+  -- Fill ghost cells in non-periodic directions first
+  if not problem.periodic_x then
+    __demand(__parallel)
+    for i in pencil_interior do
+      -- Fill in ghost cells
+      nonperiodic_ghost_cells_x(p_prim_c_x_wg[i], n_ghosts)
+    end
+  end
+  if not problem.periodic_y then
+    __demand(__parallel)
+    for i in pencil_interior do
+      -- Fill in ghost cells
+      nonperiodic_ghost_cells_y(p_prim_c_y_wg[i], n_ghosts)
+    end
+  end
+  if not problem.periodic_z then
+    __demand(__parallel)
+    for i in pencil_interior do
+      -- Fill in ghost cells
+      nonperiodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
+    end
+  end
+
+  -- Fill ghost cells in periodic directions next
   if problem.periodic_x then
     __demand(__parallel)
     for i in pencil_interior do
       -- Fill in ghost cells
       periodic_ghost_cells_x(p_prim_c_x_wg[i], n_ghosts)
-    end
-  else
-    __demand(__parallel)
-    for i in pencil_interior do
-      -- Fill in ghost cells
-      nonperiodic_ghost_cells_x(p_prim_c_x_wg[i], n_ghosts)
     end
   end
   if problem.periodic_y then
@@ -444,24 +474,12 @@ task main()
       -- Fill in ghost cells
       periodic_ghost_cells_y(p_prim_c_y_wg[i], n_ghosts)
     end
-  else
-    __demand(__parallel)
-    for i in pencil_interior do
-      -- Fill in ghost cells
-      nonperiodic_ghost_cells_y(p_prim_c_y_wg[i], n_ghosts)
-    end
   end
   if problem.periodic_z then
     __demand(__parallel)
     for i in pencil_interior do
       -- Fill in ghost cells
       periodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
-    end
-  else
-    __demand(__parallel)
-    for i in pencil_interior do
-      -- Fill in ghost cells
-      nonperiodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
     end
   end
 
@@ -510,7 +528,7 @@ task main()
   if (use_io and (not config.restart)) then
     __demand(__parallel)
     for i in pencil_interior do
-      IOtoken += write_coords(p_coords_y[i], config.filename_prefix, i)
+      IOtoken += write_coords(p_coords_y[i], config.filename_prefix, n_ghosts, i)
     end
   end
   
@@ -536,7 +554,7 @@ task main()
     wait_for(IOtoken)
     __demand(__parallel)
     for i in pencil_interior do
-      IOtoken += write_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, i)
+      IOtoken += write_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, n_ghosts, i)
     end
     vizcount = vizcount + 1
   end
@@ -673,6 +691,30 @@ task main()
         token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
       end
 
+      -- Fill ghost cells in non-periodic directions first
+      if not problem.periodic_x then
+        __demand(__parallel)
+        for i in pencil_interior do
+          -- Fill in ghost cells
+          nonperiodic_ghost_cells_x(p_prim_c_x_wg[i], n_ghosts)
+        end
+      end
+      if not problem.periodic_y then
+        __demand(__parallel)
+        for i in pencil_interior do
+          -- Fill in ghost cells
+          nonperiodic_ghost_cells_y(p_prim_c_y_wg[i], n_ghosts)
+        end
+      end
+      if not problem.periodic_z then
+        __demand(__parallel)
+        for i in pencil_interior do
+          -- Fill in ghost cells
+          nonperiodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
+        end
+      end
+
+      -- Fill ghost cells in periodic directions next
       if problem.periodic_x then
         __demand(__parallel)
         for i in pencil_interior do
@@ -694,6 +736,7 @@ task main()
           periodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
         end
       end
+
 
       -- Update temperature.
       __demand(__parallel)
@@ -753,7 +796,7 @@ task main()
         wait_for(IOtoken)
         __demand(__parallel)
         for i in pencil_interior do
-          IOtoken += write_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, i)
+          IOtoken += write_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, n_ghosts, i)
         end
         vizcount = vizcount + 1
         vizcond = false
