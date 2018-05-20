@@ -11,8 +11,8 @@ local interpolation = require("interpolation")
 
 -- Grid dimensions
 local NX = 64
-local NY = 64
-local NZ = 64
+local NY = 68
+local NZ = 72
 
 -- Domain size
 local LX = 2.0*math.pi
@@ -91,7 +91,7 @@ do
     coords[i].y_c = Y1 + (i.y - n_ghosts + 0.5) * dy
     coords[i].z_c = Z1 + (i.z - n_ghosts + 0.5) * dz
 
-    r_prim_c[i].rho = cmath.sin(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.cos(coords[i].z_c)
+    r_prim_c[i].rho = cmath.sin(coords[i].x_c) * cmath.sin(coords[i].y_c) * cmath.sin(coords[i].z_c)
   end
 
   for i in r_prim_l_x do
@@ -103,7 +103,7 @@ do
     coords_x[i].y_c = y_c
     coords_x[i].z_c = z_c
 
-    r_prim_l_x[i].rho = cmath.sin(x_c) * cmath.cos(y_c) * cmath.cos(z_c)
+    r_prim_l_x[i].rho = cmath.sin(x_c) * cmath.sin(y_c) * cmath.sin(z_c)
   end
 
   for i in r_prim_l_y do
@@ -115,7 +115,7 @@ do
     coords_y[i].y_c = y_c
     coords_y[i].z_c = z_c
 
-    r_prim_l_y[i].rho = cmath.sin(x_c) * cmath.cos(y_c) * cmath.cos(z_c)
+    r_prim_l_y[i].rho = cmath.sin(x_c) * cmath.sin(y_c) * cmath.sin(z_c)
   end
 
   for i in r_prim_l_z do
@@ -127,7 +127,7 @@ do
     coords_z[i].y_c = y_c
     coords_z[i].z_c = z_c
 
-    r_prim_l_z[i].rho = cmath.sin(x_c) * cmath.cos(y_c) * cmath.cos(z_c)
+    r_prim_l_z[i].rho = cmath.sin(x_c) * cmath.sin(y_c) * cmath.sin(z_c)
   end
 
   return 1
@@ -140,7 +140,7 @@ where
 do
   var err : double = 0.0
   for i in coords.ispace do
-    var err_t : double = cmath.fabs( r_der[i].rho - cmath.cos(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.cos(coords[i].z_c) )
+    var err_t : double = cmath.fabs( r_der[i].rho - cmath.cos(coords[i].x_c) * cmath.sin(coords[i].y_c) * cmath.sin(coords[i].z_c) )
     if err_t > err then
       err = err_t
     end
@@ -155,7 +155,7 @@ where
 do
   var err : double = 0.0
   for i in coords.ispace do
-    var err_t : double = cmath.fabs( r_der[i].rho + cmath.sin(coords[i].x_c) * cmath.sin(coords[i].y_c) * cmath.cos(coords[i].z_c) )
+    var err_t : double = cmath.fabs( r_der[i].rho - cmath.sin(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.sin(coords[i].z_c) )
     if err_t > err then
       err = err_t
     end
@@ -170,7 +170,7 @@ where
 do
   var err : double = 0.0
   for i in coords.ispace do
-    var err_t : double = cmath.fabs( r_der[i].rho + cmath.sin(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.sin(coords[i].z_c) )
+    var err_t : double = cmath.fabs( r_der[i].rho - cmath.sin(coords[i].x_c) * cmath.sin(coords[i].y_c) * cmath.cos(coords[i].z_c) )
     if err_t > err then
       err = err_t
     end

@@ -471,17 +471,21 @@ local function make_stencil_MND(r1, privileges_r1, f1, r2, privileges_r2, r3, pr
   do
     for i in r3.ispace do
       var idir = 0
+      var N = 0
       if (dir == 0) then
         idir = i.x
+        N = Nx
       elseif (dir == 1) then
         idir = i.y
+        N = Ny
       elseif (dir == 2) then
         idir = i.z
+        N = Nz
       end
 
       if ((not periodic) and (idir == ip.n_ghosts) ) then
         [r3][i].[f3] = [make_stencil_pattern_MND_LB(r1, r2, f1, i, onebydx, dir)]
-      elseif ((not periodic) and (idir == Nx+ip.n_ghosts-1)) then
+      elseif ((not periodic) and (idir == N+ip.n_ghosts-1)) then
         [r3][i].[f3] = [make_stencil_pattern_MND_RB(r1, r2, f1, i, onebydx, dir)]
       else
         [r3][i].[f3] = [make_stencil_pattern_MND_interior(r1, r2, f1, i, Nx, Ny, Nz, onebydx, dir, periodic)]
