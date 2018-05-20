@@ -232,17 +232,17 @@ task main()
   c.printf("Time to get the WCHR interpolation: %12.5e\n", (t_WCHR)*1e-6)
 
   var IOtoken = 0
-  IOtoken += write_coords(coords, "interpolation_x_c_", {0,0})
+  IOtoken += write_coords(coords, "interpolation_x_c_", 0, {1,1})
   wait_for(IOtoken)
-  IOtoken += write_coords(coords_x, "interpolation_x_l_", {0,0})
+  IOtoken += write_coords(coords_x, "interpolation_x_l_", 0, {1,1})
   wait_for(IOtoken)
-  IOtoken += write_coords(coords_x, "interpolation_x_r_", {0,0})
+  IOtoken += write_coords(coords_x, "interpolation_x_r_", 0, {1,1})
   wait_for(IOtoken)
-  IOtoken += write_primitive(r_prim_c, "interpolation_x_c_", 0, {0,0})
+  IOtoken += write_primitive(r_prim_c, "interpolation_x_c_", 0, 0, {1,1})
   wait_for(IOtoken)
-  IOtoken += write_primitive(r_prim_l_x, "interpolation_x_l_", 0, {0,0})
+  IOtoken += write_primitive(r_prim_l_x, "interpolation_x_l_", 0, 0, {1,1})
   wait_for(IOtoken)
-  IOtoken += write_primitive(r_prim_r_x, "interpolation_x_r_", 0, {0,0})
+  IOtoken += write_primitive(r_prim_r_x, "interpolation_x_r_", 0, 0, {1,1})
   wait_for(IOtoken)
 end
 
