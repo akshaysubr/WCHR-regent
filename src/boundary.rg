@@ -860,7 +860,7 @@ do
       L_4 = L_4 / (r_prim_c[int_idx].u)
       L_5 = L_5 / (r_prim_c[int_idx].u + sos)
 
-      rho_x = (1./sos*sos) * (0.5*L_1 + L_2 + 0.5*L_5)
+      rho_x = 1./(sos*sos) * (0.5*L_1 + L_2 + 0.5*L_5)
       u_x = (1./(2.*r_prim_c[int_idx].rho*sos)) * (-L_1 + L_5)
       v_x = L_3
       w_x = L_4
@@ -941,7 +941,7 @@ do
       L_3 = L_3 / (r_prim_c[int_idx].u)
       L_4 = L_4 / (r_prim_c[int_idx].u)
 
-      rho_x = (1./sos*sos) * (0.5*L_1 + L_2 + 0.5*L_5)
+      rho_x = 1./(sos*sos) * (0.5*L_1 + L_2 + 0.5*L_5)
       u_x = (1./(2.*r_prim_c[int_idx].rho*sos)) * (-L_1 + L_5)
       v_x = L_3
       w_x = L_4
@@ -1015,7 +1015,7 @@ do
 
       L_5 = L_5 / (r_prim_c[int_idx].u + sos)
 
-      rho_x = (1./sos*sos) * (0.5*L_1 + L_2 + 0.5*L_5)
+      rho_x = 1./(sos*sos) * (0.5*L_1 + L_2 + 0.5*L_5)
       u_x = (1./(2.*r_prim_c[int_idx].rho*sos)) * (-L_1 + L_5)
       v_x = L_3
       w_x = L_4
@@ -1089,7 +1089,7 @@ do
 
       L_1 = L_1 / (r_prim_c[int_idx].u - sos)
 
-      rho_x = (1./sos*sos) * (0.5*L_1 + L_2 + 0.5*L_5)
+      rho_x = 1./(sos*sos) * (0.5*L_1 + L_2 + 0.5*L_5)
       u_x = (1./(2.*r_prim_c[int_idx].rho*sos)) * (-L_1 + L_5)
       v_x = L_3
       w_x = L_4
