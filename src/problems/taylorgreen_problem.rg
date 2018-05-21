@@ -13,12 +13,12 @@ problem.gamma = 1.4
 problem.Rgas  = 1.0
 problem.Re    = 100.
 problem.Pr    = 1.
-problem.viscous = false
+problem.viscous = true
 
 -- Grid dimensions
-problem.NX = 64 
-problem.NY = 64 
-problem.NZ = 64 
+problem.NX = 32 
+problem.NY = 32 
+problem.NZ = 32 
 
 -- Periodicity
 problem.periodic_x = true
@@ -54,7 +54,7 @@ problem.ONEBYDZ = 1.0 / problem.DZ
 
 problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
 problem.dt_or_CFL_num        = 0.6
-problem.tstop                = 0.02
+problem.tstop                = 10.0
 problem.tviz                 = 1.0
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
@@ -88,7 +88,7 @@ where
   reads(r_prim.{}, r_aux.T), writes(r_visc)
 do
   var mu_s  : double = 1. / problem.Re
-  var kappa : double = problem.Pr * (problem.gamma / (problem.gamma - 1.)) * problem.Rgas * mu_s
+  var kappa : double = (problem.gamma / (problem.gamma - 1.)) * problem.Rgas * mu_s / problem.Pr
   for i in r_visc do
     r_visc[i].mu_s  = mu_s
     r_visc[i].mu_b  = 0.
@@ -116,7 +116,7 @@ do
   for i in r_prim_c do
     TKE += 0.5 * r_prim_c[i].rho * (r_prim_c[i].u*r_prim_c[i].u + r_prim_c[i].v*r_prim_c[i].v + r_prim_c[i].w*r_prim_c[i].w)
   end
-  return TKE
+  return TKE * problem.DX * problem.DY * problem.DZ
 end
 
 task problem.enstrophy( r_duidxj : region(ispace(int3d), tensor2) )
@@ -130,7 +130,7 @@ do
     var omega_z : double = r_duidxj[i]._21 - r_duidxj[i]._12
     enstrophy += omega_x*omega_x + omega_y*omega_y + omega_z*omega_z
   end
-  return enstrophy
+  return enstrophy * problem.DX * problem.DY * problem.DZ
 end
 
 return problem

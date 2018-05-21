@@ -1,5 +1,4 @@
 import "regent"
-import "bishop"
 
 local c       = regentlib.c
 local cmath   = terralib.includec("math.h")
@@ -514,14 +513,14 @@ task main()
   end
 
   var enstrophy0 : double = 1.0e-16
-  -- do
-  --   var e : double = 0.0
-  --   __demand(__parallel)
-  --   for i in pencil do
-  --     e += problem.enstrophy( p_gradu_y[i] )
-  --   end
-  --   enstrophy0 = wait_for_double(e)
-  -- end
+  do
+    var e : double = 0.0
+    __demand(__parallel)
+    for i in pencil do
+      e += problem.enstrophy( p_gradu_y[i] )
+    end
+    enstrophy0 = wait_for_double(e)
+  end
   c.printf("TKE, Enstrophy = %g, %g", TKE0, enstrophy0)
 
   var IOtoken = 0
@@ -779,10 +778,10 @@ task main()
       end
 
       var enstrophy : double = 0.0
-      -- __demand(__parallel)
-      -- for i in pencil do
-      --   enstrophy += problem.enstrophy( p_gradu_y[i] )
-      -- end
+      __demand(__parallel)
+      for i in pencil do
+        enstrophy += problem.enstrophy( p_gradu_y[i] )
+      end
 
       do
         var TKE = wait_for_double(TKE)
@@ -843,7 +842,7 @@ if os.getenv('SAVEOBJ') == '1' then
   else
     link_flags = {"-L" .. root_dir, "-lm", "-lblas"}
   end
-  regentlib.saveobj(main, "wchr", "executable", bishoplib.make_entry(), link_flags)
+  regentlib.saveobj(main, "wchr", "executable", nil, link_flags)
 else
   regentlib.start(main)
 end
