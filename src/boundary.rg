@@ -4,6 +4,7 @@ local c     = regentlib.c
 local cmath = terralib.includec("math.h")
 
 require("fields")
+require("EOS")
 
 local problem = require("problem")
 
@@ -803,6 +804,319 @@ local extrapolate_r_z_w   = make_extrapolate_r_z(r_prim, "w",   problem.DZ)
 local extrapolate_l_z_p   = make_extrapolate_l_z(r_prim, "p",   problem.DZ)
 local extrapolate_r_z_p   = make_extrapolate_r_z(r_prim, "p",   problem.DZ)
 
+task subsonic_inflow_ghost_cells_l_x( r_prim_c   : region(ispace(int3d), primitive),
+                                      n_ghosts   : int64 )
+where
+  reads writes(r_prim_c)
+do
+
+  var rho_inflow = problem.boundary_l_x.rho
+  var u_inflow = problem.boundary_l_x.u
+  var v_inflow = problem.boundary_l_x.v
+  var w_inflow = problem.boundary_l_x.w
+  var p_inflow = problem.boundary_l_x.p
+  
+  var T_inflow = get_temperature( rho_inflow, p_inflow )
+  var RT_inflow = problem.Rgas*T_inflow
+
+  var l_x = problem.boundary_l_x.L_x
+  var eta_2 = problem.boundary_l_x.eta_2
+  var eta_3 = problem.boundary_l_x.eta_3
+  var eta_4 = problem.boundary_l_x.eta_4
+  var eta_5 = problem.boundary_l_x.eta_5
+
+  var bounds_c = r_prim_c.ispace.bounds
+  var Nx_g = bounds_c.hi.x + 1
+  var Nx   = Nx_g - 2*n_ghosts
+
+  for k = bounds_c.lo.z, bounds_c.hi.z + 1 do
+    for j = bounds_c.lo.y, bounds_c.hi.y + 1 do
+      var int_idx = int3d {n_ghosts, j, k}
+
+      var rho_x = 0.0
+      var u_x   = 0.0
+      var v_x   = 0.0
+      var w_x   = 0.0
+      var p_x   = 0.0
+
+      u_x = ddx_right_sided_u( r_prim_c, int_idx )
+      p_x = ddx_right_sided_p( r_prim_c, int_idx )
+      var sos = get_sos( r_prim_c[int_idx].rho, r_prim_c[int_idx].p )
+      var Mach = r_prim_c[int_idx].u / sos
+
+      var T_2 = 0.0
+      var T_3 = 0.0
+      var T_4 = 0.0
+      var T_5 = 0.0
+
+      var L_1 = (p_x - r_prim_c[int_idx].rho*sos*u_x)
+      var L_2 = eta_2 * (r_prim_c[int_idx].rho*sos/l_x) * (r_prim_c[int_idx].p/r_prim_c[int_idx].rho - RT_inflow) - T_2
+      var L_3 = eta_3 * sos/l_x*( r_prim_c[int_idx].v - v_inflow ) - T_3
+      var L_4 = eta_4 * sos/l_x*( r_prim_c[int_idx].w - w_inflow ) - T_4
+      var L_5 = eta_5 * (r_prim_c[int_idx].rho*sos*sos*(1-Mach*Mach)/l_x) * (r_prim_c[int_idx].u - u_inflow) - T_5
+
+      L_2 = L_2 / (r_prim_c[int_idx].u)
+      L_3 = L_3 / (r_prim_c[int_idx].u)
+      L_4 = L_4 / (r_prim_c[int_idx].u)
+      L_5 = L_5 / (r_prim_c[int_idx].u + sos)
+
+      rho_x = (1./sos*sos) * (0.5*L_1 + L_2 + 0.5*L_5)
+      u_x = (1./(2.*r_prim_c[int_idx].rho*sos)) * (-L_1 + L_5)
+      v_x = L_3
+      w_x = L_4
+      p_x = 0.5*(L_1 + L_5)
+
+      var rho_g_L = extrapolate_l_x_rho( r_prim_c, int_idx, rho_x )
+      var u_g_L   = extrapolate_l_x_u  ( r_prim_c, int_idx, u_x   )
+      var v_g_L   = extrapolate_l_x_v  ( r_prim_c, int_idx, v_x   )
+      var w_g_L   = extrapolate_l_x_w  ( r_prim_c, int_idx, w_x   )
+      var p_g_L   = extrapolate_l_x_p  ( r_prim_c, int_idx, p_x   )
+
+      for i = 0, n_ghosts do
+        var ghost_l = int3d {i, j, k}
+        r_prim_c[ghost_l].rho = rho_g_L[i]
+        r_prim_c[ghost_l].u   = u_g_L[i]  
+        r_prim_c[ghost_l].v   = v_g_L[i]   
+        r_prim_c[ghost_l].w   = w_g_L[i]   
+        r_prim_c[ghost_l].p   = p_g_L[i]   
+      end
+    end
+  end
+
+  return 1
+end
+
+task subsonic_inflow_ghost_cells_r_x( r_prim_c   : region(ispace(int3d), primitive),
+                                      n_ghosts   : int64 )
+where
+  reads writes(r_prim_c)
+do
+  var rho_inflow = problem.boundary_r_x.rho
+  var u_inflow   = problem.boundary_r_x.u
+  var v_inflow   = problem.boundary_r_x.v
+  var w_inflow   = problem.boundary_r_x.w
+  var p_inflow   = problem.boundary_r_x.p
+  
+  var T_inflow = get_temperature( rho_inflow, p_inflow )
+  var RT_inflow = problem.Rgas*T_inflow
+
+  var l_x = problem.boundary_r_x.L_x
+  var eta_1 = problem.boundary_r_x.eta_1
+  var eta_2 = problem.boundary_r_x.eta_2
+  var eta_3 = problem.boundary_r_x.eta_3
+  var eta_4 = problem.boundary_r_x.eta_4
+
+  var bounds_c = r_prim_c.ispace.bounds
+  var Nx_g = bounds_c.hi.x + 1
+  var Nx   = Nx_g - 2*n_ghosts
+
+  for k = bounds_c.lo.z, bounds_c.hi.z + 1 do
+    for j = bounds_c.lo.y, bounds_c.hi.y + 1 do
+      var int_idx = int3d {Nx + n_ghosts - 1, j, k}
+
+      var rho_x = 0.0
+      var u_x   = 0.0
+      var v_x   = 0.0
+      var w_x   = 0.0
+      var p_x   = 0.0
+
+      u_x = ddx_left_sided_u( r_prim_c, int_idx )
+      p_x = ddx_left_sided_p( r_prim_c, int_idx )
+      var sos = get_sos( r_prim_c[int_idx].rho, r_prim_c[int_idx].p )
+      var Mach = r_prim_c[int_idx].u / sos
+
+      var T_1 = 0.0
+      var T_2 = 0.0
+      var T_3 = 0.0
+      var T_4 = 0.0
+
+      var L_1 = eta_1 * (r_prim_c[int_idx].rho*sos*sos*(1-Mach*Mach)/l_x) * (r_prim_c[int_idx].u - u_inflow) - T_1
+      var L_2 = eta_2 * (r_prim_c[int_idx].rho*sos/l_x) * (r_prim_c[int_idx].p/r_prim_c[int_idx].rho - RT_inflow) - T_2
+      var L_3 = eta_3 * sos/l_x*( r_prim_c[int_idx].v - v_inflow ) - T_3
+      var L_4 = eta_4 * sos/l_x*( r_prim_c[int_idx].w - w_inflow ) - T_4
+      var L_5 = (p_x + r_prim_c[int_idx].rho*sos*u_x)
+
+      L_1 = L_1 / (r_prim_c[int_idx].u - sos)
+      L_2 = L_2 / (r_prim_c[int_idx].u)
+      L_3 = L_3 / (r_prim_c[int_idx].u)
+      L_4 = L_4 / (r_prim_c[int_idx].u)
+
+      rho_x = (1./sos*sos) * (0.5*L_1 + L_2 + 0.5*L_5)
+      u_x = (1./(2.*r_prim_c[int_idx].rho*sos)) * (-L_1 + L_5)
+      v_x = L_3
+      w_x = L_4
+      p_x = 0.5*(L_1 + L_5)
+
+      var rho_g_R = extrapolate_r_x_rho( r_prim_c, int_idx, rho_x )
+      var u_g_R   = extrapolate_r_x_u  ( r_prim_c, int_idx, u_x   )
+      var v_g_R   = extrapolate_r_x_v  ( r_prim_c, int_idx, v_x   )
+      var w_g_R   = extrapolate_r_x_w  ( r_prim_c, int_idx, w_x   )
+      var p_g_R   = extrapolate_r_x_p  ( r_prim_c, int_idx, p_x   )
+
+      for i = 0, n_ghosts do
+        var ghost_r = int3d {Nx + n_ghosts + i, j, k}
+        r_prim_c[ghost_r].rho = rho_g_R[i]
+        r_prim_c[ghost_r].u   = u_g_R[i]
+        r_prim_c[ghost_r].v   = v_g_R[i]
+        r_prim_c[ghost_r].w   = w_g_R[i]
+        r_prim_c[ghost_r].p   = p_g_R[i]
+      end
+    end
+  end
+
+  return 1
+end
+
+task subsonic_outflow_ghost_cells_l_x( r_prim_c   : region(ispace(int3d), primitive),
+                                       n_ghosts   : int64 )
+where
+  reads writes(r_prim_c)
+do
+  var rho_outflow = problem.boundary_l_x.rho
+  var u_outflow   = problem.boundary_l_x.u
+  var v_outflow   = problem.boundary_l_x.v
+  var w_outflow   = problem.boundary_l_x.w
+  var p_outflow   = problem.boundary_l_x.p
+  
+  var l_x = problem.boundary_l_x.L_x
+  var sigma = problem.boundary_l_x.sigma
+
+  var bounds_c = r_prim_c.ispace.bounds
+  var Nx_g = bounds_c.hi.x + 1
+  var Nx   = Nx_g - 2*n_ghosts
+
+  for k = bounds_c.lo.z, bounds_c.hi.z + 1 do
+    for j = bounds_c.lo.y, bounds_c.hi.y + 1 do
+      var int_idx = int3d {n_ghosts, j, k}
+
+      var rho_x = 0.0
+      var u_x   = 0.0
+      var v_x   = 0.0
+      var w_x   = 0.0
+      var p_x   = 0.0
+
+      rho_x = ddx_right_sided_rho( r_prim_c, int_idx )
+      u_x   = ddx_right_sided_u( r_prim_c, int_idx )
+      v_x   = ddx_right_sided_v( r_prim_c, int_idx )
+      w_x   = ddx_right_sided_w( r_prim_c, int_idx )
+      p_x   = ddx_right_sided_p( r_prim_c, int_idx )
+
+      var sos = get_sos( r_prim_c[int_idx].rho, r_prim_c[int_idx].p )
+      var Mach = r_prim_c[int_idx].u / sos
+      var K = sigma * sos * (1.0 - Mach*Mach) / l_x
+
+      var T_5 = 0.0
+
+      var L_1 = (p_x - r_prim_c[int_idx].rho*sos*u_x)
+      var L_2 = (sos*sos * rho_x - p_x)
+      var L_3 = v_x
+      var L_4 = w_x
+      var L_5 = K * (r_prim_c[int_idx].p - p_outflow) - T_5
+
+      L_5 = L_5 / (r_prim_c[int_idx].u + sos)
+
+      rho_x = (1./sos*sos) * (0.5*L_1 + L_2 + 0.5*L_5)
+      u_x = (1./(2.*r_prim_c[int_idx].rho*sos)) * (-L_1 + L_5)
+      v_x = L_3
+      w_x = L_4
+      p_x = 0.5*(L_1 + L_5)
+
+      var rho_g_L = extrapolate_l_x_rho( r_prim_c, int_idx, rho_x )
+      var u_g_L   = extrapolate_l_x_u  ( r_prim_c, int_idx, u_x   )
+      var v_g_L   = extrapolate_l_x_v  ( r_prim_c, int_idx, v_x   )
+      var w_g_L   = extrapolate_l_x_w  ( r_prim_c, int_idx, w_x   )
+      var p_g_L   = extrapolate_l_x_p  ( r_prim_c, int_idx, p_x   )
+
+      for i = 0, n_ghosts do
+        var ghost_l = int3d {i, j, k}
+        r_prim_c[ghost_l].rho = rho_g_L[i]
+        r_prim_c[ghost_l].u   = u_g_L[i]
+        r_prim_c[ghost_l].v   = v_g_L[i]
+        r_prim_c[ghost_l].w   = w_g_L[i]
+        r_prim_c[ghost_l].p   = p_g_L[i]
+      end
+    end
+  end
+
+  return 1
+end
+
+task subsonic_outflow_ghost_cells_r_x( r_prim_c   : region(ispace(int3d), primitive),
+                                       n_ghosts   : int64 )
+where
+  reads writes(r_prim_c)
+do
+  var rho_outflow = problem.boundary_r_x.rho
+  var u_outflow   = problem.boundary_r_x.u
+  var v_outflow   = problem.boundary_r_x.v
+  var w_outflow   = problem.boundary_r_x.w
+  var p_outflow   = problem.boundary_r_x.p
+  
+  var l_x = problem.boundary_r_x.L_x
+  var sigma = problem.boundary_r_x.sigma
+
+  var bounds_c = r_prim_c.ispace.bounds
+  var Nx_g = bounds_c.hi.x + 1
+  var Nx   = Nx_g - 2*n_ghosts
+
+  for k = bounds_c.lo.z, bounds_c.hi.z + 1 do
+    for j = bounds_c.lo.y, bounds_c.hi.y + 1 do
+      var int_idx = int3d {Nx + n_ghosts - 1, j, k}
+
+      var rho_x = 0.0
+      var u_x   = 0.0
+      var v_x   = 0.0
+      var w_x   = 0.0
+      var p_x   = 0.0
+
+      rho_x = ddx_left_sided_rho( r_prim_c, int_idx )
+      u_x   = ddx_left_sided_u( r_prim_c, int_idx )
+      v_x   = ddx_left_sided_v( r_prim_c, int_idx )
+      w_x   = ddx_left_sided_w( r_prim_c, int_idx )
+      p_x   = ddx_left_sided_p( r_prim_c, int_idx )
+
+      var sos = get_sos( r_prim_c[int_idx].rho, r_prim_c[int_idx].p )
+      var Mach = r_prim_c[int_idx].u / sos
+      var K = sigma * sos * (1.0 - Mach*Mach) / l_x
+
+      var T_1 = 0.0
+
+      var L_1 = K * (r_prim_c[int_idx].p - p_outflow) - T_1
+      var L_2 = (sos*sos * rho_x - p_x)
+      var L_3 = v_x
+      var L_4 = w_x
+      var L_5 = (p_x + r_prim_c[int_idx].rho*sos*u_x)
+
+      L_1 = L_1 / (r_prim_c[int_idx].u - sos)
+
+      rho_x = (1./sos*sos) * (0.5*L_1 + L_2 + 0.5*L_5)
+      u_x = (1./(2.*r_prim_c[int_idx].rho*sos)) * (-L_1 + L_5)
+      v_x = L_3
+      w_x = L_4
+      p_x = 0.5*(L_1 + L_5)
+
+      var rho_g_R = extrapolate_r_x_rho( r_prim_c, int_idx, rho_x )
+      var u_g_R   = extrapolate_r_x_u  ( r_prim_c, int_idx, u_x   )
+      var v_g_R   = extrapolate_r_x_v  ( r_prim_c, int_idx, v_x   )
+      var w_g_R   = extrapolate_r_x_w  ( r_prim_c, int_idx, w_x   )
+      var p_g_R   = extrapolate_r_x_p  ( r_prim_c, int_idx, p_x   )
+
+      for i = 0, n_ghosts do
+        var ghost_r = int3d {Nx + n_ghosts + i, j, k}
+        r_prim_c[ghost_r].rho = rho_g_R[i]
+        r_prim_c[ghost_r].u   = u_g_R[i]
+        r_prim_c[ghost_r].v   = v_g_R[i]
+        r_prim_c[ghost_r].w   = w_g_R[i]
+        r_prim_c[ghost_r].p   = p_g_R[i]
+      end
+    end
+  end
+
+  return 1
+end
+
+
+
 task nonperiodic_ghost_cells_x( r_prim_c  : region(ispace(int3d), primitive),
                                 n_ghosts  : int64 )
 where
@@ -813,6 +1127,10 @@ do
     dirchlet_ghost_cells_l_x( r_prim_c, n_ghosts )
   elseif (problem.boundary_l_x.condition == "EXTRAPOLATION") then
     extrapolation_ghost_cells_l_x( r_prim_c, n_ghosts )
+  elseif (problem.boundary_l_x.condition == "SUBSONIC_INFLOW") then
+    subsonic_inflow_ghost_cells_l_x( r_prim_c, n_ghosts )
+  elseif (problem.boundary_l_x.condition == "SUBSONIC_OUTFLOW") then
+    subsonic_outflow_ghost_cells_l_x( r_prim_c, n_ghosts )
   else
     regentlib.assert(false, "Unknown left boundary condition in the x-direction")
   end
@@ -822,6 +1140,10 @@ do
     dirchlet_ghost_cells_r_x( r_prim_c, n_ghosts )
   elseif (problem.boundary_r_x.condition == "EXTRAPOLATION") then
     extrapolation_ghost_cells_r_x( r_prim_c, n_ghosts )
+  elseif (problem.boundary_r_x.condition == "SUBSONIC_INFLOW") then
+    subsonic_inflow_ghost_cells_r_x( r_prim_c, n_ghosts )
+  elseif (problem.boundary_r_x.condition == "SUBSONIC_OUTFLOW") then
+    subsonic_outflow_ghost_cells_r_x( r_prim_c, n_ghosts )
   else
     regentlib.assert(false, "Unknown right boundary condition in the x-direction")
   end
