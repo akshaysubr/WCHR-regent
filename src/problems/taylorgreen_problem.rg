@@ -11,14 +11,16 @@ local problem = {}
 -- Problem specific parameters
 problem.gamma = 1.4
 problem.Rgas  = 1.0
-problem.Re    = 100.
-problem.Pr    = 1.
+-- problem.Re    = 100.
+-- problem.Pr    = 1.
+problem.Re    = 1600.
+problem.Pr    = 0.71
 problem.viscous = true
 
 -- Grid dimensions
-problem.NX = 32 
-problem.NY = 32 
-problem.NZ = 32 
+problem.NX = 256 
+problem.NY = 256 
+problem.NZ = 256 
 
 -- Periodicity
 problem.periodic_x = true
@@ -48,8 +50,8 @@ problem.ONEBYDZ = 1.0 / problem.DZ
 
 problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
 problem.dt_or_CFL_num        = 0.6
-problem.tstop                = 10.0
-problem.tviz                 = 1.0
+problem.tstop                = 20.0
+problem.tviz                 = 0.5
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
@@ -66,10 +68,10 @@ do
     coords[i].z_c = problem.Z1 + (i.z - n_ghosts + 0.5) * dz
 
     r_prim_c[i].rho = 1.0
-    r_prim_c[i].u   = cmath.sin(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.cos(coords[i].z_c)
-    r_prim_c[i].v   =-cmath.cos(coords[i].x_c) * cmath.sin(coords[i].y_c) * cmath.cos(coords[i].z_c) 
+    r_prim_c[i].u   =  cmath.sin(coords[i].x_c) * cmath.cos(coords[i].y_c) * cmath.cos(coords[i].z_c)
+    r_prim_c[i].v   = -cmath.cos(coords[i].x_c) * cmath.sin(coords[i].y_c) * cmath.cos(coords[i].z_c)
     r_prim_c[i].w   = 0.0
-    r_prim_c[i].p   = 100.0/problem.gamma + (1.0/16.0)*( (cmath.cos(2.0*coords[i].z_c) +2.0)*(cmath.cos(2.0*coords[i].x_c) + cmath.cos(2.0*coords[i].y_c)) - 2.0)
+    r_prim_c[i].p   = 1.0 / (problem.gamma * problem.Mach * problem.Mach) + (1.0/16.0)*( (cmath.cos(2.0*coords[i].z_c) +2.0)*(cmath.cos(2.0*coords[i].x_c) + cmath.cos(2.0*coords[i].y_c)) - 2.0)
   end
 
   return 1

@@ -853,14 +853,14 @@ do
       var L_2 = eta_2 * (r_prim_c[int_idx].rho*sos/l_x) * (r_prim_c[int_idx].p/r_prim_c[int_idx].rho - RT_inflow) - T_2
       var L_3 = eta_3 * sos/l_x*( r_prim_c[int_idx].v - v_inflow ) - T_3
       var L_4 = eta_4 * sos/l_x*( r_prim_c[int_idx].w - w_inflow ) - T_4
-      var L_5 = eta_5 * (r_prim_c[int_idx].rho*sos*sos*(1-Mach*Mach)/l_x) * (r_prim_c[int_idx].u - u_inflow) - T_5
+      var L_5 = eta_5 * (r_prim_c[int_idx].rho*sos*sos*(1.0-Mach*Mach)/l_x) * (r_prim_c[int_idx].u - u_inflow) - T_5
 
       L_2 = L_2 / (r_prim_c[int_idx].u)
       L_3 = L_3 / (r_prim_c[int_idx].u)
       L_4 = L_4 / (r_prim_c[int_idx].u)
       L_5 = L_5 / (r_prim_c[int_idx].u + sos)
 
-      rho_x = 1./(sos*sos) * (0.5*L_1 + L_2 + 0.5*L_5)
+      rho_x = (1./(sos*sos)) * (0.5*L_1 + L_2 + 0.5*L_5)
       u_x = (1./(2.*r_prim_c[int_idx].rho*sos)) * (-L_1 + L_5)
       v_x = L_3
       w_x = L_4
@@ -872,13 +872,16 @@ do
       var w_g_L   = extrapolate_l_x_w  ( r_prim_c, int_idx, w_x   )
       var p_g_L   = extrapolate_l_x_p  ( r_prim_c, int_idx, p_x   )
 
+      c.printf("%g\n", rho_x)
+      c.printf("%g %g %g %g\n", rho_g_L[0], rho_g_L[1], rho_g_L[2], rho_g_L[3])
+
       for i = 0, n_ghosts do
         var ghost_l = int3d {i, j, k}
-        r_prim_c[ghost_l].rho = rho_g_L[i]
-        r_prim_c[ghost_l].u   = u_g_L[i]  
-        r_prim_c[ghost_l].v   = v_g_L[i]   
-        r_prim_c[ghost_l].w   = w_g_L[i]   
-        r_prim_c[ghost_l].p   = p_g_L[i]   
+        r_prim_c[ghost_l].rho = rho_g_L[i-n_ghosts+4]
+        r_prim_c[ghost_l].u   = u_g_L[i-n_ghosts+4]  
+        r_prim_c[ghost_l].v   = v_g_L[i-n_ghosts+4]   
+        r_prim_c[ghost_l].w   = w_g_L[i-n_ghosts+4]   
+        r_prim_c[ghost_l].p   = p_g_L[i-n_ghosts+4]   
       end
     end
   end
@@ -930,7 +933,7 @@ do
       var T_3 = 0.0
       var T_4 = 0.0
 
-      var L_1 = eta_1 * (r_prim_c[int_idx].rho*sos*sos*(1-Mach*Mach)/l_x) * (r_prim_c[int_idx].u - u_inflow) - T_1
+      var L_1 = eta_1 * (r_prim_c[int_idx].rho*sos*sos*(1.0-Mach*Mach)/l_x) * (r_prim_c[int_idx].u - u_inflow) - T_1
       var L_2 = eta_2 * (r_prim_c[int_idx].rho*sos/l_x) * (r_prim_c[int_idx].p/r_prim_c[int_idx].rho - RT_inflow) - T_2
       var L_3 = eta_3 * sos/l_x*( r_prim_c[int_idx].v - v_inflow ) - T_3
       var L_4 = eta_4 * sos/l_x*( r_prim_c[int_idx].w - w_inflow ) - T_4
@@ -1029,11 +1032,11 @@ do
 
       for i = 0, n_ghosts do
         var ghost_l = int3d {i, j, k}
-        r_prim_c[ghost_l].rho = rho_g_L[i]
-        r_prim_c[ghost_l].u   = u_g_L[i]
-        r_prim_c[ghost_l].v   = v_g_L[i]
-        r_prim_c[ghost_l].w   = w_g_L[i]
-        r_prim_c[ghost_l].p   = p_g_L[i]
+        r_prim_c[ghost_l].rho = rho_g_L[i-n_ghosts+4]
+        r_prim_c[ghost_l].u   = u_g_L[i-n_ghosts+4]
+        r_prim_c[ghost_l].v   = v_g_L[i-n_ghosts+4]
+        r_prim_c[ghost_l].w   = w_g_L[i-n_ghosts+4]
+        r_prim_c[ghost_l].p   = p_g_L[i-n_ghosts+4]
       end
     end
   end
