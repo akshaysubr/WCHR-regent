@@ -298,9 +298,6 @@ local function make_stencil_pattern_MND_interior(points_c, points_e, f, index, N
       else
         Ne = Nx+1
       end
-      print("X direction Ne = ", Ne)
-      print("X direction periodic = ", periodic)
-      print(type(periodic))
 
       value = rexpr       - b*points_c[ int3d {index.x-1, index.y, index.z} ].[f] end
       value = rexpr value + b*points_c[ int3d {index.x+1, index.y, index.z} ].[f] end
@@ -463,8 +460,6 @@ local function make_stencil(r1, privileges_r1, f1, r2, privileges_r2, f2, nx, ny
 end
 
 local function make_stencil_MND(r1, privileges_r1, f1, r2, privileges_r2, r3, privileges_r3, f3, Nx, Ny, Nz, onebydx, dir, der, periodic)
-  print('make_stencil_MND, periodic = ', periodic)
-
   local rhs __demand(__inline) task rhs( [r1], [r2], [r3] )
   where
     [privileges_r1], [privileges_r2], [privileges_r3]
@@ -705,7 +700,6 @@ function make_ddx_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYD
   local privileges_r_func   = regentlib.privilege(regentlib.reads,  r_func,   f_func)
   local privileges_r_func_e = regentlib.privilege(regentlib.reads,  r_func_e, f_func)
   
-  print("make_ddx_MND, periodic = ", periodic)
   local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
   local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
   local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})

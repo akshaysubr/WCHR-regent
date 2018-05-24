@@ -81,6 +81,14 @@ local ddx_T   = make_ddx(r_aux, "T", r_der, "_1", problem.NX, problem.NY, proble
 local ddy_T   = make_ddy(r_aux, "T", r_der, "_2", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
 local ddz_T   = make_ddz(r_aux, "T", r_der, "_3", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
 
+local ddx_rho_prim = make_ddx(r_prim, "rho", r_der, "_1", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_rho_prim = make_ddy(r_prim, "rho", r_der, "_2", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_rho_prim = make_ddz(r_prim, "rho", r_der, "_3", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+
+local ddx_p   = make_ddx(r_prim, "p", r_der, "_1", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_p   = make_ddy(r_prim, "p", r_der, "_2", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_p   = make_ddz(r_prim, "p", r_der, "_3", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+
 -----------------------------------------------------
 
 task get_tauij( r_gradu : region(ispace(int3d), tensor2),
@@ -622,6 +630,132 @@ do
   end
 
   token += ddz_T(r_aux_c, r_gradT, LU_z)
+
+  return token
+end
+
+task get_density_x_derivatives( r_prim_c  : region(ispace(int3d), primitive),
+                                r_gradrho : region(ispace(int3d), vect),
+                                LU_x      : region(ispace(int3d), LU_struct) )
+where
+  reads (r_prim_c.{rho}, LU_x), reads writes (r_gradrho.{_1})
+do
+  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+
+  var token = 1
+  if (nx < 8) then
+    for i in r_gradrho do
+      r_gradrho[i]._1 = 0.0
+    end
+    return token
+  end
+
+  token += ddx_rho_prim(r_prim_c, r_gradrho, LU_x)
+
+  return token
+end
+
+task get_density_y_derivatives( r_prim_c  : region(ispace(int3d), primitive),
+                                r_gradrho : region(ispace(int3d), vect),
+                                LU_y      : region(ispace(int3d), LU_struct) )
+where
+  reads (r_prim_c.{rho}, LU_y), reads writes (r_gradrho.{_2})
+do
+  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+
+  var token = 1
+  if (ny < 8) then
+    for i in r_gradrho do
+      r_gradrho[i]._2 = 0.0
+    end
+    return token
+  end
+
+  token += ddy_rho_prim(r_prim_c, r_gradrho, LU_y)
+
+  return token
+end
+
+task get_density_z_derivatives( r_prim_c  : region(ispace(int3d), primitive),
+                                r_gradrho : region(ispace(int3d), vect),
+                                LU_z      : region(ispace(int3d), LU_struct) )
+where
+  reads (r_prim_c.{rho}, LU_z), reads writes (r_gradrho.{_3})
+do
+  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+
+  var token = 1
+  if (nz < 8) then
+    for i in r_gradrho do
+      r_gradrho[i]._3 = 0.0
+    end
+    return token
+  end
+
+  token += ddz_rho_prim(r_prim_c, r_gradrho, LU_z)
+
+  return token
+end
+
+task get_pressure_x_derivatives( r_prim_c : region(ispace(int3d), primitive),
+                                 r_gradp  : region(ispace(int3d), vect),
+                                 LU_x     : region(ispace(int3d), LU_struct) )
+where
+  reads (r_prim_c.{p}, LU_x), reads writes (r_gradp.{_1})
+do
+  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+
+  var token = 1
+  if (nx < 8) then
+    for i in r_gradp do
+      r_gradp[i]._1 = 0.0
+    end
+    return token
+  end
+
+  token += ddx_p(r_prim_c, r_gradp, LU_x)
+
+  return token
+end
+
+task get_pressure_y_derivatives( r_prim_c : region(ispace(int3d), primitive),
+                                 r_gradp  : region(ispace(int3d), vect),
+                                 LU_y     : region(ispace(int3d), LU_struct) )
+where
+  reads (r_prim_c.{p}, LU_y), reads writes (r_gradp.{_2})
+do
+  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+
+  var token = 1
+  if (ny < 8) then
+    for i in r_gradp do
+      r_gradp[i]._2 = 0.0
+    end
+    return token
+  end
+
+  token += ddy_p(r_prim_c, r_gradp, LU_y)
+
+  return token
+end
+
+task get_pressure_z_derivatives( r_prim_c : region(ispace(int3d), primitive),
+                                 r_gradp  : region(ispace(int3d), vect),
+                                 LU_z     : region(ispace(int3d), LU_struct) )
+where
+  reads (r_prim_c.{p}, LU_z), reads writes (r_gradp.{_3})
+do
+  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+
+  var token = 1
+  if (nz < 8) then
+    for i in r_gradp do
+      r_gradp[i]._3 = 0.0
+    end
+    return token
+  end
+
+  token += ddz_p(r_prim_c, r_gradp, LU_z)
 
   return token
 end

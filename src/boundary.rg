@@ -416,6 +416,51 @@ do
   return 1
 end
 
+function make_ddx_central(r_func, f_func, ONEBYDX)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddx_central __demand(__inline) task ddx_central( [r_func],
+                                                          idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdx = 0.5*[ONEBYDX]* ( - [r_func][ int3d { idx.x - 1, idx.y, idx.z } ].[f_func]
+                                + [r_func][ int3d { idx.x + 1, idx.y, idx.z } ].[f_func] )
+    return dQdx
+  end
+  return ddx_central
+end
+
+function make_ddy_central(r_func, f_func, ONEBYDY)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddy_central __demand(__inline) task ddy_central( [r_func],
+                                                          idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdy = 0.5*[ONEBYDY]* ( - [r_func][ int3d { idx.x, idx.y - 1, idx.z } ].[f_func]
+                                + [r_func][ int3d { idx.x, idx.y + 1, idx.z } ].[f_func] )
+    return dQdy
+  end
+  return ddy_central
+end
+
+function make_ddz_central(r_func, f_func, ONEBYDZ)
+  local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
+  
+  local ddz_central __demand(__inline) task ddz_central( [r_func],
+                                                          idx : int3d )
+  where
+    [privileges_r_func]
+  do
+    var dQdz = 0.5*[ONEBYDZ]* ( - [r_func][ int3d { idx.x, idx.y, idx.z - 1 } ].[f_func]
+                                + [r_func][ int3d { idx.x, idx.y, idx.z + 1 } ].[f_func] )
+    return dQdz
+  end
+  return ddz_central
+end
+
 function make_ddx_left_sided(r_func, f_func, ONEBYDX)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
   
@@ -738,6 +783,24 @@ end
 
 local r_prim = regentlib.newsymbol(region(ispace(int3d), primitive), "r_primitive")
 
+local ddx_central_rho = make_ddx_central(r_prim, "rho", problem.ONEBYDX)
+local ddx_central_u   = make_ddx_central(r_prim, "u",   problem.ONEBYDX)
+local ddx_central_v   = make_ddx_central(r_prim, "v",   problem.ONEBYDX)
+local ddx_central_w   = make_ddx_central(r_prim, "w",   problem.ONEBYDX)
+local ddx_central_p   = make_ddx_central(r_prim, "p",   problem.ONEBYDX)
+
+local ddy_central_rho = make_ddy_central(r_prim, "rho", problem.ONEBYDY)
+local ddy_central_u   = make_ddy_central(r_prim, "u",   problem.ONEBYDY)
+local ddy_central_v   = make_ddy_central(r_prim, "v",   problem.ONEBYDY)
+local ddy_central_w   = make_ddy_central(r_prim, "w",   problem.ONEBYDY)
+local ddy_central_p   = make_ddy_central(r_prim, "p",   problem.ONEBYDY)
+
+local ddz_central_rho = make_ddz_central(r_prim, "rho", problem.ONEBYDZ)
+local ddz_central_u   = make_ddz_central(r_prim, "u",   problem.ONEBYDZ)
+local ddz_central_v   = make_ddz_central(r_prim, "v",   problem.ONEBYDZ)
+local ddz_central_w   = make_ddz_central(r_prim, "w",   problem.ONEBYDZ)
+local ddz_central_p   = make_ddz_central(r_prim, "p",   problem.ONEBYDZ)
+
 local ddx_left_sided_rho  = make_ddx_left_sided(r_prim,  "rho", problem.ONEBYDX)
 local ddx_right_sided_rho = make_ddx_right_sided(r_prim, "rho", problem.ONEBYDX)
 local ddx_left_sided_u    = make_ddx_left_sided(r_prim,  "u",   problem.ONEBYDX)
@@ -804,10 +867,13 @@ local extrapolate_r_z_w   = make_extrapolate_r_z(r_prim, "w",   problem.DZ)
 local extrapolate_l_z_p   = make_extrapolate_l_z(r_prim, "p",   problem.DZ)
 local extrapolate_r_z_p   = make_extrapolate_r_z(r_prim, "p",   problem.DZ)
 
-task subsonic_inflow_ghost_cells_l_x( r_prim_c   : region(ispace(int3d), primitive),
-                                      n_ghosts   : int64 )
+task subsonic_inflow_ghost_cells_l_x( r_prim_c  : region(ispace(int3d), primitive),
+                                      r_gradrho : region(ispace(int3d), vect),
+                                      r_gradu   : region(ispace(int3d), tensor2),
+                                      r_gradp   : region(ispace(int3d), vect),
+                                      n_ghosts  : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes(r_prim_c), reads(r_gradrho.{_2,_3}, r_gradu.{_12,_13,_22,_23,_32,_33}, r_gradp.{_2,_3})
 do
 
   var rho_inflow = problem.boundary_l_x.rho
@@ -844,10 +910,12 @@ do
       var sos = get_sos( r_prim_c[int_idx].rho, r_prim_c[int_idx].p )
       var Mach = r_prim_c[int_idx].u / sos
 
-      var T_2 = 0.0
-      var T_3 = 0.0
-      var T_4 = 0.0
-      var T_5 = 0.0
+      var T_2 = r_prim_c[int_idx].v*(sos*sos*r_gradrho[int_idx]._2 - r_gradp[int_idx]._2) + r_prim_c[int_idx].w*(sos*sos*r_gradrho[int_idx]._3 - r_gradp[int_idx]._3)
+      var T_3 = r_prim_c[int_idx].v*r_gradu[int_idx]._22 + r_prim_c[int_idx].w*r_gradu[int_idx]._23 + r_gradp[int_idx]._2 / r_prim_c[int_idx].rho
+      var T_4 = r_prim_c[int_idx].v*r_gradu[int_idx]._32 + r_prim_c[int_idx].w*r_gradu[int_idx]._33 + r_gradp[int_idx]._3 / r_prim_c[int_idx].rho
+      var T_5 = r_prim_c[int_idx].v*(r_gradp[int_idx]._2 + r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._12) 
+              + r_prim_c[int_idx].w*(r_gradp[int_idx]._3 + r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._13) 
+              + r_prim_c[int_idx].rho*sos*sos*( r_gradu[int_idx]._22 + r_gradu[int_idx]._33 )
 
       var L_1 = (p_x - r_prim_c[int_idx].rho*sos*u_x)
       var L_2 = eta_2 * (r_prim_c[int_idx].rho*sos/l_x) * (r_prim_c[int_idx].p/r_prim_c[int_idx].rho - RT_inflow) - T_2
@@ -886,10 +954,13 @@ do
   return 1
 end
 
-task subsonic_inflow_ghost_cells_r_x( r_prim_c   : region(ispace(int3d), primitive),
-                                      n_ghosts   : int64 )
+task subsonic_inflow_ghost_cells_r_x( r_prim_c  : region(ispace(int3d), primitive),
+                                      r_gradrho : region(ispace(int3d), vect),
+                                      r_gradu   : region(ispace(int3d), tensor2),
+                                      r_gradp   : region(ispace(int3d), vect),
+                                      n_ghosts  : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes(r_prim_c), reads(r_gradrho.{_2,_3}, r_gradu.{_12,_13,_22,_23,_32,_33}, r_gradp.{_2,_3})
 do
   var rho_inflow = problem.boundary_r_x.rho
   var u_inflow   = problem.boundary_r_x.u
@@ -925,10 +996,12 @@ do
       var sos = get_sos( r_prim_c[int_idx].rho, r_prim_c[int_idx].p )
       var Mach = r_prim_c[int_idx].u / sos
 
-      var T_1 = 0.0
-      var T_2 = 0.0
-      var T_3 = 0.0
-      var T_4 = 0.0
+      var T_1 = r_prim_c[int_idx].v*(r_gradp[int_idx]._2 - r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._12) 
+              + r_prim_c[int_idx].w*(r_gradp[int_idx]._3 - r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._13) 
+              + r_prim_c[int_idx].rho*sos*sos*( r_gradu[int_idx]._22 + r_gradu[int_idx]._33 )
+      var T_2 = r_prim_c[int_idx].v*(sos*sos*r_gradrho[int_idx]._2 - r_gradp[int_idx]._2) + r_prim_c[int_idx].w*(sos*sos*r_gradrho[int_idx]._3 - r_gradp[int_idx]._3)
+      var T_3 = r_prim_c[int_idx].v*r_gradu[int_idx]._22 + r_prim_c[int_idx].w*r_gradu[int_idx]._23 + r_gradp[int_idx]._2 / r_prim_c[int_idx].rho
+      var T_4 = r_prim_c[int_idx].v*r_gradu[int_idx]._32 + r_prim_c[int_idx].w*r_gradu[int_idx]._33 + r_gradp[int_idx]._3 / r_prim_c[int_idx].rho
 
       var L_1 = eta_1 * (r_prim_c[int_idx].rho*sos*sos*(1.0-Mach*Mach)/l_x) * (r_prim_c[int_idx].u - u_inflow) - T_1
       var L_2 = eta_2 * (r_prim_c[int_idx].rho*sos/l_x) * (r_prim_c[int_idx].p/r_prim_c[int_idx].rho - RT_inflow) - T_2
@@ -967,10 +1040,13 @@ do
   return 1
 end
 
-task subsonic_outflow_ghost_cells_l_x( r_prim_c   : region(ispace(int3d), primitive),
-                                       n_ghosts   : int64 )
+task subsonic_outflow_ghost_cells_l_x( r_prim_c  : region(ispace(int3d), primitive),
+                                       r_gradrho : region(ispace(int3d), vect),
+                                       r_gradu   : region(ispace(int3d), tensor2),
+                                       r_gradp   : region(ispace(int3d), vect),
+                                       n_ghosts  : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes(r_prim_c), reads(r_gradu.{_12,_13,_22,_33}, r_gradp.{_2,_3})
 do
   var rho_outflow = problem.boundary_l_x.rho
   var u_outflow   = problem.boundary_l_x.u
@@ -980,6 +1056,7 @@ do
   
   var l_x = problem.boundary_l_x.L_x
   var sigma = problem.boundary_l_x.sigma
+  var beta = problem.boundary_r_x.beta
 
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
@@ -1005,13 +1082,15 @@ do
       var Mach = r_prim_c[int_idx].u / sos
       var K = sigma * sos * (1.0 - Mach*Mach) / l_x
 
-      var T_5 = 0.0
+      var T_5 = r_prim_c[int_idx].v*(r_gradp[int_idx]._2 + r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._12) 
+              + r_prim_c[int_idx].w*(r_gradp[int_idx]._3 + r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._13) 
+              + r_prim_c[int_idx].rho*sos*sos*( r_gradu[int_idx]._22 + r_gradu[int_idx]._33 )
 
       var L_1 = (p_x - r_prim_c[int_idx].rho*sos*u_x)
       var L_2 = (sos*sos * rho_x - p_x)
       var L_3 = v_x
       var L_4 = w_x
-      var L_5 = K * (r_prim_c[int_idx].p - p_outflow) - T_5
+      var L_5 = K * (r_prim_c[int_idx].p - p_outflow) - (1.0 - beta)*T_5
 
       L_5 = L_5 / (r_prim_c[int_idx].u + sos)
 
@@ -1041,10 +1120,13 @@ do
   return 1
 end
 
-task subsonic_outflow_ghost_cells_r_x( r_prim_c   : region(ispace(int3d), primitive),
-                                       n_ghosts   : int64 )
+task subsonic_outflow_ghost_cells_r_x( r_prim_c  : region(ispace(int3d), primitive),
+                                       r_gradrho : region(ispace(int3d), vect),
+                                       r_gradu   : region(ispace(int3d), tensor2),
+                                       r_gradp   : region(ispace(int3d), vect),
+                                       n_ghosts  : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes(r_prim_c), reads(r_gradu.{_12,_13,_22,_33}, r_gradp.{_2,_3})
 do
   var rho_outflow = problem.boundary_r_x.rho
   var u_outflow   = problem.boundary_r_x.u
@@ -1054,6 +1136,7 @@ do
   
   var l_x = problem.boundary_r_x.L_x
   var sigma = problem.boundary_r_x.sigma
+  var beta = problem.boundary_r_x.beta
 
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
@@ -1079,9 +1162,11 @@ do
       var Mach = r_prim_c[int_idx].u / sos
       var K = sigma * sos * (1.0 - Mach*Mach) / l_x
 
-      var T_1 = 0.0
+      var T_1 = r_prim_c[int_idx].v*(r_gradp[int_idx]._2 - r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._12) 
+              + r_prim_c[int_idx].w*(r_gradp[int_idx]._3 - r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._13) 
+              + r_prim_c[int_idx].rho*sos*sos*( r_gradu[int_idx]._22 + r_gradu[int_idx]._33 )
 
-      var L_1 = K * (r_prim_c[int_idx].p - p_outflow) - T_1
+      var L_1 = K * (r_prim_c[int_idx].p - p_outflow) - (1.0 - beta)*T_1
       var L_2 = (sos*sos * rho_x - p_x)
       var L_3 = v_x
       var L_4 = w_x
@@ -1118,9 +1203,12 @@ end
 
 
 task nonperiodic_ghost_cells_x( r_prim_c  : region(ispace(int3d), primitive),
+                                r_gradrho : region(ispace(int3d), vect),
+                                r_gradu   : region(ispace(int3d), tensor2),
+                                r_gradp   : region(ispace(int3d), vect),
                                 n_ghosts  : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes(r_prim_c), reads(r_gradrho.{_2,_3}, r_gradu.{_12,_13,_22,_23,_32,_33}, r_gradp.{_2,_3})
 do
   -- Left ghost cells
   if (problem.boundary_l_x.condition == "DIRICHLET") then
@@ -1128,9 +1216,9 @@ do
   elseif (problem.boundary_l_x.condition == "EXTRAPOLATION") then
     extrapolation_ghost_cells_l_x( r_prim_c, n_ghosts )
   elseif (problem.boundary_l_x.condition == "SUBSONIC_INFLOW") then
-    subsonic_inflow_ghost_cells_l_x( r_prim_c, n_ghosts )
+    subsonic_inflow_ghost_cells_l_x( r_prim_c, r_gradrho, r_gradu, r_gradp, n_ghosts )
   elseif (problem.boundary_l_x.condition == "SUBSONIC_OUTFLOW") then
-    subsonic_outflow_ghost_cells_l_x( r_prim_c, n_ghosts )
+    subsonic_outflow_ghost_cells_l_x( r_prim_c, r_gradrho, r_gradu, r_gradp, n_ghosts )
   else
     regentlib.assert(false, "Unknown left boundary condition in the x-direction")
   end
@@ -1141,9 +1229,9 @@ do
   elseif (problem.boundary_r_x.condition == "EXTRAPOLATION") then
     extrapolation_ghost_cells_r_x( r_prim_c, n_ghosts )
   elseif (problem.boundary_r_x.condition == "SUBSONIC_INFLOW") then
-    subsonic_inflow_ghost_cells_r_x( r_prim_c, n_ghosts )
+    subsonic_inflow_ghost_cells_r_x( r_prim_c, r_gradrho, r_gradu, r_gradp, n_ghosts )
   elseif (problem.boundary_r_x.condition == "SUBSONIC_OUTFLOW") then
-    subsonic_outflow_ghost_cells_r_x( r_prim_c, n_ghosts )
+    subsonic_outflow_ghost_cells_r_x( r_prim_c, r_gradrho, r_gradu, r_gradp, n_ghosts )
   else
     regentlib.assert(false, "Unknown right boundary condition in the x-direction")
   end
