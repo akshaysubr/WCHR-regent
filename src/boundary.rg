@@ -872,9 +872,6 @@ do
       var w_g_L   = extrapolate_l_x_w  ( r_prim_c, int_idx, w_x   )
       var p_g_L   = extrapolate_l_x_p  ( r_prim_c, int_idx, p_x   )
 
-      c.printf("%g\n", rho_x)
-      c.printf("%g %g %g %g\n", rho_g_L[0], rho_g_L[1], rho_g_L[2], rho_g_L[3])
-
       for i = 0, n_ghosts do
         var ghost_l = int3d {i, j, k}
         r_prim_c[ghost_l].rho = rho_g_L[i-n_ghosts+4]
