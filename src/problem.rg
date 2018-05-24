@@ -1,1 +1,1 @@
-problems/CHIT_problem.rg
+problems/vortex_boundary.rg
