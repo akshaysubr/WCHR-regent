@@ -130,6 +130,9 @@ task main()
   var r_tauij    = region(grid_c,   tensor2symm)  -- Viscous stress tensor at the cell center
   var r_q        = region(grid_c,   vect)         -- Heat flux vector at the cell center
 
+  var r_gradrho  = region(grid_c,   vect)       -- Density gradient
+  var r_gradp    = region(grid_c,   vect)       -- Pressure gradient
+
   var r_rhs_l_x  = region(grid_e_x, primitive)  -- store RHS for left interpolation in x
   var r_rhs_r_x  = region(grid_e_x, primitive)  -- store RHS for right interpolation in x
   var r_rhs_l_y  = region(grid_e_y, primitive)  -- store RHS for left interpolation in y
@@ -257,6 +260,14 @@ task main()
   var p_q_x         = partition_xpencil_vect(r_q,         n_ghosts, false, pencil)
   var p_q_y         = partition_ypencil_vect(r_q,         n_ghosts, false, pencil)
   var p_q_z         = partition_zpencil_vect(r_q,         n_ghosts, false, pencil)
+
+  var p_gradrho_x   = partition_xpencil_vect(r_gradrho,   n_ghosts, false, pencil)
+  var p_gradrho_y   = partition_ypencil_vect(r_gradrho,   n_ghosts, false, pencil)
+  var p_gradrho_z   = partition_zpencil_vect(r_gradrho,   n_ghosts, false, pencil)
+
+  var p_gradp_x     = partition_xpencil_vect(r_gradp,     n_ghosts, false, pencil)
+  var p_gradp_y     = partition_ypencil_vect(r_gradp,     n_ghosts, false, pencil)
+  var p_gradp_z     = partition_zpencil_vect(r_gradp,     n_ghosts, false, pencil)
 
   var p_gradu_x     = partition_xpencil_tnsr2(r_gradu,    n_ghosts, false, pencil)
   var p_gradu_y     = partition_ypencil_tnsr2(r_gradu,    n_ghosts, false, pencil)
@@ -436,12 +447,60 @@ task main()
     c.printf("Finished initialization\n")
   end
 
+  __demand(__parallel)
+  for i in pencil_interior do
+    -- Get temperature from the initial primitive variables
+    token += get_temperature_r( p_prim_c_y[i], p_aux_c_y[i] )
+  end
+
+  -- Get the velocity derivatives at initial condition 
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
+  end
+ 
+  -- Get the density derivatives at initial condition 
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_density_x_derivatives( p_prim_c_x[i], p_gradrho_x[i], p_LU_N_x[i] )
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_density_y_derivatives( p_prim_c_y[i], p_gradrho_y[i], p_LU_N_y[i] )
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_density_z_derivatives( p_prim_c_z[i], p_gradrho_z[i], p_LU_N_z[i] )
+  end
+ 
+  -- Get the pressure derivatives at initial condition 
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_pressure_x_derivatives( p_prim_c_x[i], p_gradp_x[i], p_LU_N_x[i] )
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_pressure_y_derivatives( p_prim_c_y[i], p_gradp_y[i], p_LU_N_y[i] )
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_pressure_z_derivatives( p_prim_c_z[i], p_gradp_z[i], p_LU_N_z[i] )
+  end
+ 
   -- Fill ghost cells in non-periodic directions first
   if not problem.periodic_x then
     __demand(__parallel)
     for i in pencil_interior do
       -- Fill in ghost cells
-      nonperiodic_ghost_cells_x(p_prim_c_x_wg[i], n_ghosts)
+      nonperiodic_ghost_cells_x(p_prim_c_x_wg[i], p_gradrho_x[i], p_gradu_x[i], p_gradp_x[i], n_ghosts)
     end
   end
   if not problem.periodic_y then
@@ -482,26 +541,6 @@ task main()
     end
   end
 
-  __demand(__parallel)
-  for i in pencil_interior do
-    -- Get temperature from the initial primitive variables
-    token += get_temperature_r( p_prim_c_y[i], p_aux_c_y[i] )
-  end
-
-  -- Get the velocity derivatives at initial condition 
-  __demand(__parallel)
-  for i in pencil_interior do
-    token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
-  end
-  __demand(__parallel)
-  for i in pencil_interior do
-    token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
-  end
-  __demand(__parallel)
-  for i in pencil_interior do
-    token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
-  end
- 
   var TKE0 : double = 1.0e-16
   do
     var t : double = 0.0
@@ -690,12 +729,60 @@ task main()
         token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
       end
 
+      -- Update temperature.
+      __demand(__parallel)
+      for i in pencil_interior do
+        token += get_temperature_r( p_prim_c_y[i], p_aux_c_y[i] )
+      end
+
+      -- Update velocity gradient tensor.
+      __demand(__parallel)
+      for i in pencil_interior do
+        token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
+      end
+      __demand(__parallel)
+      for i in pencil_interior do
+        token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
+      end
+      __demand(__parallel)
+      for i in pencil_interior do
+        token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
+      end
+
+      -- Get the density derivatives
+      __demand(__parallel)
+      for i in pencil_interior do
+        token += get_density_x_derivatives( p_prim_c_x[i], p_gradrho_x[i], p_LU_N_x[i] )
+      end
+      __demand(__parallel)
+      for i in pencil_interior do
+        token += get_density_y_derivatives( p_prim_c_y[i], p_gradrho_y[i], p_LU_N_y[i] )
+      end
+      __demand(__parallel)
+      for i in pencil_interior do
+        token += get_density_z_derivatives( p_prim_c_z[i], p_gradrho_z[i], p_LU_N_z[i] )
+      end
+ 
+      -- Get the pressure derivatives
+      __demand(__parallel)
+      for i in pencil_interior do
+        token += get_pressure_x_derivatives( p_prim_c_x[i], p_gradp_x[i], p_LU_N_x[i] )
+      end
+      __demand(__parallel)
+      for i in pencil_interior do
+        token += get_pressure_y_derivatives( p_prim_c_y[i], p_gradp_y[i], p_LU_N_y[i] )
+      end
+      __demand(__parallel)
+      for i in pencil_interior do
+        token += get_pressure_z_derivatives( p_prim_c_z[i], p_gradp_z[i], p_LU_N_z[i] )
+      end
+ 
       -- Fill ghost cells in non-periodic directions first
       if not problem.periodic_x then
         __demand(__parallel)
         for i in pencil_interior do
           -- Fill in ghost cells
-          nonperiodic_ghost_cells_x(p_prim_c_x_wg[i], n_ghosts)
+          nonperiodic_ghost_cells_x(p_prim_c_x_wg[i], p_gradrho_x[i], p_gradu_x[i], p_gradp_x[i], n_ghosts)
         end
       end
       if not problem.periodic_y then
@@ -736,29 +823,6 @@ task main()
         end
       end
 
-
-      -- Update temperature.
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_temperature_r( p_prim_c_y[i], p_aux_c_y[i] )
-      end
-
-      if problem.viscous then
-        -- Update velocity gradient tensor.
-        __demand(__parallel)
-        for i in pencil_interior do
-          token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
-        end
-        __demand(__parallel)
-        for i in pencil_interior do
-          token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
-        end
-        __demand(__parallel)
-        for i in pencil_interior do
-          token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
-        end
-      end
- 
     end
 
     -- Update time step.
