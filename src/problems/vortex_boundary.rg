@@ -36,7 +36,8 @@ problem.periodic_z = true
 
 -- Boundary (if not periodic)
 -- condition: DIRICHLET, EXTRAPOLATION, SUBSONIC_INFLOW, SUBSONIC_OUTFLOW
-problem.boundary_l_x = { condition="SUBSONIC_INFLOW",  rho=rho_inf, u=u_inf, v=0., w=0., p=p_inf, L_x=1.0*problem.R_vortex, eta_2=1.0, eta_3=1.0, eta_5=1.0 }
+-- problem.boundary_l_x = { condition="EXTRAPOLATION" }
+problem.boundary_l_x = { condition="SUBSONIC_INFLOW",  rho=rho_inf, u=u_inf, v=0., w=0., p=p_inf, L_x=1.0*problem.R_vortex, eta_2=0.5, eta_3=0.5, eta_4=0.5, eta_5=0.5, beta=Mach }
 problem.boundary_r_x = { condition="SUBSONIC_OUTFLOW", p=p_inf, L_x=1.0*problem.R_vortex, sigma=0.25, beta=Mach }
 
 -- Domain size

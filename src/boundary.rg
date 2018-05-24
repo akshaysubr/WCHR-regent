@@ -890,6 +890,7 @@ do
   var eta_3 = problem.boundary_l_x.eta_3
   var eta_4 = problem.boundary_l_x.eta_4
   var eta_5 = problem.boundary_l_x.eta_5
+  var beta = problem.boundary_l_x.beta
 
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
@@ -918,10 +919,10 @@ do
               + r_prim_c[int_idx].rho*sos*sos*( r_gradu[int_idx]._22 + r_gradu[int_idx]._33 )
 
       var L_1 = (p_x - r_prim_c[int_idx].rho*sos*u_x)
-      var L_2 = eta_2 * (r_prim_c[int_idx].rho*sos/l_x) * (r_prim_c[int_idx].p/r_prim_c[int_idx].rho - RT_inflow) - T_2
-      var L_3 = eta_3 * sos/l_x*( r_prim_c[int_idx].v - v_inflow ) - T_3
-      var L_4 = eta_4 * sos/l_x*( r_prim_c[int_idx].w - w_inflow ) - T_4
-      var L_5 = eta_5 * (r_prim_c[int_idx].rho*sos*sos*(1.0-Mach*Mach)/l_x) * (r_prim_c[int_idx].u - u_inflow) - T_5
+      var L_2 = eta_2 * (r_prim_c[int_idx].rho*sos/l_x) * (r_prim_c[int_idx].p/r_prim_c[int_idx].rho - RT_inflow) - (1.0 - beta)*T_2
+      var L_3 = eta_3 * sos/l_x*( r_prim_c[int_idx].v - v_inflow ) - (1.0 - beta)*T_3
+      var L_4 = eta_4 * sos/l_x*( r_prim_c[int_idx].w - w_inflow ) - (1.0 - beta)*T_4
+      var L_5 = eta_5 * (r_prim_c[int_idx].rho*sos*sos*(1.0-Mach*Mach)/l_x) * (r_prim_c[int_idx].u - u_inflow) - (1.0 - beta)*T_5
 
       L_2 = L_2 / (r_prim_c[int_idx].u)
       L_3 = L_3 / (r_prim_c[int_idx].u)
@@ -976,6 +977,7 @@ do
   var eta_2 = problem.boundary_r_x.eta_2
   var eta_3 = problem.boundary_r_x.eta_3
   var eta_4 = problem.boundary_r_x.eta_4
+  var beta = problem.boundary_r_x.beta
 
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
@@ -1003,10 +1005,10 @@ do
       var T_3 = r_prim_c[int_idx].v*r_gradu[int_idx]._22 + r_prim_c[int_idx].w*r_gradu[int_idx]._23 + r_gradp[int_idx]._2 / r_prim_c[int_idx].rho
       var T_4 = r_prim_c[int_idx].v*r_gradu[int_idx]._32 + r_prim_c[int_idx].w*r_gradu[int_idx]._33 + r_gradp[int_idx]._3 / r_prim_c[int_idx].rho
 
-      var L_1 = eta_1 * (r_prim_c[int_idx].rho*sos*sos*(1.0-Mach*Mach)/l_x) * (r_prim_c[int_idx].u - u_inflow) - T_1
-      var L_2 = eta_2 * (r_prim_c[int_idx].rho*sos/l_x) * (r_prim_c[int_idx].p/r_prim_c[int_idx].rho - RT_inflow) - T_2
-      var L_3 = eta_3 * sos/l_x*( r_prim_c[int_idx].v - v_inflow ) - T_3
-      var L_4 = eta_4 * sos/l_x*( r_prim_c[int_idx].w - w_inflow ) - T_4
+      var L_1 = eta_1 * (r_prim_c[int_idx].rho*sos*sos*(1.0-Mach*Mach)/l_x) * (r_prim_c[int_idx].u - u_inflow) - (1.0 - beta)*T_1
+      var L_2 = eta_2 * (r_prim_c[int_idx].rho*sos/l_x) * (r_prim_c[int_idx].p/r_prim_c[int_idx].rho - RT_inflow) - (1.0 - beta)*T_2
+      var L_3 = eta_3 * sos/l_x*( r_prim_c[int_idx].v - v_inflow ) - (1.0 - beta)*T_3
+      var L_4 = eta_4 * sos/l_x*( r_prim_c[int_idx].w - w_inflow ) - (1.0 - beta)*T_4
       var L_5 = (p_x + r_prim_c[int_idx].rho*sos*u_x)
 
       L_1 = L_1 / (r_prim_c[int_idx].u - sos)
@@ -1056,7 +1058,7 @@ do
   
   var l_x = problem.boundary_l_x.L_x
   var sigma = problem.boundary_l_x.sigma
-  var beta = problem.boundary_r_x.beta
+  var beta = problem.boundary_l_x.beta
 
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
