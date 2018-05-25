@@ -891,6 +891,10 @@ do
   var eta_4 = problem.boundary_l_x.eta_4
   var eta_5 = problem.boundary_l_x.eta_5
   var beta = problem.boundary_l_x.beta
+  var local_mach = false
+  if beta < 0 then
+    local_mach = true
+  end
 
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
@@ -910,6 +914,9 @@ do
       p_x = ddx_right_sided_p( r_prim_c, int_idx )
       var sos = get_sos( r_prim_c[int_idx].rho, r_prim_c[int_idx].p )
       var Mach = r_prim_c[int_idx].u / sos
+      if local_mach then
+        beta = cmath.fabs(Mach)
+      end
 
       var T_2 = r_prim_c[int_idx].v*(sos*sos*r_gradrho[int_idx]._2 - r_gradp[int_idx]._2) + r_prim_c[int_idx].w*(sos*sos*r_gradrho[int_idx]._3 - r_gradp[int_idx]._3)
       var T_3 = r_prim_c[int_idx].v*r_gradu[int_idx]._22 + r_prim_c[int_idx].w*r_gradu[int_idx]._23 + r_gradp[int_idx]._2 / r_prim_c[int_idx].rho
@@ -978,6 +985,10 @@ do
   var eta_3 = problem.boundary_r_x.eta_3
   var eta_4 = problem.boundary_r_x.eta_4
   var beta = problem.boundary_r_x.beta
+  var local_mach = false
+  if beta < 0 then
+    local_mach = true
+  end
 
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
@@ -997,6 +1008,9 @@ do
       p_x = ddx_left_sided_p( r_prim_c, int_idx )
       var sos = get_sos( r_prim_c[int_idx].rho, r_prim_c[int_idx].p )
       var Mach = r_prim_c[int_idx].u / sos
+      if local_mach then
+        beta = cmath.fabs(Mach)
+      end
 
       var T_1 = r_prim_c[int_idx].v*(r_gradp[int_idx]._2 - r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._12) 
               + r_prim_c[int_idx].w*(r_gradp[int_idx]._3 - r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._13) 
@@ -1059,6 +1073,10 @@ do
   var l_x = problem.boundary_l_x.L_x
   var sigma = problem.boundary_l_x.sigma
   var beta = problem.boundary_l_x.beta
+  var local_mach = false
+  if beta < 0 then
+    local_mach = true
+  end
 
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
@@ -1083,6 +1101,9 @@ do
       var sos = get_sos( r_prim_c[int_idx].rho, r_prim_c[int_idx].p )
       var Mach = r_prim_c[int_idx].u / sos
       var K = sigma * sos * (1.0 - Mach*Mach) / l_x
+      if local_mach then
+        beta = cmath.fabs(Mach)
+      end
 
       var T_5 = r_prim_c[int_idx].v*(r_gradp[int_idx]._2 + r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._12) 
               + r_prim_c[int_idx].w*(r_gradp[int_idx]._3 + r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._13) 
@@ -1139,6 +1160,10 @@ do
   var l_x = problem.boundary_r_x.L_x
   var sigma = problem.boundary_r_x.sigma
   var beta = problem.boundary_r_x.beta
+  var local_mach = false
+  if beta < 0 then
+    local_mach = true
+  end
 
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
@@ -1163,6 +1188,9 @@ do
       var sos = get_sos( r_prim_c[int_idx].rho, r_prim_c[int_idx].p )
       var Mach = r_prim_c[int_idx].u / sos
       var K = sigma * sos * (1.0 - Mach*Mach) / l_x
+      if local_mach then
+        beta = cmath.fabs(Mach)
+      end
 
       var T_1 = r_prim_c[int_idx].v*(r_gradp[int_idx]._2 - r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._12) 
               + r_prim_c[int_idx].w*(r_gradp[int_idx]._3 - r_prim_c[int_idx].rho*sos*r_gradu[int_idx]._13) 
