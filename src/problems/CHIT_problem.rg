@@ -37,9 +37,9 @@ problem.periodic_z = true
 -- Boundary (if not periodic)
 -- condition: DIRICHLET, EXTRAPOLATION, SUBSONIC_INFLOW, SUBSONIC_OUTFLOW
 
--- Scheme to use
+-- Interpolation scheme to use
 -- WCHR, WCNS-LD, WCNS-Z, WCNS-JS
-problem.scheme = "WCNS-Z"
+problem.interpolation_scheme = "WCNS-Z"
 
 -- Domain size
 problem.LX = 2.0*PI
@@ -196,7 +196,7 @@ end
 
 
 -- DEFAULT SCHEME TO USE --
-if problem.scheme == nil then problem.scheme = "WCHR" end
+if problem.interpolation_scheme == nil then problem.scheme = "WCHR" end
 
 -- DEFAULT BOUNDARY CONDITIONS --
 if problem.boundary_l_x           == nil then problem.boundary_l_x           = {}              end

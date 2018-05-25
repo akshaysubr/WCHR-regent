@@ -9,6 +9,8 @@ require("SOE")
 require("block_tridiagonal")
 local problem = require("problem")
 
+local scheme = problem.interpolation_scheme
+
 local periodic_x = problem.periodic_x
 local periodic_y = problem.periodic_y
 local periodic_z = problem.periodic_z
