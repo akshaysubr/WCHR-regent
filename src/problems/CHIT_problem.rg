@@ -15,7 +15,7 @@ problem.Mt = 0.6     -- Initial turbulent Mach number
 problem.k0 = 4.0     -- Inital peak energy wavenumber
 problem.Re = 100.    -- Initial Taylor scale Reynolds number
 problem.Pr = 0.7     -- Prandtl number
-problem.datafile = "/home/akshays/Data/WCHR/CHIT/setup/CHIT-velocity-k04-N0256.dat"  -- Data file containing initial velocities
+problem.datafile = "/home/akshays/Data/WCHR/CHIT/setup/CHIT-velocity-k04-N0064.dat"  -- Data file containing initial velocities
 problem.viscous = true
 
 problem.u_rms0  = problem.Mt / cmath.sqrt(3)        -- Initial RMS velocity
@@ -25,9 +25,9 @@ problem.T_ref   = (1.0 / problem.gamma) / problem.Rgas
 problem.mu_ref  =  problem.u_rms0 * problem.lambda0 / problem.Re -- Reference viscosity
 
 -- Grid dimensions
-problem.NX = 256
-problem.NY = 256
-problem.NZ = 256
+problem.NX = 64
+problem.NY = 64
+problem.NZ = 64
 
 -- Periodicity
 problem.periodic_x = true
@@ -36,6 +36,10 @@ problem.periodic_z = true
 
 -- Boundary (if not periodic)
 -- condition: DIRICHLET, EXTRAPOLATION, SUBSONIC_INFLOW, SUBSONIC_OUTFLOW
+
+-- Scheme to use
+-- WCHR, WCNS-LD, WCNS-Z, WCNS-JS
+problem.scheme = "WCNS-Z"
 
 -- Domain size
 problem.LX = 2.0*PI
@@ -191,6 +195,9 @@ do
 end
 
 
+-- DEFAULT SCHEME TO USE --
+if problem.scheme == nil then problem.scheme = "WCHR" end
+
 -- DEFAULT BOUNDARY CONDITIONS --
 if problem.boundary_l_x           == nil then problem.boundary_l_x           = {}              end
 if problem.boundary_l_x.condition == nil then problem.boundary_l_x.condition = "EXTRAPOLATION" end
@@ -201,11 +208,12 @@ if problem.boundary_l_x.w         == nil then problem.boundary_l_x.w         = 0
 if problem.boundary_l_x.p         == nil then problem.boundary_l_x.p         = 1.              end
 if problem.boundary_l_x.L_x       == nil then problem.boundary_l_x.L_x       = 0.1             end
 if problem.boundary_l_x.sigma     == nil then problem.boundary_l_x.sigma     = 0.005           end
-if problem.boundary_l_x.eta_1     == nil then problem.boundary_l_x.eta_1     = 2.0             end
-if problem.boundary_l_x.eta_2     == nil then problem.boundary_l_x.eta_2     = 2.0             end
-if problem.boundary_l_x.eta_3     == nil then problem.boundary_l_x.eta_3     = 2.0             end
-if problem.boundary_l_x.eta_4     == nil then problem.boundary_l_x.eta_4     = 2.0             end
-if problem.boundary_l_x.eta_5     == nil then problem.boundary_l_x.eta_5     = 2.0             end
+if problem.boundary_l_x.beta      == nil then problem.boundary_l_x.beta      = 0.5             end
+if problem.boundary_l_x.eta_1     == nil then problem.boundary_l_x.eta_1     = 0.5             end
+if problem.boundary_l_x.eta_2     == nil then problem.boundary_l_x.eta_2     = 0.5             end
+if problem.boundary_l_x.eta_3     == nil then problem.boundary_l_x.eta_3     = 0.5             end
+if problem.boundary_l_x.eta_4     == nil then problem.boundary_l_x.eta_4     = 0.5             end
+if problem.boundary_l_x.eta_5     == nil then problem.boundary_l_x.eta_5     = 0.5             end
 
 if problem.boundary_r_x           == nil then problem.boundary_r_x           = {}              end
 if problem.boundary_r_x.condition == nil then problem.boundary_r_x.condition = "EXTRAPOLATION" end
@@ -216,11 +224,12 @@ if problem.boundary_r_x.w         == nil then problem.boundary_r_x.w         = 0
 if problem.boundary_r_x.p         == nil then problem.boundary_r_x.p         = 1.              end
 if problem.boundary_r_x.L_x       == nil then problem.boundary_r_x.L_x       = 0.1             end
 if problem.boundary_r_x.sigma     == nil then problem.boundary_r_x.sigma     = 0.005           end
-if problem.boundary_r_x.eta_1     == nil then problem.boundary_r_x.eta_1     = 2.0             end
-if problem.boundary_r_x.eta_2     == nil then problem.boundary_r_x.eta_2     = 2.0             end
-if problem.boundary_r_x.eta_3     == nil then problem.boundary_r_x.eta_3     = 2.0             end
-if problem.boundary_r_x.eta_4     == nil then problem.boundary_r_x.eta_4     = 2.0             end
-if problem.boundary_r_x.eta_5     == nil then problem.boundary_r_x.eta_5     = 2.0             end
+if problem.boundary_r_x.beta      == nil then problem.boundary_r_x.beta      = 0.5             end
+if problem.boundary_r_x.eta_1     == nil then problem.boundary_r_x.eta_1     = 0.5             end
+if problem.boundary_r_x.eta_2     == nil then problem.boundary_r_x.eta_2     = 0.5             end
+if problem.boundary_r_x.eta_3     == nil then problem.boundary_r_x.eta_3     = 0.5             end
+if problem.boundary_r_x.eta_4     == nil then problem.boundary_r_x.eta_4     = 0.5             end
+if problem.boundary_r_x.eta_5     == nil then problem.boundary_r_x.eta_5     = 0.5             end
 
 if problem.boundary_l_y           == nil then problem.boundary_l_y           = {}              end
 if problem.boundary_l_y.condition == nil then problem.boundary_l_y.condition = "EXTRAPOLATION" end
@@ -231,11 +240,12 @@ if problem.boundary_l_y.w         == nil then problem.boundary_l_y.w         = 0
 if problem.boundary_l_y.p         == nil then problem.boundary_l_y.p         = 1.              end
 if problem.boundary_l_y.L_x       == nil then problem.boundary_l_y.L_x       = 0.1             end
 if problem.boundary_l_y.sigma     == nil then problem.boundary_l_y.sigma     = 0.005           end
-if problem.boundary_l_y.eta_1     == nil then problem.boundary_l_y.eta_1     = 2.0             end
-if problem.boundary_l_y.eta_2     == nil then problem.boundary_l_y.eta_2     = 2.0             end
-if problem.boundary_l_y.eta_3     == nil then problem.boundary_l_y.eta_3     = 2.0             end
-if problem.boundary_l_y.eta_4     == nil then problem.boundary_l_y.eta_4     = 2.0             end
-if problem.boundary_l_y.eta_5     == nil then problem.boundary_l_y.eta_5     = 2.0             end
+if problem.boundary_l_y.beta      == nil then problem.boundary_l_y.beta      = 0.5             end
+if problem.boundary_l_y.eta_1     == nil then problem.boundary_l_y.eta_1     = 0.5             end
+if problem.boundary_l_y.eta_2     == nil then problem.boundary_l_y.eta_2     = 0.5             end
+if problem.boundary_l_y.eta_3     == nil then problem.boundary_l_y.eta_3     = 0.5             end
+if problem.boundary_l_y.eta_4     == nil then problem.boundary_l_y.eta_4     = 0.5             end
+if problem.boundary_l_y.eta_5     == nil then problem.boundary_l_y.eta_5     = 0.5             end
 
 if problem.boundary_r_y           == nil then problem.boundary_r_y           = {}              end
 if problem.boundary_r_y.condition == nil then problem.boundary_r_y.condition = "EXTRAPOLATION" end
@@ -246,11 +256,12 @@ if problem.boundary_r_y.w         == nil then problem.boundary_r_y.w         = 0
 if problem.boundary_r_y.p         == nil then problem.boundary_r_y.p         = 1.              end
 if problem.boundary_r_y.L_x       == nil then problem.boundary_r_y.L_x       = 0.1             end
 if problem.boundary_r_y.sigma     == nil then problem.boundary_r_y.sigma     = 0.005           end
-if problem.boundary_r_y.eta_1     == nil then problem.boundary_r_y.eta_1     = 2.0             end
-if problem.boundary_r_y.eta_2     == nil then problem.boundary_r_y.eta_2     = 2.0             end
-if problem.boundary_r_y.eta_3     == nil then problem.boundary_r_y.eta_3     = 2.0             end
-if problem.boundary_r_y.eta_4     == nil then problem.boundary_r_y.eta_4     = 2.0             end
-if problem.boundary_r_y.eta_5     == nil then problem.boundary_r_y.eta_5     = 2.0             end
+if problem.boundary_r_y.beta      == nil then problem.boundary_r_y.beta      = 0.5             end
+if problem.boundary_r_y.eta_1     == nil then problem.boundary_r_y.eta_1     = 0.5             end
+if problem.boundary_r_y.eta_2     == nil then problem.boundary_r_y.eta_2     = 0.5             end
+if problem.boundary_r_y.eta_3     == nil then problem.boundary_r_y.eta_3     = 0.5             end
+if problem.boundary_r_y.eta_4     == nil then problem.boundary_r_y.eta_4     = 0.5             end
+if problem.boundary_r_y.eta_5     == nil then problem.boundary_r_y.eta_5     = 0.5             end
 
 if problem.boundary_l_z           == nil then problem.boundary_l_z           = {}              end
 if problem.boundary_l_z.condition == nil then problem.boundary_l_z.condition = "EXTRAPOLATION" end
@@ -261,11 +272,12 @@ if problem.boundary_l_z.w         == nil then problem.boundary_l_z.w         = 0
 if problem.boundary_l_z.p         == nil then problem.boundary_l_z.p         = 1.              end
 if problem.boundary_l_z.L_x       == nil then problem.boundary_l_z.L_x       = 0.1             end
 if problem.boundary_l_z.sigma     == nil then problem.boundary_l_z.sigma     = 0.005           end
-if problem.boundary_l_z.eta_1     == nil then problem.boundary_l_z.eta_1     = 2.0             end
-if problem.boundary_l_z.eta_2     == nil then problem.boundary_l_z.eta_2     = 2.0             end
-if problem.boundary_l_z.eta_3     == nil then problem.boundary_l_z.eta_3     = 2.0             end
-if problem.boundary_l_z.eta_4     == nil then problem.boundary_l_z.eta_4     = 2.0             end
-if problem.boundary_l_z.eta_5     == nil then problem.boundary_l_z.eta_5     = 2.0             end
+if problem.boundary_l_z.beta      == nil then problem.boundary_l_z.beta      = 0.5             end
+if problem.boundary_l_z.eta_1     == nil then problem.boundary_l_z.eta_1     = 0.5             end
+if problem.boundary_l_z.eta_2     == nil then problem.boundary_l_z.eta_2     = 0.5             end
+if problem.boundary_l_z.eta_3     == nil then problem.boundary_l_z.eta_3     = 0.5             end
+if problem.boundary_l_z.eta_4     == nil then problem.boundary_l_z.eta_4     = 0.5             end
+if problem.boundary_l_z.eta_5     == nil then problem.boundary_l_z.eta_5     = 0.5             end
 
 if problem.boundary_r_z           == nil then problem.boundary_r_z           = {}              end
 if problem.boundary_r_z.condition == nil then problem.boundary_r_z.condition = "EXTRAPOLATION" end
@@ -276,10 +288,11 @@ if problem.boundary_r_z.w         == nil then problem.boundary_r_z.w         = 0
 if problem.boundary_r_z.p         == nil then problem.boundary_r_z.p         = 1.              end
 if problem.boundary_r_z.L_x       == nil then problem.boundary_r_z.L_x       = 0.1             end
 if problem.boundary_r_z.sigma     == nil then problem.boundary_r_z.sigma     = 0.005           end
-if problem.boundary_r_z.eta_1     == nil then problem.boundary_r_z.eta_1     = 2.0             end
-if problem.boundary_r_z.eta_2     == nil then problem.boundary_r_z.eta_2     = 2.0             end
-if problem.boundary_r_z.eta_3     == nil then problem.boundary_r_z.eta_3     = 2.0             end
-if problem.boundary_r_z.eta_4     == nil then problem.boundary_r_z.eta_4     = 2.0             end
-if problem.boundary_r_z.eta_5     == nil then problem.boundary_r_z.eta_5     = 2.0             end
+if problem.boundary_r_z.beta      == nil then problem.boundary_r_z.beta      = 0.5             end
+if problem.boundary_r_z.eta_1     == nil then problem.boundary_r_z.eta_1     = 0.5             end
+if problem.boundary_r_z.eta_2     == nil then problem.boundary_r_z.eta_2     = 0.5             end
+if problem.boundary_r_z.eta_3     == nil then problem.boundary_r_z.eta_3     = 0.5             end
+if problem.boundary_r_z.eta_4     == nil then problem.boundary_r_z.eta_4     = 0.5             end
+if problem.boundary_r_z.eta_5     == nil then problem.boundary_r_z.eta_5     = 0.5             end
 
 return problem

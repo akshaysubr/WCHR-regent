@@ -18,6 +18,24 @@ local xi0 = 9.0/152.0
 local xi1 = -14445.0/171608.0
 local xi2 = -3182085.0/37433632.0 - (45.0*cmath.sqrt(723535913.0))/37433632.0
 local xi3 = -(9.0*cmath.sqrt(723535913.0))/7659176.0 + 96676.0/957397.0
+
+local C         = 1.0e10
+local epsilon   = 1.0e-40
+local alpha_tau = 55.0
+
+do
+  if scheme ~= "WCHR" then
+    xi  = 1.0
+    xi0 = -1.0/8.0
+    xi1 = 0.0
+    xi2 = 15.0/8.0
+    xi3 = -1.0/8.0
+  end
+  if scheme == "WCNS-LD" then
+    C = 1.0e9
+    alpha_tau = 35.0
+  end
+end
  
 alpha06CI = - 45.*( xi - 1. ) / ( 16.*(xi + 5) )
 beta06CI  = ( 53.*xi - 5. ) / ( 8.*(xi + 5) )
@@ -159,7 +177,18 @@ get_beta_LB_r = make_get_beta_LB(false)
 get_beta_RB_l = make_get_beta_RB(true)
 get_beta_RB_r = make_get_beta_RB(false)
 
-local function make_get_nonlinear_weights_LD(get_beta, is_left)
+local function make_get_nonlinear_weights_LD(get_beta, is_left, scheme)
+
+  local order = 6
+  if scheme == "WCNS-JS" or scheme == "WCNS-Z" then
+    order = 5
+  end
+  
+  local C_upwind = 1.0
+  if scheme == "WCNS-JS" then
+    C_upwind = 0.0
+  end
+
   local get_nonlinear_weights_LD __demand(__inline) task get_nonlinear_weights_LD( values : double[6][5] )
     var nlweights : double[4][5]
   
@@ -169,11 +198,8 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
     for eq = 0, 5 do 
       var beta = [get_beta](values, eq)
       
-      var C : double = 1.0e10
       -- p = 2
       -- q = 4
-      var epsilon   : double = 1.0e-40
-      var alpha_tau : double = 55.0
       
       var alpha_2 : double = (values[eq][2] - values[eq][1])
       var alpha_3 : double = (values[eq][3] - values[eq][2])
@@ -186,9 +212,13 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
       
       var beta_avg : double = 1.0/8.0*(beta[0] + beta[2] + 6.0*beta[1])
       var tau_6 : double = cmath.fabs(beta[3] - beta_avg)
+
+      if order < 6 then
+        sigma = 1.0
+      end
           
       -- Compute the nonlinear weights
-      if tau_6/(beta_avg + epsilon) > alpha_tau then
+      if (tau_6/(beta_avg + epsilon) > alpha_tau) or (order < 6) then
         
         var omega_central : double[4]
         var sum : double = 0.0
@@ -203,13 +233,13 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
           omega_central[i] = omega_central[i] / sum
         end
   
-        var tau_5 : double = cmath.fabs(beta[0] - beta[2])
+        var tau_5 : double = C_upwind*cmath.fabs(beta[0] - beta[2]) + (1.0 - C_upwind)
         var omega_upwind : double[4]
         sum = 0.0
         for i = 0, 4 do
           var dummy : double = (tau_5/(beta[i] + epsilon))
           dummy = dummy*dummy      -- p = 2
-          omega_upwind[i] = d_upwind[i]*( 1.0 + dummy )
+          omega_upwind[i] = d_upwind[i]*( C_upwind + dummy )
           sum = sum + omega_upwind[i]
         end
         for i = 0, 4 do
@@ -241,6 +271,17 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
 end
 
 local function make_get_nonlinear_weights_LD_LBLB(get_beta, is_left_biased, is_left_boundary)
+
+  local order = 6
+  if scheme == "WCNS-JS" or scheme == "WCNS-Z" then
+    order = 5
+  end
+  
+  local C_upwind = 1.0
+  if scheme == "WCNS-JS" then
+    C_upwind = 0.0
+  end
+
   local get_nonlinear_weights_LD_LBLB __demand(__inline) task get_nonlinear_weights_LD_LBLB( values : double[7][5] )
     var nlweights : double[4][5]
 
@@ -256,11 +297,8 @@ local function make_get_nonlinear_weights_LD_LBLB(get_beta, is_left_biased, is_l
     for eq = 0, 5 do 
       var beta = [get_beta](values, eq)
       
-      var C : double = 1.0e10
       -- p = 2
       -- q = 4
-      var epsilon   : double = 1.0e-40
-      var alpha_tau : double = 55.0
   
       var alpha_2 : double = (values[eq][ [v_index_B(2,is_left_boundary)] ] - values[eq][ [v_index_B(1,is_left_boundary)] ])
       var alpha_3 : double = (values[eq][ [v_index_B(3,is_left_boundary)] ] - values[eq][ [v_index_B(2,is_left_boundary)] ])
@@ -274,8 +312,12 @@ local function make_get_nonlinear_weights_LD_LBLB(get_beta, is_left_biased, is_l
       var beta_avg : double = 1.0/8.0*(beta[0] + beta[2] + 6.0*beta[1])
       var tau_6 : double = cmath.fabs(beta[3] - beta_avg)
           
+      if order < 6 then
+        sigma = 1.0
+      end
+          
       -- Compute the nonlinear weights
-      if tau_6/(beta_avg + epsilon) > alpha_tau then
+      if (tau_6/(beta_avg + epsilon) > alpha_tau) or (order < 6) then
         
         var omega_6 : double[4]
         var sum : double = 0.0
@@ -290,13 +332,13 @@ local function make_get_nonlinear_weights_LD_LBLB(get_beta, is_left_biased, is_l
           omega_6[i] = omega_6[i] / sum
         end
   
-        var tau_5 : double = cmath.fabs(beta[0] - beta[2])
+        var tau_5 : double = C_upwind*cmath.fabs(beta[0] - beta[2]) + (1.0 - C_upwind)
         var omega_5 : double[4]
         sum = 0.0
         for i = 0, 4 do
           var dummy : double = (tau_5/(beta[i] + epsilon))
           dummy = dummy*dummy      -- p = 2
-          omega_5[i] = d_5[i]*( 1.0 + dummy )
+          omega_5[i] = d_5[i]*( C_upwind + dummy )
           sum = sum + omega_5[i]
         end
         for i = 0, 4 do
@@ -328,6 +370,17 @@ local function make_get_nonlinear_weights_LD_LBLB(get_beta, is_left_biased, is_l
 end
 
 local function make_get_nonlinear_weights_LD_LBRB(get_beta, is_left_biased, is_left_boundary)
+
+  local order = 6
+  if scheme == "WCNS-JS" or scheme == "WCNS-Z" then
+    order = 5
+  end
+  
+  local C_upwind = 1.0
+  if scheme == "WCNS-JS" then
+    C_upwind = 0.0
+  end
+
   local get_nonlinear_weights_LD_LBRB __demand(__inline) task get_nonlinear_weights_LD_LBRB( values : double[7][5] )
     var nlweights : double[4][5]
 
@@ -343,11 +396,8 @@ local function make_get_nonlinear_weights_LD_LBRB(get_beta, is_left_biased, is_l
     for eq = 0, 5 do 
       var beta = [get_beta](values, eq)
       
-      var C : double = 1.0e10
       -- p = 2
       -- q = 4
-      var epsilon   : double = 1.0e-40
-      var alpha_tau : double = 55.0
       
       var alpha_2 : double = (values[eq][ [v_index_B(2,is_left_boundary)] ] - values[eq][ [v_index_B(1,is_left_boundary)] ])
       var alpha_3 : double = (values[eq][ [v_index_B(3,is_left_boundary)] ] - values[eq][ [v_index_B(2,is_left_boundary)] ])
@@ -361,8 +411,12 @@ local function make_get_nonlinear_weights_LD_LBRB(get_beta, is_left_biased, is_l
       var beta_avg : double = 1.0/8.0*(beta[0] + beta[2] + 6.0*beta[1])
       var tau_6 : double = cmath.fabs(beta[3] - beta_avg)
           
+      if order < 6 then
+        sigma = 1.0
+      end
+          
       -- Compute the nonlinear weights
-      if tau_6/(beta_avg + epsilon) > alpha_tau then
+      if (tau_6/(beta_avg + epsilon) > alpha_tau) or (order < 6) then
         
         var omega_6 : double[4]
         var sum : double = 0.0
@@ -377,13 +431,13 @@ local function make_get_nonlinear_weights_LD_LBRB(get_beta, is_left_biased, is_l
           omega_6[i] = omega_6[i] / sum
         end
   
-        var tau_5 : double = cmath.fabs(beta[0] - beta[2])
+        var tau_5 : double = C_upwind*cmath.fabs(beta[0] - beta[2]) + (1.0 - C_upwind)
         var omega_5 : double[4]
         sum = 0.0
         for i = 0, 4 do
           var dummy : double = (tau_5/(beta[i] + epsilon))
           dummy = dummy*dummy      -- p = 2
-          omega_5[i] = d_5[i]*( 1.0 + dummy )
+          omega_5[i] = d_5[i]*( C_upwind + dummy )
           sum = sum + omega_5[i]
         end
         for i = 0, 4 do
