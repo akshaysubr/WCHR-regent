@@ -39,7 +39,7 @@ problem.periodic_z = true
 
 -- Interpolation scheme to use
 -- WCHR, WCNS-LD, WCNS-Z, WCNS-JS
-problem.interpolation_scheme = "WCNS-Z"
+problem.interpolation_scheme = "WCHR"
 
 -- Domain size
 problem.LX = 2.0*PI

@@ -27,6 +27,7 @@ local alpha_tau = 55.0
 
 do
   if scheme ~= "WCHR" then
+    print("Interpolation scheme is not WCHR. Using explicit interpolation")
     xi  = 1.0
     xi0 = -1.0/8.0
     xi1 = 0.0
@@ -34,6 +35,7 @@ do
     xi3 = -1.0/8.0
   end
   if scheme == "WCNS-LD" then
+    print("Using parameters for WCNS-LD scheme")
     C = 1.0e9
     alpha_tau = 35.0
   end
@@ -179,15 +181,17 @@ get_beta_LB_r = make_get_beta_LB(false)
 get_beta_RB_l = make_get_beta_RB(true)
 get_beta_RB_r = make_get_beta_RB(false)
 
-local function make_get_nonlinear_weights_LD(get_beta, is_left, scheme)
+local function make_get_nonlinear_weights_LD(get_beta, is_left)
 
   local order = 6
   if scheme == "WCNS-JS" or scheme == "WCNS-Z" then
+    print("Using 5th order explicit interpolation scheme")
     order = 5
   end
   
   local C_upwind = 1.0
   if scheme == "WCNS-JS" then
+    print("Using 5th order explicit interpolation scheme with JS weights")
     C_upwind = 0.0
   end
 
