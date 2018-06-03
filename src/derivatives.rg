@@ -70,18 +70,33 @@ function poff_wg(i, x, y, z, Nx, Ny, Nz)
 end
 
 task get_compact_matrix(mat      : region(ispace(int3d), LU_coeffs),
+                        der      : int,
                         periodic : bool)
 where
   writes(mat)
 do
   var N = mat.ispace.bounds.hi.x + 1
 
+  var e = beta06d1
+  var a = alpha06d1
+  var d = 1.0
+  var c = alpha06d1
+  var f = beta06d1
+
+  if der == 2 then
+    e = beta06d2
+    a = alpha06d2
+    d = 1.0
+    c = alpha06d2
+    f = beta06d2
+  end
+
   for i in mat do
-    mat[i].e = beta06d1
-    mat[i].a = alpha06d1
-    mat[i].d = 1.0
-    mat[i].c = alpha06d1
-    mat[i].f = beta06d1
+    mat[i].e = e
+    mat[i].a = a
+    mat[i].d = d
+    mat[i].c = c
+    mat[i].f = f
 
     -- Assuming tridiagonal :P
     if ((not periodic) and (i.x == 0)) then
@@ -648,6 +663,30 @@ function make_ddx(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX)
   return ddx
 end
 
+function make_d2dx2(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX)
+  local privileges_r_func = regentlib.privilege(regentlib.reads,  r_func, f_func)
+  
+  local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
+  local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
+  local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
+
+  local ComputeXRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, 0, 2)
+  local SolveXLU     = make_SolveXLU(r_der, privileges_r_der, f_der)
+
+  local d2dx2 __demand(__inline) task d2dx2( [r_func],
+                                             [r_der],
+                                             LU     : region(ispace(int3d), LU_struct) )
+  where                            
+    reads(LU), [privileges_r_func], [privileges_r_der]
+  do
+    [ComputeXRHS]([r_func], [r_der])
+    var token = [SolveXLU]([r_der],LU)
+    token = r_der[ [r_der].ispace.bounds.lo ].[f_der]
+    return token
+  end
+  return d2dx2
+end
+
 function make_ddy(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX)
   local privileges_r_func = regentlib.privilege(regentlib.reads,  r_func, f_func)
   
@@ -672,6 +711,30 @@ function make_ddy(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX)
   return ddy
 end
 
+function make_d2dy2(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX)
+  local privileges_r_func = regentlib.privilege(regentlib.reads,  r_func, f_func)
+  
+  local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
+  local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
+  local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
+
+  local ComputeYRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, 1, 2)
+  local SolveYLU     = make_SolveYLU(r_der, privileges_r_der, f_der)
+
+  local d2dy2 __demand(__inline) task d2dy2( [r_func],
+                                             [r_der],
+                                             LU     : region(ispace(int3d), LU_struct) )
+  where                            
+    reads(LU), [privileges_r_func], [privileges_r_der]
+  do
+    [ComputeYRHS]([r_func], [r_der])
+    var token = [SolveYLU]([r_der],LU)
+    token = r_der[ [r_der].ispace.bounds.lo ].[f_der]
+    return token
+  end
+  return d2dy2
+end
+
 function make_ddz(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX)
   local privileges_r_func = regentlib.privilege(regentlib.reads,  r_func, f_func)
   
@@ -694,6 +757,30 @@ function make_ddz(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX)
     return token
   end
   return ddz
+end
+
+function make_d2dz2(r_func, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX)
+  local privileges_r_func = regentlib.privilege(regentlib.reads,  r_func, f_func)
+  
+  local reads_r_der      = regentlib.privilege(regentlib.reads,  r_der, f_der)
+  local writes_r_der     = regentlib.privilege(regentlib.writes, r_der, f_der)
+  local privileges_r_der = terralib.newlist({reads_r_der, writes_r_der})
+
+  local ComputeZRHS  = make_stencil(r_func, privileges_r_func, f_func, r_der, privileges_r_der, f_der, NX, NY, NZ, ONEBYDX, 2, 2)
+  local SolveZLU     = make_SolveZLU(r_der, privileges_r_der, f_der)
+
+  local d2dz2 __demand(__inline) task d2dz2( [r_func],
+                                             [r_der],
+                                             LU     : region(ispace(int3d), LU_struct) )
+  where                            
+    reads(LU), [privileges_r_func], [privileges_r_der]
+  do
+    [ComputeZRHS]([r_func], [r_der])
+    var token = [SolveZLU]([r_der],LU)
+    token = r_der[ [r_der].ispace.bounds.lo ].[f_der]
+    return token
+  end
+  return d2dz2
 end
 
 function make_ddx_MND(r_func, r_func_e, f_func, r_der, f_der, NX, NY, NZ, ONEBYDX, periodic)
