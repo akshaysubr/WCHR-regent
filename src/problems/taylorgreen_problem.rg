@@ -148,6 +148,7 @@ if problem.boundary_l_x.w         == nil then problem.boundary_l_x.w         = 0
 if problem.boundary_l_x.p         == nil then problem.boundary_l_x.p         = 1.              end
 if problem.boundary_l_x.L_x       == nil then problem.boundary_l_x.L_x       = 0.1             end
 if problem.boundary_l_x.sigma     == nil then problem.boundary_l_x.sigma     = 0.005           end
+if problem.boundary_l_x.beta      == nil then problem.boundary_l_x.beta      = 0.5             end
 if problem.boundary_l_x.eta_1     == nil then problem.boundary_l_x.eta_1     = 2.0             end
 if problem.boundary_l_x.eta_2     == nil then problem.boundary_l_x.eta_2     = 2.0             end
 if problem.boundary_l_x.eta_3     == nil then problem.boundary_l_x.eta_3     = 2.0             end
@@ -163,6 +164,7 @@ if problem.boundary_r_x.w         == nil then problem.boundary_r_x.w         = 0
 if problem.boundary_r_x.p         == nil then problem.boundary_r_x.p         = 1.              end
 if problem.boundary_r_x.L_x       == nil then problem.boundary_r_x.L_x       = 0.1             end
 if problem.boundary_r_x.sigma     == nil then problem.boundary_r_x.sigma     = 0.005           end
+if problem.boundary_r_x.beta      == nil then problem.boundary_r_x.beta      = 0.5             end
 if problem.boundary_r_x.eta_1     == nil then problem.boundary_r_x.eta_1     = 2.0             end
 if problem.boundary_r_x.eta_2     == nil then problem.boundary_r_x.eta_2     = 2.0             end
 if problem.boundary_r_x.eta_3     == nil then problem.boundary_r_x.eta_3     = 2.0             end
@@ -178,6 +180,7 @@ if problem.boundary_l_y.w         == nil then problem.boundary_l_y.w         = 0
 if problem.boundary_l_y.p         == nil then problem.boundary_l_y.p         = 1.              end
 if problem.boundary_l_y.L_x       == nil then problem.boundary_l_y.L_x       = 0.1             end
 if problem.boundary_l_y.sigma     == nil then problem.boundary_l_y.sigma     = 0.005           end
+if problem.boundary_l_y.beta      == nil then problem.boundary_l_y.beta      = 0.5             end
 if problem.boundary_l_y.eta_1     == nil then problem.boundary_l_y.eta_1     = 2.0             end
 if problem.boundary_l_y.eta_2     == nil then problem.boundary_l_y.eta_2     = 2.0             end
 if problem.boundary_l_y.eta_3     == nil then problem.boundary_l_y.eta_3     = 2.0             end
@@ -193,6 +196,7 @@ if problem.boundary_r_y.w         == nil then problem.boundary_r_y.w         = 0
 if problem.boundary_r_y.p         == nil then problem.boundary_r_y.p         = 1.              end
 if problem.boundary_r_y.L_x       == nil then problem.boundary_r_y.L_x       = 0.1             end
 if problem.boundary_r_y.sigma     == nil then problem.boundary_r_y.sigma     = 0.005           end
+if problem.boundary_r_y.beta      == nil then problem.boundary_r_y.beta      = 0.5             end
 if problem.boundary_r_y.eta_1     == nil then problem.boundary_r_y.eta_1     = 2.0             end
 if problem.boundary_r_y.eta_2     == nil then problem.boundary_r_y.eta_2     = 2.0             end
 if problem.boundary_r_y.eta_3     == nil then problem.boundary_r_y.eta_3     = 2.0             end
@@ -208,6 +212,7 @@ if problem.boundary_l_z.w         == nil then problem.boundary_l_z.w         = 0
 if problem.boundary_l_z.p         == nil then problem.boundary_l_z.p         = 1.              end
 if problem.boundary_l_z.L_x       == nil then problem.boundary_l_z.L_x       = 0.1             end
 if problem.boundary_l_z.sigma     == nil then problem.boundary_l_z.sigma     = 0.005           end
+if problem.boundary_l_z.beta      == nil then problem.boundary_l_z.beta      = 0.5             end
 if problem.boundary_l_z.eta_1     == nil then problem.boundary_l_z.eta_1     = 2.0             end
 if problem.boundary_l_z.eta_2     == nil then problem.boundary_l_z.eta_2     = 2.0             end
 if problem.boundary_l_z.eta_3     == nil then problem.boundary_l_z.eta_3     = 2.0             end
@@ -223,6 +228,7 @@ if problem.boundary_r_z.w         == nil then problem.boundary_r_z.w         = 0
 if problem.boundary_r_z.p         == nil then problem.boundary_r_z.p         = 1.              end
 if problem.boundary_r_z.L_x       == nil then problem.boundary_r_z.L_x       = 0.1             end
 if problem.boundary_r_z.sigma     == nil then problem.boundary_r_z.sigma     = 0.005           end
+if problem.boundary_r_z.beta      == nil then problem.boundary_r_z.beta      = 0.5             end
 if problem.boundary_r_z.eta_1     == nil then problem.boundary_r_z.eta_1     = 2.0             end
 if problem.boundary_r_z.eta_2     == nil then problem.boundary_r_z.eta_2     = 2.0             end
 if problem.boundary_r_z.eta_3     == nil then problem.boundary_r_z.eta_3     = 2.0             end
