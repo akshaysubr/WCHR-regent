@@ -17,6 +17,7 @@ problem.Re = 100.    -- Initial Taylor scale Reynolds number
 problem.Pr = 0.7     -- Prandtl number
 problem.datafile = "/home/akshays/Data/WCHR/CHIT/setup/CHIT-velocity-k04-N0064.dat"  -- Data file containing initial velocities
 problem.viscous = true
+problem.conservative_viscous_terms = false
 
 problem.u_rms0  = problem.Mt / cmath.sqrt(3)        -- Initial RMS velocity
 problem.lambda0 = 2.0 / problem.k0                  -- Initial Taylor microscale
@@ -197,6 +198,9 @@ end
 
 -- DEFAULT SCHEME TO USE --
 if problem.interpolation_scheme == nil then problem.scheme = "WCHR" end
+
+-- DEFAULT VISCOUS TERM FORMULATION TO USE --
+if problem.conservative_viscous_terms == nil then problem.conservative_viscous_terms = false end
 
 -- DEFAULT BOUNDARY CONDITIONS --
 if problem.boundary_l_x           == nil then problem.boundary_l_x           = {}              end

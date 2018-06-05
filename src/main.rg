@@ -127,6 +127,7 @@ task main()
   var r_visc     = region(grid_c,   transport_coeffs)  -- Transport coefficients at cell center
 
   var r_gradu    = region(grid_c,   tensor2)      -- Velocity gradient tensor at the cell center
+  var r_grad2u   = region(grid_c,   tensor2)      -- Velocity second-derivative tensor at the cell center (d^2 u_i / d x_j^2)
   var r_tauij    = region(grid_c,   tensor2symm)  -- Viscous stress tensor at the cell center
   var r_q        = region(grid_c,   vect)         -- Heat flux vector at the cell center
 
@@ -154,24 +155,30 @@ task main()
 
   -- data structure to hold x derivative LU decomposition
   var mat_x      = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For staggered finite difference
-  var mat_N_x    = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal finite difference
+  var mat_N_x    = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal 1st order finite difference
+  var mat2_N_x   = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal 2nd order finite difference
   
   var LU_x       = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For staggered finite difference
-  var LU_N_x     = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal finite difference
+  var LU_N_x     = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal 1st order finite difference
+  var LU2_N_x    = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal 2nd order finite difference
   
   -- data structure to hold y derivative LU decomposition
   var mat_y      = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For staggered finite difference
-  var mat_N_y    = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal finite difference
+  var mat_N_y    = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal 1st order finite difference
+  var mat2_N_y   = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal 2nd order finite difference
   
   var LU_y       = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For staggered finite difference
-  var LU_N_y     = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal finite difference
+  var LU_N_y     = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal 1st order finite difference
+  var LU2_N_y    = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal 2nd order finite difference
 
   -- data structure to hold z derivative LU decomposition
   var mat_z      = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For staggered finite difference
-  var mat_N_z    = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal finite difference
+  var mat_N_z    = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal 1st order finite difference
+  var mat2_N_z   = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal 2nd order finite difference
   
   var LU_z       = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For staggered finite difference
-  var LU_N_z     = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal finite difference
+  var LU_N_z     = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal 1st order finite difference
+  var LU2_N_z    = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal 2nd order finite difference
 
   var pencil = ispace(int2d, int2d {config.prow+2, config.pcol+2}) -- All pencil partitions including the ghost pencils
   var pencil_interior = ispace(int2d, int2d {config.prow, config.pcol}, int2d {1, 1}) -- Only the interior pencil partitions
@@ -273,6 +280,10 @@ task main()
   var p_gradu_y     = partition_ypencil_tnsr2(r_gradu,    n_ghosts, false, pencil)
   var p_gradu_z     = partition_zpencil_tnsr2(r_gradu,    n_ghosts, false, pencil)
 
+  var p_grad2u_x    = partition_xpencil_tnsr2(r_grad2u,   n_ghosts, false, pencil)
+  var p_grad2u_y    = partition_ypencil_tnsr2(r_grad2u,   n_ghosts, false, pencil)
+  var p_grad2u_z    = partition_zpencil_tnsr2(r_grad2u,   n_ghosts, false, pencil)
+
   var p_tauij_x     = partition_xpencil_tnsr2symm(r_tauij, n_ghosts, false, pencil)
   var p_tauij_y     = partition_ypencil_tnsr2symm(r_tauij, n_ghosts, false, pencil)
   var p_tauij_z     = partition_zpencil_tnsr2symm(r_tauij, n_ghosts, false, pencil)
@@ -316,6 +327,14 @@ task main()
   var p_LU_N_x      = partition_LU(LU_N_x, pencil)
   var p_LU_N_y      = partition_LU(LU_N_y, pencil)
   var p_LU_N_z      = partition_LU(LU_N_z, pencil)
+
+  var p_mat2_N_x    = partition_mat(mat2_N_x, pencil)
+  var p_mat2_N_y    = partition_mat(mat2_N_y, pencil)
+  var p_mat2_N_z    = partition_mat(mat2_N_z, pencil)
+
+  var p_LU2_N_x     = partition_LU(LU2_N_x, pencil)
+  var p_LU2_N_y     = partition_LU(LU2_N_y, pencil)
+  var p_LU2_N_z     = partition_LU(LU2_N_z, pencil)
 
   var p_alpha_l_x = partition_xpencil_coeffs(alpha_l_x, n_ghosts,  true, pencil)
   var p_beta_l_x  = partition_xpencil_coeffs(beta_l_x , n_ghosts,  true, pencil)
@@ -391,18 +410,18 @@ task main()
     token += get_LU_decomposition(p_LU_z[i], p_mat_z[i])
   end
 
-  -- Initialize nodal derivatives stuff
+  -- Initialize nodal first derivative stuff
   __demand(__parallel)
   for i in pencil_interior do
-    get_compact_matrix(p_mat_N_x[i], problem.periodic_x)
+    get_compact_matrix(p_mat_N_x[i], 1, problem.periodic_x)
   end
   __demand(__parallel)
   for i in pencil_interior do
-    get_compact_matrix(p_mat_N_y[i], problem.periodic_y)
+    get_compact_matrix(p_mat_N_y[i], 1, problem.periodic_y)
   end
   __demand(__parallel)
   for i in pencil_interior do
-    get_compact_matrix(p_mat_N_z[i], problem.periodic_z)
+    get_compact_matrix(p_mat_N_z[i], 1, problem.periodic_z)
   end
 
   __demand(__parallel)
@@ -417,6 +436,34 @@ task main()
   for i in pencil_interior do
     token += get_LU_decomposition(p_LU_N_z[i], p_mat_N_z[i])
   end
+
+  -- Initialize nodal second derivative stuff
+  __demand(__parallel)
+  for i in pencil_interior do
+    get_compact_matrix(p_mat2_N_x[i], 2, problem.periodic_x)
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    get_compact_matrix(p_mat2_N_y[i], 2, problem.periodic_y)
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    get_compact_matrix(p_mat2_N_z[i], 2, problem.periodic_z)
+  end
+
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_LU_decomposition(p_LU2_N_x[i], p_mat2_N_x[i])
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_LU_decomposition(p_LU2_N_y[i], p_mat2_N_y[i])
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_LU_decomposition(p_LU2_N_z[i], p_mat2_N_z[i])
+  end
+
   wait_for(token)
   c.printf("Finished LU initialization\n")
 
@@ -456,15 +503,15 @@ task main()
   -- Get the velocity derivatives at initial condition 
   __demand(__parallel)
   for i in pencil_interior do
-    token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
+    token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_grad2u_x[i], p_LU_N_x[i], p_LU2_N_x[i] )
   end
   __demand(__parallel)
   for i in pencil_interior do
-    token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
+    token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_grad2u_y[i], p_LU_N_y[i], p_LU2_N_y[i] )
   end
   __demand(__parallel)
   for i in pencil_interior do
-    token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
+    token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_grad2u_z[i], p_LU_N_z[i], p_LU2_N_z[i] )
   end
  
   -- Get the density derivatives at initial condition 
@@ -677,10 +724,18 @@ task main()
       end
 
       -- Add x-direction viscous flux derivative to RHS.
-      __demand(__parallel)
-      for i in pencil_interior do
-        add_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_q_x[i],
-                                      p_flux_c_x[i], p_fder_c_x[i], p_rhs_x[i], p_LU_N_x[i] )
+      if problem.conservative_viscous_terms then
+        __demand(__parallel)
+        for i in pencil_interior do
+          add_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_q_x[i],
+                                        p_flux_c_x[i], p_fder_c_x[i], p_rhs_x[i], p_LU_N_x[i] )
+        end
+      else
+        __demand(__parallel)
+        for i in pencil_interior do
+          add_nonconservative_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_gradu_x[i], p_grad2u_x[i], 
+                                                        p_tauij_x[i], p_rhs_x[i], p_LU_N_x[i], p_LU2_N_x[i] )
+        end
       end
 
       -- Add y-direction convective flux derivative to RHS.
@@ -692,10 +747,18 @@ task main()
       end
 
       -- Add y-direction viscous flux derivative to RHS.
-      __demand(__parallel)
-      for i in pencil_interior do
-        add_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_q_y[i],
-                                      p_flux_c_y[i], p_fder_c_y[i], p_rhs_y[i], p_LU_N_y[i] )
+      if problem.conservative_viscous_terms then
+        __demand(__parallel)
+        for i in pencil_interior do
+          add_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_q_y[i],
+                                        p_flux_c_y[i], p_fder_c_y[i], p_rhs_y[i], p_LU_N_y[i] )
+        end
+      else
+        __demand(__parallel)
+        for i in pencil_interior do
+          add_nonconservative_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_gradu_y[i], p_grad2u_y[i], 
+                                                        p_tauij_y[i], p_rhs_y[i], p_LU_N_y[i], p_LU2_N_y[i] )
+        end
       end
 
       -- Add z-direction convective flux derivative to RHS.
@@ -707,10 +770,18 @@ task main()
       end
 
       -- Add z-direction viscous flux derivative to RHS.
-      __demand(__parallel)
-      for i in pencil_interior do
-        add_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_q_z[i],
-                                      p_flux_c_z[i], p_fder_c_z[i], p_rhs_z[i], p_LU_N_z[i] )
+      if problem.conservative_viscous_terms then
+        __demand(__parallel)
+        for i in pencil_interior do
+          add_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_q_z[i],
+                                        p_flux_c_z[i], p_fder_c_z[i], p_rhs_z[i], p_LU_N_z[i] )
+        end
+      else
+        __demand(__parallel)
+        for i in pencil_interior do
+          add_nonconservative_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_gradu_z[i], p_grad2u_z[i], 
+                                                        p_tauij_z[i], p_rhs_z[i], p_LU_N_z[i], p_LU2_N_z[i] )
+        end
       end
 
       -- Update solution in this substep.
@@ -738,15 +809,15 @@ task main()
       -- Update velocity gradient tensor.
       __demand(__parallel)
       for i in pencil_interior do
-        token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_LU_N_x[i] )
+        token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_grad2u_x[i], p_LU_N_x[i], p_LU2_N_x[i] )
       end
       __demand(__parallel)
       for i in pencil_interior do
-        token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_LU_N_y[i] )
+        token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_grad2u_y[i], p_LU_N_y[i], p_LU2_N_y[i] )
       end
       __demand(__parallel)
       for i in pencil_interior do
-        token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_LU_N_z[i] )
+        token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_grad2u_z[i], p_LU_N_z[i], p_LU2_N_z[i] )
       end
 
       -- Get the density derivatives

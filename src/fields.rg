@@ -43,6 +43,10 @@ fspace transport_coeffs {
   kappa : double,
 }
 
+fspace scalar {
+  _ : double,
+}
+
 fspace vect {
   _1  : double,
   _2  : double,

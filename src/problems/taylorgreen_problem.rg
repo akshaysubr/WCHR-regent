@@ -11,16 +11,18 @@ local problem = {}
 -- Problem specific parameters
 problem.gamma = 1.4
 problem.Rgas  = 1.0
--- problem.Re    = 100.
--- problem.Pr    = 1.
-problem.Re    = 1600.
-problem.Pr    = 0.71
+problem.Mach  = 0.1
+problem.Re    = 100.
+problem.Pr    = 1.
+-- problem.Re    = 1600.
+-- problem.Pr    = 0.71
 problem.viscous = true
+problem.conservative_viscous_terms = false
 
 -- Grid dimensions
-problem.NX = 256 
-problem.NY = 256 
-problem.NZ = 256 
+problem.NX = 64 
+problem.NY = 64 
+problem.NZ = 64 
 
 -- Periodicity
 problem.periodic_x = true
@@ -129,6 +131,12 @@ do
   return enstrophy * problem.DX * problem.DY * problem.DZ
 end
 
+
+-- DEFAULT SCHEME TO USE --
+if problem.interpolation_scheme == nil then problem.scheme = "WCHR" end
+
+-- DEFAULT VISCOUS TERM FORMULATION TO USE --
+if problem.conservative_viscous_terms == nil then problem.conservative_viscous_terms = false end
 
 -- DEFAULT BOUNDARY CONDITIONS --
 if problem.boundary_l_x           == nil then problem.boundary_l_x           = {}              end
