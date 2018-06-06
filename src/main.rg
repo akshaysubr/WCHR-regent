@@ -17,6 +17,7 @@ local use_io = require("IO")
 
 local problem = require("problem")
 local Config  = require("config")
+local mapper  = require("load_mapper")
 
 
 terra wait_for(x : int)
@@ -978,7 +979,7 @@ if os.getenv('SAVEOBJ') == '1' then
     link_flags = {"-L" .. root_dir, "-lm", "-lblas"}
   end
   print("Saving executable to ./wchr")
-  regentlib.saveobj(main, "wchr", "executable", nil, link_flags)
+  regentlib.saveobj(main, "wchr", "executable", mapper.register_mappers, link_flags)
 else
-  regentlib.start(main)
+  regentlib.start(main, mapper.register_mappers)
 end
