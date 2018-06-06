@@ -977,6 +977,7 @@ if os.getenv('SAVEOBJ') == '1' then
   else
     link_flags = {"-L" .. root_dir, "-lm", "-lblas"}
   end
+  print("Saving executable to ./wchr")
   regentlib.saveobj(main, "wchr", "executable", nil, link_flags)
 else
   regentlib.start(main)

@@ -52,7 +52,7 @@ problem.ONEBYDZ = 1.0 / problem.DZ
 
 problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
 problem.dt_or_CFL_num        = 0.6
-problem.tstop                = 20.0
+problem.tstop                = 5.e-2 --20.0
 problem.tviz                 = 0.5
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
@@ -133,7 +133,7 @@ end
 
 
 -- DEFAULT SCHEME TO USE --
-if problem.interpolation_scheme == nil then problem.scheme = "WCHR" end
+if problem.interpolation_scheme == nil then problem.interpolation_scheme = "WCHR" end
 
 -- DEFAULT VISCOUS TERM FORMULATION TO USE --
 if problem.conservative_viscous_terms == nil then problem.conservative_viscous_terms = false end

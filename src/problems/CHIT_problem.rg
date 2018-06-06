@@ -197,7 +197,7 @@ end
 
 
 -- DEFAULT SCHEME TO USE --
-if problem.interpolation_scheme == nil then problem.scheme = "WCHR" end
+if problem.interpolation_scheme == nil then problem.interpolation_scheme = "WCHR" end
 
 -- DEFAULT VISCOUS TERM FORMULATION TO USE --
 if problem.conservative_viscous_terms == nil then problem.conservative_viscous_terms = false end
