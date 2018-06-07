@@ -52,7 +52,7 @@ problem.ONEBYDZ = 1.0 / problem.DZ
 
 problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
 problem.dt_or_CFL_num        = 0.6
-problem.tstop                = 5.e-2 --20.0
+problem.tstop                = 20.0 -- 5.e-2
 problem.tviz                 = 0.5
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
