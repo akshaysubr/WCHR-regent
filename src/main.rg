@@ -28,6 +28,7 @@ terra wait_for_double(x : double)
   return x
 end
 
+__forbid(__optimize)
 task main()
   var Nx : int64 = problem.NX
   var Ny : int64 = problem.NY
@@ -974,9 +975,9 @@ if os.getenv('SAVEOBJ') == '1' then
   if use_io then
     local hdf_root = os.getenv('HDF_ROOT')
     local hdf_lib_dir = hdf_root .. "/lib"
-    link_flags = {"-L" .. root_dir, "-L" .. hdf_lib_dir, "-lhdf5", "-lm", "-lblas"}
+    link_flags = {"-L" .. root_dir, "-L" .. hdf_lib_dir, "-lhdf5", "-lm", "-lblas", "-L./", "-lwchr"}
   else
-    link_flags = {"-L" .. root_dir, "-lm", "-lblas"}
+    link_flags = {"-L" .. root_dir, "-lm", "-lblas", "-L./", "-lwchr"}
   end
   print("Saving executable to ./wchr")
   regentlib.saveobj(main, "wchr", "executable", mapper.register_mappers, link_flags)
