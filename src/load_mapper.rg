@@ -32,6 +32,9 @@ do
     print("Error: failed to compile " .. wchr_cc)
     assert(false)
   end
+  if os.getenv("SAVE_MAPPER_ONLY") == "1" then
+    os.exit(0)
+  end
   terralib.linklibrary(wchr_so)
   cwchr = terralib.includec("wchr.h", {"-I", root_dir, "-I", runtime_dir})
 end
