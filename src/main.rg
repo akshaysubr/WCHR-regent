@@ -29,7 +29,6 @@ terra wait_for_double(x : double)
   return x
 end
 
-__forbid(__optimize)
 task main()
   var Nx : int64 = problem.NX
   var Ny : int64 = problem.NY
