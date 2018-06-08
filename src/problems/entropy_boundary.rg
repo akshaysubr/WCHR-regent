@@ -13,10 +13,10 @@ problem.gamma   = 1.4
 problem.Rgas    = 1.0
 problem.viscous = false
 
-problem.Gamma_v  = 0.024
-problem.x_vortex = 0.0
-problem.y_vortex = 0.0
-problem.R_vortex = 0.1
+problem.delta_s = 0.1
+problem.x_pulse = 0.0
+problem.y_pulse = 0.0
+problem.R_pulse = 0.1
 
 local Mach    = 0.283
 
@@ -36,9 +36,10 @@ problem.periodic_z = true
 
 -- Boundary (if not periodic)
 -- condition: DIRICHLET, EXTRAPOLATION, SUBSONIC_INFLOW, SUBSONIC_OUTFLOW
+problem.boundary_l_x = { condition="SUBSONIC_INFLOW",  rho=rho_inf, u=u_inf, v=0., w=0., p=p_inf, L_x=1.0*problem.R_pulse, eta_2=0.005, eta_3=0.005, eta_4=0.005, eta_5=0.005, beta=Mach }
+problem.boundary_r_x = { condition="SUBSONIC_OUTFLOW", p=p_inf, L_x=1.0*problem.R_pulse, sigma=0.005, beta=Mach }
 -- problem.boundary_l_x = { condition="EXTRAPOLATION" }
-problem.boundary_l_x = { condition="SUBSONIC_INFLOW",  rho=rho_inf, u=u_inf, v=0., w=0., p=p_inf, L_x=1.0*problem.R_vortex, eta_2=0.005, eta_3=0.005, eta_4=0.005, eta_5=0.005, beta=Mach }
-problem.boundary_r_x = { condition="SUBSONIC_OUTFLOW", p=p_inf, L_x=1.0*problem.R_vortex, sigma=0.005, beta=Mach }
+-- problem.boundary_r_x = { condition="EXTRAPOLATION" }
 
 -- Domain size
 problem.LX = 1.0
@@ -79,30 +80,22 @@ do
   c.printf("    p   = %g\n", p_inf)
   c.printf("======================\n\n")
 
-  var sos = cmath.sqrt(problem.gamma*p_inf/rho_inf)
-  var Gamma_normalized = problem.Gamma_v/(sos*problem.R_vortex)
-
   for i in coords.ispace do
     var idx = int3d {x = i.x - n_ghosts, y = i.y - n_ghosts, z = i.z - n_ghosts}
     coords[i].x_c = problem.X1 + (idx.x + 0.5) * dx
     coords[i].y_c = problem.Y1 + (idx.y + 0.5) * dy
     coords[i].z_c = problem.Z1 + (idx.z + 0.5) * dz
 
-    var x_v : double = coords[i].x_c - problem.x_vortex
-    var y_v : double = coords[i].y_c - problem.y_vortex
+    var x_v : double = coords[i].x_c - problem.x_pulse
+    var y_v : double = coords[i].y_c - problem.y_pulse
     var rad : double = cmath.sqrt(x_v*x_v + y_v*y_v)
-    var expfactor : double = cmath.exp( - (rad / problem.R_vortex)*(rad / problem.R_vortex) )
-    var expfactor_half : double = cmath.sqrt( expfactor )
+    var expfactor : double = cmath.exp( - (rad / problem.R_pulse)*(rad / problem.R_pulse) )
 
-    var p_vortex = p_inf*cmath.exp(-0.5*problem.gamma * Gamma_normalized*Gamma_normalized*expfactor)
-
-    var rho_vortex = (rho_inf/p_inf) * p_vortex
-
-    r_prim_c[i].rho = rho_vortex
-    r_prim_c[i].u   = u_inf - expfactor_half * y_v * problem.Gamma_v / (problem.R_vortex*problem.R_vortex)
-    r_prim_c[i].v   = 0.    + expfactor_half * x_v * problem.Gamma_v / (problem.R_vortex*problem.R_vortex)
+    r_prim_c[i].rho = rho_inf * cmath.exp( - (problem.gamma - 1.0) * problem.delta_s * expfactor / problem.gamma )
+    r_prim_c[i].u   = u_inf
+    r_prim_c[i].v   = 0.
     r_prim_c[i].w   = 0.
-    r_prim_c[i].p   = p_vortex
+    r_prim_c[i].p   = p_inf
   end
 
   return 1
