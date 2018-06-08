@@ -208,6 +208,19 @@ do
     r_tauij_div[i]._3 = r_visc[i].mu_s*( r_grad2u[i]._31 + r_ddx_dudz[i]._) + (r_gradu[i]._13 + r_gradu[i]._31)*r_ddx_mu_s[i]._
   end
 
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_dudy)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_dudz)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_dvdy)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_dwdz)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_mu_s)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_mu_b)[0])
+  __delete(r_ddx_dudy)
+  __delete(r_ddx_dudz)
+  __delete(r_ddx_dvdy)
+  __delete(r_ddx_dwdz)
+  __delete(r_ddx_mu_s)
+  __delete(r_ddx_mu_b)
+
   return 1
 end
 
@@ -254,6 +267,19 @@ do
     r_tauij_div[i]._2 = 2.*r_visc[i].mu_s*( r_grad2u[i]._22 ) + 2*r_gradu[i]._22*r_ddy_mu_s[i]._ + tau_dil_div
     r_tauij_div[i]._3 = r_visc[i].mu_s*( r_grad2u[i]._32 + r_ddy_dvdz[i]._) + (r_gradu[i]._23 + r_gradu[i]._32)*r_ddy_mu_s[i]._
   end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_dvdx)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_dvdz)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_dudx)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_dwdz)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_mu_s)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_mu_b)[0])
+  __delete(r_ddy_dvdx)
+  __delete(r_ddy_dvdz)
+  __delete(r_ddy_dudx)
+  __delete(r_ddy_dwdz)
+  __delete(r_ddy_mu_s)
+  __delete(r_ddy_mu_b)
 
   return 1
 end
@@ -302,6 +328,19 @@ do
     r_tauij_div[i]._3 = 2.*r_visc[i].mu_s*( r_grad2u[i]._33 ) + 2*r_gradu[i]._33*r_ddz_mu_s[i]._ + tau_dil_div
   end
 
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_dwdx)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_dwdy)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_dudx)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_dvdy)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_mu_s)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_mu_b)[0])
+  __delete(r_ddz_dwdx)
+  __delete(r_ddz_dwdy)
+  __delete(r_ddz_dudx)
+  __delete(r_ddz_dvdy)
+  __delete(r_ddz_mu_s)
+  __delete(r_ddz_mu_b)
+
   return 1
 end
 
@@ -331,6 +370,9 @@ do
     r_q[i]._1 = - r_visc[i].kappa * r_ddx_T[i]._
   end
 
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_T)[0])
+  __delete(r_ddx_T)
+
   return token
 end
 
@@ -359,6 +401,9 @@ do
     r_q[i]._2 = - r_visc[i].kappa * r_ddy_T[i]._
   end
 
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_T)[0])
+  __delete(r_ddy_T)
+
   return token
 end
 
@@ -386,6 +431,9 @@ do
   for i in r_q do
     r_q[i]._3 = - r_visc[i].kappa * r_ddz_T[i]._
   end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_T)[0])
+  __delete(r_ddz_T)
 
   return token
 end
@@ -422,6 +470,13 @@ do
     r_q_div[i]._ = - (r_ddx_kappa[i]._ * r_ddx_T[i]._ + r_visc[i].kappa * r_d2dx2_T[i]._)
   end
 
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_T)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_d2dx2_T)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_kappa)[0])
+  __delete(r_ddx_T)
+  __delete(r_d2dx2_T)
+  __delete(r_ddx_kappa)
+
   return token
 end
 
@@ -456,6 +511,13 @@ do
     r_q_div[i]._ = - (r_ddy_kappa[i]._ * r_ddy_T[i]._ + r_visc[i].kappa * r_d2dy2_T[i]._)
   end
 
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_T)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_d2dy2_T)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_kappa)[0])
+  __delete(r_ddy_T)
+  __delete(r_d2dy2_T)
+  __delete(r_ddy_kappa)
+
   return token
 end
 
@@ -489,6 +551,13 @@ do
   for i in r_q_div do
     r_q_div[i]._ = - (r_ddz_kappa[i]._ * r_ddz_T[i]._ + r_visc[i].kappa * r_d2dz2_T[i]._)
   end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_T)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_d2dz2_T)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_kappa)[0])
+  __delete(r_ddz_T)
+  __delete(r_d2dz2_T)
+  __delete(r_ddz_kappa)
 
   return token
 end
@@ -631,6 +700,11 @@ do
         r_rhs[i].rhow += r_tauij_div[i]._3
         r_rhs[i].rhoE += - r_q_div[i]._ + viscpower
       end
+
+      regentlib.c.legion_physical_region_destroy(__physical(r_q_div)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_tauij_div)[0])
+      __delete(r_q_div)
+      __delete(r_tauij_div)
     end
 
   end
@@ -771,6 +845,11 @@ do
         r_rhs[i].rhow += r_tauij_div[i]._3
         r_rhs[i].rhoE += - r_q_div[i]._ + viscpower
       end
+
+      regentlib.c.legion_physical_region_destroy(__physical(r_q_div)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_tauij_div)[0])
+      __delete(r_q_div)
+      __delete(r_tauij_div)
     end
 
   end
@@ -912,6 +991,11 @@ do
         r_rhs[i].rhow += r_tauij_div[i]._3
         r_rhs[i].rhoE += - r_q_div[i]._ + viscpower
       end
+
+      regentlib.c.legion_physical_region_destroy(__physical(r_q_div)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_tauij_div)[0])
+      __delete(r_q_div)
+      __delete(r_tauij_div)
     end
 
   end

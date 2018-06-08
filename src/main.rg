@@ -6,6 +6,8 @@ local PI      = cmath.M_PI
 local cstring = terralib.includec("string.h")
 local min     = regentlib.fmin
 
+local mapper  = require("load_mapper")
+
 require("fields")
 require("derivatives")
 require("SOE")
@@ -17,7 +19,6 @@ local use_io = require("IO")
 
 local problem = require("problem")
 local Config  = require("config")
-local mapper  = require("load_mapper")
 
 
 terra wait_for(x : int)

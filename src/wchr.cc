@@ -48,6 +48,10 @@ public:
                                 MappingKind kind, Memory memory, 
                                 const PhysicalInstance &instance,
                                 bool meets_fill_constraints,bool reduction);
+  virtual void map_inline(const MapperContext        ctx,
+                          const InlineMapping&       inline_op,
+                          const MapInlineInput&      input,
+                                MapInlineOutput&     output);
 private:
   // std::vector<Processor>& procs_list;
   // std::vector<Memory>& sysmems_list;
@@ -78,6 +82,59 @@ int WCHRMapper::default_policy_select_garbage_collection_priority(
                             bool meets_fill_constraints, bool reduction)
 {
   return GC_FIRST_PRIORITY;
+}
+
+void WCHRMapper::map_inline(const MapperContext        ctx,
+                            const InlineMapping&       inline_op,
+                            const MapInlineInput&      input,
+                                  MapInlineOutput&     output)
+{
+  if (input.valid_instances.size() != 0)
+  {
+    DefaultMapper::map_inline(ctx, inline_op, input, output);
+    return;
+  }
+  const RegionRequirement &req = inline_op.requirement;
+  Memory target_memory =
+    default_policy_select_target_memory(
+        ctx, inline_op.parent_task->current_proc, req);
+  LayoutConstraintSet creation_constraints;
+  std::vector<FieldID> fields;
+  default_policy_select_constraint_fields(ctx, req, fields);
+  std::vector<DimensionKind> dimension_ordering(4);
+  dimension_ordering[0] = DIM_X;
+  dimension_ordering[1] = DIM_Y;
+  dimension_ordering[2] = DIM_Z;
+  dimension_ordering[3] = DIM_F;
+  creation_constraints.add_constraint(SpecializedConstraint())
+    .add_constraint(MemoryConstraint(target_memory.kind()))
+    .add_constraint(FieldConstraint(fields, false/*contiguous*/,
+          false/*inorder*/))
+    .add_constraint(OrderingConstraint(dimension_ordering, 
+          false/*contigous*/));
+  creation_constraints.add_constraint(
+      FieldConstraint(fields, false/*contig*/, false/*inorder*/));
+  output.chosen_instances.resize(output.chosen_instances.size()+1);
+  if (!default_make_instance(ctx, target_memory, creation_constraints,
+        output.chosen_instances.back(), INLINE_MAPPING,
+        true, true/*meets*/, req))
+  {
+    // If we failed to make it that is bad
+    log_wchr.error("WCHR mapper failed allocation for region "
+                   "requirement of inline mapping in task %s (UID %lld) "
+                   "in memory " IDFMT "for processor " IDFMT ". This "
+                   "means the working set of your application is too big "
+                   "for the allotted capacity of the given memory under "
+                   "the default mapper's mapping scheme. You have three "
+                   "choices: ask Realm to allocate more memory, write a "
+                   "custom mapper to better manage working sets, or find "
+                   "a bigger machine. Good luck!", 
+                   inline_op.parent_task->get_task_name(),
+                   inline_op.parent_task->get_unique_id(),
+                   target_memory.id,
+                   inline_op.parent_task->current_proc.id);
+    assert(false);
+  }
 }
 
 static void create_mappers(Machine machine, HighLevelRuntime *runtime, const std::set<Processor> &local_procs)
