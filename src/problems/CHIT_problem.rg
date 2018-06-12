@@ -15,7 +15,7 @@ problem.Mt = 0.6     -- Initial turbulent Mach number
 problem.k0 = 4.0     -- Inital peak energy wavenumber
 problem.Re = 100.    -- Initial Taylor scale Reynolds number
 problem.Pr = 0.7     -- Prandtl number
-problem.datafile = "/home/akshays/Data/WCHR/CHIT/setup/CHIT-velocity-k04-N0064.dat"  -- Data file containing initial velocities
+problem.datafile = "/home/akshays/Data/WCHR/CHIT/setup/CHIT-velocity-grid-independent-k04-N0064.dat"  -- Data file containing initial velocities
 problem.viscous = true
 problem.conservative_viscous_terms = false
 

@@ -5,14 +5,14 @@ local cmath   = terralib.includec("math.h")
 local PI      = cmath.M_PI
 
 require("fields")
-require("IO")
+-- require("IO")
 require("partition")
 local interpolation = require("interpolation")
 
 -- Grid dimensions
 local NX = 64
-local NY = 68
-local NZ = 72
+local NY = 64
+local NZ = 64
 
 -- Domain size
 local LX = 2.0*math.pi
@@ -272,7 +272,7 @@ task main()
 
   fill(r_der.rho, 0.0)
   for i in pencil_interior do
-    get_compact_matrix(p_mat_x[i], periodic_x)
+    get_compact_matrix(p_mat_x[i], 1, periodic_x)
     get_LU_decomposition(p_LU_x[i], p_mat_x[i])
   end
   for i in pencil_interior do
@@ -287,7 +287,7 @@ task main()
 
   fill(r_der.rho, 0.0)
   for i in pencil_interior do
-    get_compact_matrix(p_mat_y[i], periodic_y)
+    get_compact_matrix(p_mat_y[i], 1, periodic_y)
     get_LU_decomposition(p_LU_y[i], p_mat_y[i])
   end
   for i in pencil_interior do
@@ -302,7 +302,7 @@ task main()
 
   fill(r_der.rho, 0.0)
   for i in pencil_interior do
-    get_compact_matrix(p_mat_z[i], periodic_z)
+    get_compact_matrix(p_mat_z[i], 1, periodic_z)
     get_LU_decomposition(p_LU_z[i], p_mat_z[i])
   end
   for i in pencil_interior do
