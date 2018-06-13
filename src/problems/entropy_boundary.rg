@@ -13,7 +13,7 @@ problem.gamma   = 1.4
 problem.Rgas    = 1.0
 problem.viscous = false
 
-problem.delta_s = 0.1
+problem.delta_s = 1.0
 problem.x_pulse = 0.0
 problem.y_pulse = 0.0
 problem.R_pulse = 0.1
