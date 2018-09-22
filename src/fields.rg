@@ -43,6 +43,10 @@ fspace transport_coeffs {
   kappa : double,
 }
 
+fspace scalar {
+  _ : double,
+}
+
 fspace vect {
   _1  : double,
   _2  : double,
@@ -100,8 +104,20 @@ fspace LU_struct {
   w  : double,
 }
 
+fspace LU_coeffs {
+  e  : double,
+  a  : double,
+  d  : double,
+  c  : double,
+  f  : double,
+}
+
 function poff(i, x, y, z, Nx, Ny, Nz)
   return rexpr int3d { x = (i.x + x + Nx)%Nx, y = (i.y + y + Ny)%Ny, z = (i.z + z + Nz)%Nz } end
+end
+
+function off(i, x, y, z)
+  return rexpr int3d { x = i.x + x, y = i.y + y, z = i.z + z } end
 end
 
 task set_zero_cnsr( r_cnsr : region(ispace(int3d), conserved) )

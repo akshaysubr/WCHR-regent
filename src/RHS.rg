@@ -2,7 +2,7 @@ import "regent"
 
 require("fields")
 require("derivatives")
-require("interpolation")
+interpolation = require("interpolation")
 require("SOE")
 
 local problem = require("problem")
@@ -12,98 +12,134 @@ local cmath = terralib.includec("math.h")
 
 local viscous = problem.viscous
 
--- Make the node and midpoint-node differencing tasks (Using pentadiagonal solver for this instead of tridiagonal solver)
-alpha06d1 = 1.0/3.0
-beta06d1  = 0.0
-a06d1 = ( 14.0/ 9.0)/2.0
-b06d1 = (  1.0/ 9.0)/4.0
-c06d1 = (  0.0/100.0)/6.0
-
--- Compact MND finite difference
--- alpha06MND = -1.0/12.0
--- beta06MND  = 0.0
--- a06MND = 16.0/9.0
--- b06MND = (-17.0/18.0)/2.0
--- c06MND = (0.0)/3.0
-
--- Compact staggered finite difference
-alpha06MND = 9.0/62.0
-beta06MND  = 0.0
-a06MND = 63.0/62.0
-b06MND = (0.0/18.0)/2.0
-c06MND = (17.0/62.0)/3.0
-
--- Explicit MND finite difference
--- alpha06MND = 0.0
--- beta06MND  = 0.0
--- a06MND = 3.0/2.0
--- b06MND = (-3.0/10.0)
--- c06MND = (1.0)/30.0
-
 local r_flux   = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux")
 local r_flux_e = regentlib.newsymbol(region(ispace(int3d), conserved), "r_flux_e")
 local r_der    = regentlib.newsymbol(region(ispace(int3d), conserved), "r_der")
 
+print("Periodicity in X: ", problem.periodic_x)
+print("Periodicity in Y: ", problem.periodic_y)
+print("Periodicity in Z: ", problem.periodic_z)
+
 -- Midpoint-and-Node-Differencing tasks to compute flux derivatives
-local ddx_MND_rho  = make_ddx_MND(r_flux, r_flux_e, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06MND, b06MND, c06MND)
-local ddx_MND_rhou = make_ddx_MND(r_flux, r_flux_e, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06MND, b06MND, c06MND)
-local ddx_MND_rhov = make_ddx_MND(r_flux, r_flux_e, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06MND, b06MND, c06MND)
-local ddx_MND_rhow = make_ddx_MND(r_flux, r_flux_e, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06MND, b06MND, c06MND)
-local ddx_MND_rhoE = make_ddx_MND(r_flux, r_flux_e, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06MND, b06MND, c06MND)
+local ddx_MND_rho  = make_ddx_MND(r_flux, r_flux_e, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, problem.periodic_x)
+local ddx_MND_rhou = make_ddx_MND(r_flux, r_flux_e, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, problem.periodic_x)
+local ddx_MND_rhov = make_ddx_MND(r_flux, r_flux_e, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, problem.periodic_x)
+local ddx_MND_rhow = make_ddx_MND(r_flux, r_flux_e, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, problem.periodic_x)
+local ddx_MND_rhoE = make_ddx_MND(r_flux, r_flux_e, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, problem.periodic_x)
 
-local ddy_MND_rho  = make_ddy_MND(r_flux, r_flux_e, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06MND, b06MND, c06MND)
-local ddy_MND_rhou = make_ddy_MND(r_flux, r_flux_e, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06MND, b06MND, c06MND)
-local ddy_MND_rhov = make_ddy_MND(r_flux, r_flux_e, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06MND, b06MND, c06MND)
-local ddy_MND_rhow = make_ddy_MND(r_flux, r_flux_e, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06MND, b06MND, c06MND)
-local ddy_MND_rhoE = make_ddy_MND(r_flux, r_flux_e, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06MND, b06MND, c06MND)
+local ddy_MND_rho  = make_ddy_MND(r_flux, r_flux_e, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, problem.periodic_y)
+local ddy_MND_rhou = make_ddy_MND(r_flux, r_flux_e, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, problem.periodic_y)
+local ddy_MND_rhov = make_ddy_MND(r_flux, r_flux_e, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, problem.periodic_y)
+local ddy_MND_rhow = make_ddy_MND(r_flux, r_flux_e, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, problem.periodic_y)
+local ddy_MND_rhoE = make_ddy_MND(r_flux, r_flux_e, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, problem.periodic_y)
 
-local ddz_MND_rho  = make_ddz_MND(r_flux, r_flux_e, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06MND, b06MND, c06MND)
-local ddz_MND_rhou = make_ddz_MND(r_flux, r_flux_e, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06MND, b06MND, c06MND)
-local ddz_MND_rhov = make_ddz_MND(r_flux, r_flux_e, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06MND, b06MND, c06MND)
-local ddz_MND_rhow = make_ddz_MND(r_flux, r_flux_e, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06MND, b06MND, c06MND)
-local ddz_MND_rhoE = make_ddz_MND(r_flux, r_flux_e, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06MND, b06MND, c06MND)
+local ddz_MND_rho  = make_ddz_MND(r_flux, r_flux_e, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, problem.periodic_z)
+local ddz_MND_rhou = make_ddz_MND(r_flux, r_flux_e, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, problem.periodic_z)
+local ddz_MND_rhov = make_ddz_MND(r_flux, r_flux_e, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, problem.periodic_z)
+local ddz_MND_rhow = make_ddz_MND(r_flux, r_flux_e, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, problem.periodic_z)
+local ddz_MND_rhoE = make_ddz_MND(r_flux, r_flux_e, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, problem.periodic_z)
 
 -- Node differencing tasks to compute flux derivatives
-local ddx_rho  = make_ddx(r_flux, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddx_rhou = make_ddx(r_flux, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddx_rhov = make_ddx(r_flux, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddx_rhow = make_ddx(r_flux, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddx_rhoE = make_ddx(r_flux, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
+local ddx_rho  = make_ddx(r_flux, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddx_rhou = make_ddx(r_flux, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddx_rhov = make_ddx(r_flux, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddx_rhow = make_ddx(r_flux, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddx_rhoE = make_ddx(r_flux, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
 
-local ddy_rho  = make_ddy(r_flux, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddy_rhou = make_ddy(r_flux, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddy_rhov = make_ddy(r_flux, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddy_rhow = make_ddy(r_flux, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddy_rhoE = make_ddy(r_flux, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
+local ddy_rho  = make_ddy(r_flux, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddy_rhou = make_ddy(r_flux, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddy_rhov = make_ddy(r_flux, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddy_rhow = make_ddy(r_flux, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddy_rhoE = make_ddy(r_flux, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
 
-local ddz_rho  = make_ddz(r_flux, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
-local ddz_rhou = make_ddz(r_flux, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
-local ddz_rhov = make_ddz(r_flux, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
-local ddz_rhow = make_ddz(r_flux, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
-local ddz_rhoE = make_ddz(r_flux, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
+local ddz_rho  = make_ddz(r_flux, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+local ddz_rhou = make_ddz(r_flux, "rhou", r_der, "rhou", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+local ddz_rhov = make_ddz(r_flux, "rhov", r_der, "rhov", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+local ddz_rhow = make_ddz(r_flux, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+local ddz_rhoE = make_ddz(r_flux, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
 
 local r_prim   = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim")
 local r_prim_e = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim_e")
 local r_der    = regentlib.newsymbol(region(ispace(int3d), tensor2),   "r_der")
 
-local ddx_u   = make_ddx(r_prim, "u", r_der, "_11", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddy_u   = make_ddy(r_prim, "u", r_der, "_12", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddz_u   = make_ddz(r_prim, "u", r_der, "_13", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
+local ddx_u   = make_ddx(r_prim, "u", r_der, "_11", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_u   = make_ddy(r_prim, "u", r_der, "_12", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_u   = make_ddz(r_prim, "u", r_der, "_13", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
 
-local ddx_v   = make_ddx(r_prim, "v", r_der, "_21", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddy_v   = make_ddy(r_prim, "v", r_der, "_22", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddz_v   = make_ddz(r_prim, "v", r_der, "_23", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
+local ddx_v   = make_ddx(r_prim, "v", r_der, "_21", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_v   = make_ddy(r_prim, "v", r_der, "_22", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_v   = make_ddz(r_prim, "v", r_der, "_23", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
 
-local ddx_w   = make_ddx(r_prim, "w", r_der, "_31", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddy_w   = make_ddy(r_prim, "w", r_der, "_32", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddz_w   = make_ddz(r_prim, "w", r_der, "_33", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
+local ddx_w   = make_ddx(r_prim, "w", r_der, "_31", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_w   = make_ddy(r_prim, "w", r_der, "_32", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_w   = make_ddz(r_prim, "w", r_der, "_33", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+
+local d2dx2_u = make_d2dx2(r_prim, "u", r_der, "_11", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local d2dy2_u = make_d2dy2(r_prim, "u", r_der, "_12", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local d2dz2_u = make_d2dz2(r_prim, "u", r_der, "_13", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+
+local d2dx2_v = make_d2dx2(r_prim, "v", r_der, "_21", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local d2dy2_v = make_d2dy2(r_prim, "v", r_der, "_22", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local d2dz2_v = make_d2dz2(r_prim, "v", r_der, "_23", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+
+local d2dx2_w = make_d2dx2(r_prim, "w", r_der, "_31", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local d2dy2_w = make_d2dy2(r_prim, "w", r_der, "_32", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local d2dz2_w = make_d2dz2(r_prim, "w", r_der, "_33", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
 
 local r_aux   = regentlib.newsymbol(region(ispace(int3d), auxiliary), "r_aux")
+local r_der   = regentlib.newsymbol(region(ispace(int3d), scalar),    "r_der")
+
+local ddx_T   = make_ddx(r_aux, "T", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_T   = make_ddy(r_aux, "T", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_T   = make_ddz(r_aux, "T", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+
+local d2dx2_T = make_d2dx2(r_aux, "T", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local d2dy2_T = make_d2dy2(r_aux, "T", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local d2dz2_T = make_d2dz2(r_aux, "T", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+
+local r_prim   = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim")
 local r_der   = regentlib.newsymbol(region(ispace(int3d), vect),    "r_der")
 
-local ddx_T   = make_ddx(r_aux, "T", r_der, "_1", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX, a06d1, b06d1, c06d1)
-local ddy_T   = make_ddy(r_aux, "T", r_der, "_2", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY, a06d1, b06d1, c06d1)
-local ddz_T   = make_ddz(r_aux, "T", r_der, "_3", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, a06d1, b06d1, c06d1)
+local ddx_rho_prim = make_ddx(r_prim, "rho", r_der, "_1", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_rho_prim = make_ddy(r_prim, "rho", r_der, "_2", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_rho_prim = make_ddz(r_prim, "rho", r_der, "_3", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+
+local ddx_p   = make_ddx(r_prim, "p", r_der, "_1", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_p   = make_ddy(r_prim, "p", r_der, "_2", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_p   = make_ddz(r_prim, "p", r_der, "_3", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+
+local r_visc  = regentlib.newsymbol(region(ispace(int3d), transport_coeffs), "r_visc")
+local r_der   = regentlib.newsymbol(region(ispace(int3d), scalar),           "r_der")
+
+local ddx_mu_s   = make_ddx(r_visc, "mu_s", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_mu_s   = make_ddy(r_visc, "mu_s", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_mu_s   = make_ddz(r_visc, "mu_s", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+
+local ddx_mu_b   = make_ddx(r_visc, "mu_b", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_mu_b   = make_ddy(r_visc, "mu_b", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_mu_b   = make_ddz(r_visc, "mu_b", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+
+local ddx_kappa  = make_ddx(r_visc, "kappa", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_kappa  = make_ddy(r_visc, "kappa", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDY)
+local ddz_kappa  = make_ddz(r_visc, "kappa", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ)
+
+local r_gradu = regentlib.newsymbol(region(ispace(int3d), tensor2), "r_gradu")
+local r_der   = regentlib.newsymbol(region(ispace(int3d), scalar),  "r_der")
+
+local ddx_dudy  = make_ddx(r_gradu, "_12", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddx_dudz  = make_ddx(r_gradu, "_13", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddx_dvdy  = make_ddx(r_gradu, "_22", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddx_dwdz  = make_ddx(r_gradu, "_33", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+
+local ddy_dvdx  = make_ddy(r_gradu, "_21", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_dvdz  = make_ddy(r_gradu, "_23", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_dudx  = make_ddy(r_gradu, "_11", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddy_dwdz  = make_ddy(r_gradu, "_33", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+
+local ddz_dwdx  = make_ddz(r_gradu, "_31", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddz_dwdy  = make_ddz(r_gradu, "_32", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddz_dudx  = make_ddz(r_gradu, "_11", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
+local ddz_dvdy  = make_ddz(r_gradu, "_22", r_der, "_", problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
 
 -----------------------------------------------------
 
@@ -128,7 +164,185 @@ do
   return 1
 end
 
+__demand(__inline)
+task get_tauij_div_x( r_gradu     : region(ispace(int3d), tensor2),
+                      r_grad2u    : region(ispace(int3d), tensor2),
+                      r_visc      : region(ispace(int3d), transport_coeffs),
+                      r_tauij_div : region(ispace(int3d), vect),
+                      LU_x        : region(ispace(int3d), LU_struct) )
+where
+  reads(r_gradu.{_11, _12, _13, _21, _22, _31, _33}, r_grad2u.{_11, _21, _31}, r_visc.{mu_s, mu_b}, LU_x), writes(r_tauij_div)
+do
 
+  var nx = r_tauij_div.ispace.bounds.hi.x - r_tauij_div.ispace.bounds.lo.x + 1
+  var ny = r_tauij_div.ispace.bounds.hi.y - r_tauij_div.ispace.bounds.lo.y + 1
+  var nz = r_tauij_div.ispace.bounds.hi.z - r_tauij_div.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_tauij_div.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.x - interpolation.n_ghosts == 0, "Can only get_tauij_div_x in the X pencil")
+
+  var r_ddx_dudy = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddx_dudz = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddx_dvdy = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddx_dwdz = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddx_mu_s = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddx_mu_b = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+
+  var token = 0
+  token += ddx_mu_s(r_visc, r_ddx_mu_s, LU_x)
+  token += ddx_mu_b(r_visc, r_ddx_mu_b, LU_x)
+
+  token += ddx_dudy(r_gradu, r_ddx_dudy, LU_x)
+  token += ddx_dudz(r_gradu, r_ddx_dudz, LU_x)
+  token += ddx_dvdy(r_gradu, r_ddx_dvdy, LU_x)
+  token += ddx_dwdz(r_gradu, r_ddx_dwdz, LU_x)
+
+  for i in r_tauij_div do
+    var dilatation  = r_gradu[i]._11 + r_gradu[i]._22 + r_gradu[i]._33
+    var tau_dil_div = (r_visc[i].mu_b - (2./3.)*r_visc[i].mu_s) * (r_grad2u[i]._11 + r_ddx_dvdy[i]._ + r_ddx_dwdz[i]._) 
+                    + dilatation * ( r_ddx_mu_b[i]._ - (2./3.)*r_ddx_mu_s[i]._ )
+
+    r_tauij_div[i]._1 = 2.*r_visc[i].mu_s*( r_grad2u[i]._11 ) + 2*r_gradu[i]._11*r_ddx_mu_s[i]._ + tau_dil_div
+    r_tauij_div[i]._2 = r_visc[i].mu_s*( r_grad2u[i]._21 + r_ddx_dudy[i]._) + (r_gradu[i]._12 + r_gradu[i]._21)*r_ddx_mu_s[i]._
+    r_tauij_div[i]._3 = r_visc[i].mu_s*( r_grad2u[i]._31 + r_ddx_dudz[i]._) + (r_gradu[i]._13 + r_gradu[i]._31)*r_ddx_mu_s[i]._
+  end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_dudy)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_dudz)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_dvdy)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_dwdz)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_mu_s)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_mu_b)[0])
+  __delete(r_ddx_dudy)
+  __delete(r_ddx_dudz)
+  __delete(r_ddx_dvdy)
+  __delete(r_ddx_dwdz)
+  __delete(r_ddx_mu_s)
+  __delete(r_ddx_mu_b)
+
+  return 1
+end
+
+__demand(__inline)
+task get_tauij_div_y( r_gradu     : region(ispace(int3d), tensor2),
+                      r_grad2u    : region(ispace(int3d), tensor2),
+                      r_visc      : region(ispace(int3d), transport_coeffs),
+                      r_tauij_div : region(ispace(int3d), vect),
+                      LU_y        : region(ispace(int3d), LU_struct) )
+where
+  reads(r_gradu.{_11, _12, _21, _22, _23, _32, _33}, r_grad2u.{_12, _22, _32}, r_visc.{mu_s, mu_b}, LU_y), writes(r_tauij_div)
+do
+
+  var nx = r_tauij_div.ispace.bounds.hi.x - r_tauij_div.ispace.bounds.lo.x + 1
+  var ny = r_tauij_div.ispace.bounds.hi.y - r_tauij_div.ispace.bounds.lo.y + 1
+  var nz = r_tauij_div.ispace.bounds.hi.z - r_tauij_div.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_tauij_div.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.y - interpolation.n_ghosts == 0, "Can only get_tauij_div_y in the Y pencil")
+
+  var r_ddy_dvdx = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddy_dvdz = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddy_dudx = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddy_dwdz = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddy_mu_s = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddy_mu_b = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+
+  var token = 0
+  token += ddy_mu_s(r_visc, r_ddy_mu_s, LU_y)
+  token += ddy_mu_b(r_visc, r_ddy_mu_b, LU_y)
+
+  token += ddy_dvdx(r_gradu, r_ddy_dvdx, LU_y)
+  token += ddy_dvdz(r_gradu, r_ddy_dvdz, LU_y)
+  token += ddy_dudx(r_gradu, r_ddy_dudx, LU_y)
+  token += ddy_dwdz(r_gradu, r_ddy_dwdz, LU_y)
+
+  for i in r_tauij_div do
+    var dilatation  = r_gradu[i]._11 + r_gradu[i]._22 + r_gradu[i]._33
+    var tau_dil_div = (r_visc[i].mu_b - (2./3.)*r_visc[i].mu_s) * (r_ddy_dudx[i]._ + r_grad2u[i]._22 + r_ddy_dwdz[i]._) 
+                    + dilatation * ( r_ddy_mu_b[i]._ - (2./3.)*r_ddy_mu_s[i]._ )
+
+    r_tauij_div[i]._1 = r_visc[i].mu_s*( r_grad2u[i]._12 + r_ddy_dvdx[i]._) + (r_gradu[i]._12 + r_gradu[i]._21)*r_ddy_mu_s[i]._
+    r_tauij_div[i]._2 = 2.*r_visc[i].mu_s*( r_grad2u[i]._22 ) + 2*r_gradu[i]._22*r_ddy_mu_s[i]._ + tau_dil_div
+    r_tauij_div[i]._3 = r_visc[i].mu_s*( r_grad2u[i]._32 + r_ddy_dvdz[i]._) + (r_gradu[i]._23 + r_gradu[i]._32)*r_ddy_mu_s[i]._
+  end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_dvdx)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_dvdz)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_dudx)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_dwdz)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_mu_s)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_mu_b)[0])
+  __delete(r_ddy_dvdx)
+  __delete(r_ddy_dvdz)
+  __delete(r_ddy_dudx)
+  __delete(r_ddy_dwdz)
+  __delete(r_ddy_mu_s)
+  __delete(r_ddy_mu_b)
+
+  return 1
+end
+
+__demand(__inline)
+task get_tauij_div_z( r_gradu     : region(ispace(int3d), tensor2),
+                      r_grad2u    : region(ispace(int3d), tensor2),
+                      r_visc      : region(ispace(int3d), transport_coeffs),
+                      r_tauij_div : region(ispace(int3d), vect),
+                      LU_z        : region(ispace(int3d), LU_struct) )
+where
+  reads(r_gradu.{_11, _13, _22, _23, _31, _32, _33}, r_grad2u.{_13, _23, _33}, r_visc.{mu_s, mu_b}, LU_z), writes(r_tauij_div)
+do
+
+  var nx = r_tauij_div.ispace.bounds.hi.x - r_tauij_div.ispace.bounds.lo.x + 1
+  var ny = r_tauij_div.ispace.bounds.hi.y - r_tauij_div.ispace.bounds.lo.y + 1
+  var nz = r_tauij_div.ispace.bounds.hi.z - r_tauij_div.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_tauij_div.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.z - interpolation.n_ghosts == 0, "Can only get_tauij_div_z in the Z pencil")
+
+  var r_ddz_dwdx = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddz_dwdy = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddz_dudx = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddz_dvdy = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddz_mu_s = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddz_mu_b = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+
+  var token = 0
+  token += ddz_mu_s(r_visc, r_ddz_mu_s, LU_z)
+  token += ddz_mu_b(r_visc, r_ddz_mu_b, LU_z)
+
+  token += ddz_dwdx(r_gradu, r_ddz_dwdx, LU_z)
+  token += ddz_dwdy(r_gradu, r_ddz_dwdy, LU_z)
+  token += ddz_dudx(r_gradu, r_ddz_dudx, LU_z)
+  token += ddz_dvdy(r_gradu, r_ddz_dvdy, LU_z)
+
+  for i in r_tauij_div do
+    var dilatation  = r_gradu[i]._11 + r_gradu[i]._22 + r_gradu[i]._33
+    var tau_dil_div = (r_visc[i].mu_b - (2./3.)*r_visc[i].mu_s) * (r_ddz_dudx[i]._ + r_ddz_dvdy[i]._ + r_grad2u[i]._33) 
+                    + dilatation * ( r_ddz_mu_b[i]._ - (2./3.)*r_ddz_mu_s[i]._ )
+
+    r_tauij_div[i]._1 = r_visc[i].mu_s*( r_grad2u[i]._13 + r_ddz_dwdx[i]._) + (r_gradu[i]._13 + r_gradu[i]._31)*r_ddz_mu_s[i]._
+    r_tauij_div[i]._2 = r_visc[i].mu_s*( r_grad2u[i]._23 + r_ddz_dwdy[i]._) + (r_gradu[i]._23 + r_gradu[i]._32)*r_ddz_mu_s[i]._
+    r_tauij_div[i]._3 = 2.*r_visc[i].mu_s*( r_grad2u[i]._33 ) + 2*r_gradu[i]._33*r_ddz_mu_s[i]._ + tau_dil_div
+  end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_dwdx)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_dwdy)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_dudx)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_dvdy)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_mu_s)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_mu_b)[0])
+  __delete(r_ddz_dwdx)
+  __delete(r_ddz_dwdy)
+  __delete(r_ddz_dudx)
+  __delete(r_ddz_dvdy)
+  __delete(r_ddz_mu_s)
+  __delete(r_ddz_mu_b)
+
+  return 1
+end
 
 
 __demand(__inline)
@@ -137,14 +351,27 @@ task get_q_x( r_aux_c : region(ispace(int3d), auxiliary),
               r_q     : region(ispace(int3d), vect),
               LU_x    : region(ispace(int3d), LU_struct) )
 where
-  reads(r_aux_c.T, r_visc.kappa, LU_x), reads writes(r_q.{_1})
+  reads(r_aux_c.T, r_visc.kappa, LU_x), writes(r_q.{_1})
 do
 
-  var token = ddx_T(r_aux_c, r_q, LU_x)
+  var nx = r_q.ispace.bounds.hi.x - r_q.ispace.bounds.lo.x + 1
+  var ny = r_q.ispace.bounds.hi.y - r_q.ispace.bounds.lo.y + 1
+  var nz = r_q.ispace.bounds.hi.z - r_q.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_q.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.x - interpolation.n_ghosts == 0, "Can only get_q_x in the X pencil")
+
+  var r_ddx_T = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+
+  var token = ddx_T(r_aux_c, r_ddx_T, LU_x)
 
   for i in r_q do
-    r_q[i]._1 = - r_visc[i].kappa * r_q[i]._1
+    r_q[i]._1 = - r_visc[i].kappa * r_ddx_T[i]._
   end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_T)[0])
+  __delete(r_ddx_T)
 
   return token
 end
@@ -155,14 +382,27 @@ task get_q_y( r_aux_c : region(ispace(int3d), auxiliary),
               r_q     : region(ispace(int3d), vect),
               LU_y    : region(ispace(int3d), LU_struct) )
 where
-  reads(r_aux_c.T, r_visc.kappa, LU_y), reads writes(r_q.{_2})
+  reads(r_aux_c.T, r_visc.kappa, LU_y), writes(r_q.{_2})
 do
 
-  var token = ddy_T(r_aux_c, r_q, LU_y)
+  var nx = r_q.ispace.bounds.hi.x - r_q.ispace.bounds.lo.x + 1
+  var ny = r_q.ispace.bounds.hi.y - r_q.ispace.bounds.lo.y + 1
+  var nz = r_q.ispace.bounds.hi.z - r_q.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_q.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.y - interpolation.n_ghosts == 0, "Can only get_q_y in the Y pencil")
+
+  var r_ddy_T = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+
+  var token = ddy_T(r_aux_c, r_ddy_T, LU_y)
 
   for i in r_q do
-    r_q[i]._2 = - r_visc[i].kappa * r_q[i]._2
+    r_q[i]._2 = - r_visc[i].kappa * r_ddy_T[i]._
   end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_T)[0])
+  __delete(r_ddy_T)
 
   return token
 end
@@ -173,27 +413,158 @@ task get_q_z( r_aux_c : region(ispace(int3d), auxiliary),
               r_q     : region(ispace(int3d), vect),
               LU_z    : region(ispace(int3d), LU_struct) )
 where
-  reads(r_aux_c.T, r_visc.kappa, LU_z), reads writes(r_q.{_3})
+  reads(r_aux_c.T, r_visc.kappa, LU_z), writes(r_q.{_3})
 do
 
-  var token = ddz_T(r_aux_c, r_q, LU_z)
+  var nx = r_q.ispace.bounds.hi.x - r_q.ispace.bounds.lo.x + 1
+  var ny = r_q.ispace.bounds.hi.y - r_q.ispace.bounds.lo.y + 1
+  var nz = r_q.ispace.bounds.hi.z - r_q.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_q.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.z - interpolation.n_ghosts == 0, "Can only get_q_z in the Z pencil")
+
+  var r_ddz_T = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+
+  var token = ddz_T(r_aux_c, r_ddz_T, LU_z)
 
   for i in r_q do
-    r_q[i]._3 = - r_visc[i].kappa * r_q[i]._3
+    r_q[i]._3 = - r_visc[i].kappa * r_ddz_T[i]._
   end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_T)[0])
+  __delete(r_ddz_T)
+
+  return token
+end
+
+
+__demand(__inline)
+task get_q_div_x( r_aux_c : region(ispace(int3d), auxiliary),
+                  r_visc  : region(ispace(int3d), transport_coeffs),
+                  r_q_div : region(ispace(int3d), scalar),
+                  LU_x    : region(ispace(int3d), LU_struct),
+                  LU2_x   : region(ispace(int3d), LU_struct) )
+where
+  reads(r_aux_c.T, r_visc.kappa, LU_x, LU2_x), writes(r_q_div)
+do
+
+  var nx = r_q_div.ispace.bounds.hi.x - r_q_div.ispace.bounds.lo.x + 1
+  var ny = r_q_div.ispace.bounds.hi.y - r_q_div.ispace.bounds.lo.y + 1
+  var nz = r_q_div.ispace.bounds.hi.z - r_q_div.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_q_div.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.x - interpolation.n_ghosts == 0, "Can only get_q_div_x in the X pencil")
+
+  var r_ddx_T     = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_d2dx2_T   = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddx_kappa = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+
+  var token = 0
+  token += ddx_T(r_aux_c, r_ddx_T, LU_x)
+  token += d2dx2_T(r_aux_c, r_d2dx2_T, LU2_x)
+  token += ddx_kappa(r_visc, r_ddx_kappa, LU_x)
+
+  for i in r_q_div do
+    r_q_div[i]._ = - (r_ddx_kappa[i]._ * r_ddx_T[i]._ + r_visc[i].kappa * r_d2dx2_T[i]._)
+  end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_T)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_d2dx2_T)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddx_kappa)[0])
+  __delete(r_ddx_T)
+  __delete(r_d2dx2_T)
+  __delete(r_ddx_kappa)
+
+  return token
+end
+
+__demand(__inline)
+task get_q_div_y( r_aux_c : region(ispace(int3d), auxiliary),
+                  r_visc  : region(ispace(int3d), transport_coeffs),
+                  r_q_div : region(ispace(int3d), scalar),
+                  LU_y    : region(ispace(int3d), LU_struct),
+                  LU2_y   : region(ispace(int3d), LU_struct) )
+where
+  reads(r_aux_c.T, r_visc.kappa, LU_y, LU2_y), writes(r_q_div)
+do
+
+  var nx = r_q_div.ispace.bounds.hi.x - r_q_div.ispace.bounds.lo.x + 1
+  var ny = r_q_div.ispace.bounds.hi.y - r_q_div.ispace.bounds.lo.y + 1
+  var nz = r_q_div.ispace.bounds.hi.z - r_q_div.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_q_div.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.y - interpolation.n_ghosts == 0, "Can only get_q_div_y in the Y pencil")
+
+  var r_ddy_T     = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_d2dy2_T   = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddy_kappa = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+
+  var token = 0
+  token += ddy_T(r_aux_c, r_ddy_T, LU_y)
+  token += d2dy2_T(r_aux_c, r_d2dy2_T, LU2_y)
+  token += ddy_kappa(r_visc, r_ddy_kappa, LU_y)
+
+  for i in r_q_div do
+    r_q_div[i]._ = - (r_ddy_kappa[i]._ * r_ddy_T[i]._ + r_visc[i].kappa * r_d2dy2_T[i]._)
+  end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_T)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_d2dy2_T)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddy_kappa)[0])
+  __delete(r_ddy_T)
+  __delete(r_d2dy2_T)
+  __delete(r_ddy_kappa)
+
+  return token
+end
+
+__demand(__inline)
+task get_q_div_z( r_aux_c : region(ispace(int3d), auxiliary),
+                  r_visc  : region(ispace(int3d), transport_coeffs),
+                  r_q_div : region(ispace(int3d), scalar),
+                  LU_z    : region(ispace(int3d), LU_struct),
+                  LU2_z   : region(ispace(int3d), LU_struct) )
+where
+  reads(r_aux_c.T, r_visc.kappa, LU_z, LU2_z), writes(r_q_div)
+do
+
+  var nx = r_q_div.ispace.bounds.hi.x - r_q_div.ispace.bounds.lo.x + 1
+  var ny = r_q_div.ispace.bounds.hi.y - r_q_div.ispace.bounds.lo.y + 1
+  var nz = r_q_div.ispace.bounds.hi.z - r_q_div.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_q_div.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.z - interpolation.n_ghosts == 0, "Can only get_q_div_z in the Z pencil")
+
+  var r_ddz_T     = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_d2dz2_T   = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+  var r_ddz_kappa = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+
+  var token = 0
+  token += ddz_T(r_aux_c, r_ddz_T, LU_z)
+  token += d2dz2_T(r_aux_c, r_d2dz2_T, LU2_z)
+  token += ddz_kappa(r_visc, r_ddz_kappa, LU_z)
+
+  for i in r_q_div do
+    r_q_div[i]._ = - (r_ddz_kappa[i]._ * r_ddz_T[i]._ + r_visc[i].kappa * r_d2dz2_T[i]._)
+  end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_T)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_d2dz2_T)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_ddz_kappa)[0])
+  __delete(r_ddz_T)
+  __delete(r_d2dz2_T)
+  __delete(r_ddz_kappa)
 
   return token
 end
 
 
 
-
-task add_xflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
-                           r_prim_c   : region(ispace(int3d), primitive),
-                           r_aux_c    : region(ispace(int3d), auxiliary),
-                           r_visc     : region(ispace(int3d), transport_coeffs),
-                           r_tauij    : region(ispace(int3d), tensor2symm),
-                           r_q        : region(ispace(int3d), vect),
+task add_xflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l_x : region(ispace(int3d), primitive),
                            r_prim_r_x : region(ispace(int3d), primitive),
                            r_flux_c   : region(ispace(int3d), conserved),
@@ -210,36 +581,27 @@ task add_xflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
                            sos_avg    : region(ispace(int3d), double),
                            block_d    : region(ispace(int3d), double[9]),
                            block_Uinv : region(ispace(int3d), double[9]),
-                           LU_x       : region(ispace(int3d), LU_struct),
-                           Nx         : int64,
-                           Ny         : int64,
-                           Nz         : int64 )
+                           LU_x       : region(ispace(int3d), LU_struct) )
 where
-  reads( r_cnsr, r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_11, _12, _13}, LU_x ),
-  reads writes( r_q._1, r_prim_l_x, r_prim_r_x, r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs),
+  reads( r_prim_c, LU_x ),
+  reads writes( r_prim_l_x, r_prim_r_x, r_flux_c, r_flux_e_x, r_fder_c_x, r_rhs),
   reads writes( alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
 do
 
-  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1 - 2*interpolation.n_ghosts
 
   if (nx >= 8) then
-    -- var t_start = c.legion_get_current_time_in_micros()
     WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x, alpha_l, beta_l, gamma_l,
-                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv, Nx, Ny, Nz )
-    -- var t_interpolation = c.legion_get_current_time_in_micros()
-    positivity_enforcer_x( r_prim_c, r_prim_l_x, r_prim_r_x, Nx, Ny, Nz )
-    -- var t_positivity = c.legion_get_current_time_in_micros()
+                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
+    positivity_enforcer_x( r_prim_c, r_prim_l_x, r_prim_r_x, interpolation.n_ghosts )
     HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
-    -- var t_riemann = c.legion_get_current_time_in_micros()
-    get_xfluxes_r( r_prim_c, r_cnsr, r_flux_c )
-    -- var t_fluxes = c.legion_get_current_time_in_micros()
+    get_xfluxes_r( r_prim_c, r_flux_c )
    
     ddx_MND_rho ( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     ddx_MND_rhou( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     ddx_MND_rhov( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     ddx_MND_rhow( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     ddx_MND_rhoE( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
-    -- var t_derivatives = c.legion_get_current_time_in_micros()
 
     for i in r_rhs do
       r_rhs[i].rho  -= r_fder_c_x[i].rho
@@ -249,6 +611,26 @@ do
       r_rhs[i].rhoE -= r_fder_c_x[i].rhoE
     end
 
+  end
+end
+
+task add_viscous_xflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
+                                   r_aux_c    : region(ispace(int3d), auxiliary),
+                                   r_visc     : region(ispace(int3d), transport_coeffs),
+                                   r_tauij    : region(ispace(int3d), tensor2symm),
+                                   r_q        : region(ispace(int3d), vect),
+                                   r_flux_c   : region(ispace(int3d), conserved),
+                                   r_fder_c_x : region(ispace(int3d), conserved),
+                                   r_rhs      : region(ispace(int3d), conserved),
+                                   LU_x       : region(ispace(int3d), LU_struct) )
+where
+  reads( r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_11, _12, _13}, LU_x ),
+  reads writes( r_q._1, r_flux_c, r_fder_c_x, r_rhs)
+do
+
+  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+
+  if (nx >= 8) then
     if viscous then
       get_q_x(r_aux_c, r_visc, r_q, LU_x)
 
@@ -275,23 +657,60 @@ do
       end
     end
 
-    -- var t_end = c.legion_get_current_time_in_micros()
-
-    -- c.printf("X: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
-    -- c.printf("X: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
-    -- c.printf("X: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
-    -- c.printf("X: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
-    -- c.printf("X: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
-    -- c.printf("X: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
   end
 end
 
-task add_yflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
-                           r_prim_c   : region(ispace(int3d), primitive),
-                           r_aux_c    : region(ispace(int3d), auxiliary),
-                           r_visc     : region(ispace(int3d), transport_coeffs),
-                           r_tauij    : region(ispace(int3d), tensor2symm),
-                           r_q        : region(ispace(int3d), vect),
+task add_nonconservative_viscous_xflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
+                                                   r_aux_c    : region(ispace(int3d), auxiliary),
+                                                   r_visc     : region(ispace(int3d), transport_coeffs),
+                                                   r_gradu    : region(ispace(int3d), tensor2),
+                                                   r_grad2u   : region(ispace(int3d), tensor2),
+                                                   r_tauij    : region(ispace(int3d), tensor2symm),
+                                                   r_rhs      : region(ispace(int3d), conserved),
+                                                   LU_x       : region(ispace(int3d), LU_struct),
+                                                   LU2_x      : region(ispace(int3d), LU_struct) )
+where
+  reads( r_prim_c.{u, v, w}, r_aux_c.T, r_visc, r_tauij.{_11, _12, _13}, LU_x, LU2_x ),
+  reads( r_gradu.{_11, _12, _13, _21, _22, _31, _33}, r_grad2u.{_11, _21, _31} ),
+  reads writes( r_rhs.{rhou, rhov, rhow, rhoE} )
+do
+
+  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_prim_c.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.x - interpolation.n_ghosts == 0, "Can only add_nonconservative_viscous_xflux_der_to_rhs in the X pencil")
+
+  if (nx >= 8) then
+    if viscous then
+      var r_q_div     = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+      var r_tauij_div = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), vect )
+
+      get_tauij_div_x(r_gradu, r_grad2u, r_visc, r_tauij_div, LU_x)
+      get_q_div_x(r_aux_c, r_visc, r_q_div, LU_x, LU2_x)
+
+      for i in r_rhs do
+        var viscpower = r_tauij[i]._11 * r_gradu[i]._11 + r_tauij[i]._12 * r_gradu[i]._21 + r_tauij[i]._13 * r_gradu[i]._31
+                      + r_prim_c[i].u * r_tauij_div[i]._1 + r_prim_c[i].v * r_tauij_div[i]._2+ r_prim_c[i].w * r_tauij_div[i]._3
+
+        r_rhs[i].rhou += r_tauij_div[i]._1
+        r_rhs[i].rhov += r_tauij_div[i]._2
+        r_rhs[i].rhow += r_tauij_div[i]._3
+        r_rhs[i].rhoE += - r_q_div[i]._ + viscpower
+      end
+
+      regentlib.c.legion_physical_region_destroy(__physical(r_q_div)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_tauij_div)[0])
+      __delete(r_q_div)
+      __delete(r_tauij_div)
+    end
+
+  end
+end
+
+task add_yflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l_y : region(ispace(int3d), primitive),
                            r_prim_r_y : region(ispace(int3d), primitive),
                            r_flux_c   : region(ispace(int3d), conserved),
@@ -308,36 +727,27 @@ task add_yflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
                            sos_avg    : region(ispace(int3d), double),
                            block_d    : region(ispace(int3d), double[9]),
                            block_Uinv : region(ispace(int3d), double[9]),
-                           LU_y       : region(ispace(int3d), LU_struct),
-                           Nx         : int64,
-                           Ny         : int64,
-                           Nz         : int64 )
+                           LU_y       : region(ispace(int3d), LU_struct) )
 where
-  reads( r_cnsr, r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_12, _22, _23}, LU_y ),
-  reads writes( r_q._2, r_prim_l_y, r_prim_r_y, r_flux_c, r_flux_e_y, r_fder_c_y, r_rhs),
+  reads( r_prim_c, LU_y ),
+  reads writes( r_prim_l_y, r_prim_r_y, r_flux_c, r_flux_e_y, r_fder_c_y, r_rhs),
   reads writes( alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
 do
 
-  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1 - 2*interpolation.n_ghosts
 
   if (ny >= 8) then
-    -- var t_start = c.legion_get_current_time_in_micros()
     WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y, alpha_l, beta_l, gamma_l,
-                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv, Nx, Ny, Nz )
-    -- var t_interpolation = c.legion_get_current_time_in_micros()
-    positivity_enforcer_y( r_prim_c, r_prim_l_y, r_prim_r_y, Nx, Ny, Nz )
-    -- var t_positivity = c.legion_get_current_time_in_micros()
+                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
+    positivity_enforcer_y( r_prim_c, r_prim_l_y, r_prim_r_y, interpolation.n_ghosts )
     HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
-    -- var t_riemann = c.legion_get_current_time_in_micros()
-    get_yfluxes_r( r_prim_c, r_cnsr, r_flux_c )
-    -- var t_fluxes = c.legion_get_current_time_in_micros()
+    get_yfluxes_r( r_prim_c, r_flux_c )
     
     ddy_MND_rho ( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhou( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhov( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhow( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     ddy_MND_rhoE( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
-    -- var t_derivatives = c.legion_get_current_time_in_micros()
     
     for i in r_rhs do
       r_rhs[i].rho  -= r_fder_c_y[i].rho
@@ -346,7 +756,26 @@ do
       r_rhs[i].rhow -= r_fder_c_y[i].rhow
       r_rhs[i].rhoE -= r_fder_c_y[i].rhoE
     end
+  end
+end
 
+task add_viscous_yflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
+                                   r_aux_c    : region(ispace(int3d), auxiliary),
+                                   r_visc     : region(ispace(int3d), transport_coeffs),
+                                   r_tauij    : region(ispace(int3d), tensor2symm),
+                                   r_q        : region(ispace(int3d), vect),
+                                   r_flux_c   : region(ispace(int3d), conserved),
+                                   r_fder_c_y : region(ispace(int3d), conserved),
+                                   r_rhs      : region(ispace(int3d), conserved),
+                                   LU_y       : region(ispace(int3d), LU_struct) )
+where
+  reads( r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_12, _22, _23}, LU_y ),
+  reads writes( r_q._2, r_flux_c, r_fder_c_y, r_rhs)
+do
+
+  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1 - 2*interpolation.n_ghosts
+
+  if (ny >= 8) then
     if viscous then
       get_q_y(r_aux_c, r_visc, r_q, LU_y)
 
@@ -373,23 +802,60 @@ do
       end
     end
 
-    -- var t_end = c.legion_get_current_time_in_micros()
-
-    -- c.printf("Y: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
-    -- c.printf("Y: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
-    -- c.printf("Y: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
-    -- c.printf("Y: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
-    -- c.printf("Y: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
-    -- c.printf("Y: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
   end
 end
 
-task add_zflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
-                           r_prim_c   : region(ispace(int3d), primitive),
-                           r_aux_c    : region(ispace(int3d), auxiliary),
-                           r_visc     : region(ispace(int3d), transport_coeffs),
-                           r_tauij    : region(ispace(int3d), tensor2symm),
-                           r_q        : region(ispace(int3d), vect),
+task add_nonconservative_viscous_yflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
+                                                   r_aux_c    : region(ispace(int3d), auxiliary),
+                                                   r_visc     : region(ispace(int3d), transport_coeffs),
+                                                   r_gradu    : region(ispace(int3d), tensor2),
+                                                   r_grad2u   : region(ispace(int3d), tensor2),
+                                                   r_tauij    : region(ispace(int3d), tensor2symm),
+                                                   r_rhs      : region(ispace(int3d), conserved),
+                                                   LU_y       : region(ispace(int3d), LU_struct),
+                                                   LU2_y      : region(ispace(int3d), LU_struct) )
+where
+  reads( r_prim_c.{u, v, w}, r_aux_c.T, r_visc, r_tauij.{_12, _22, _23}, LU_y, LU2_y ),
+  reads( r_gradu.{_11, _12, _21, _22, _23, _32, _33}, r_grad2u.{_12, _22, _32} ),
+  reads writes( r_rhs.{rhou, rhov, rhow, rhoE} )
+do
+
+  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_prim_c.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.y - interpolation.n_ghosts == 0, "Can only add_nonconservative_viscous_yflux_der_to_rhs in the Y pencil")
+
+  if (ny >= 8) then
+    if viscous then
+      var r_q_div     = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+      var r_tauij_div = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), vect )
+
+      get_tauij_div_y(r_gradu, r_grad2u, r_visc, r_tauij_div, LU_y)
+      get_q_div_y(r_aux_c, r_visc, r_q_div, LU_y, LU2_y)
+
+      for i in r_rhs do
+        var viscpower = r_tauij[i]._12 * r_gradu[i]._12 + r_tauij[i]._22 * r_gradu[i]._22 + r_tauij[i]._23 * r_gradu[i]._32
+                      + r_prim_c[i].u * r_tauij_div[i]._1 + r_prim_c[i].v * r_tauij_div[i]._2+ r_prim_c[i].w * r_tauij_div[i]._3
+
+        r_rhs[i].rhou += r_tauij_div[i]._1
+        r_rhs[i].rhov += r_tauij_div[i]._2
+        r_rhs[i].rhow += r_tauij_div[i]._3
+        r_rhs[i].rhoE += - r_q_div[i]._ + viscpower
+      end
+
+      regentlib.c.legion_physical_region_destroy(__physical(r_q_div)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_tauij_div)[0])
+      __delete(r_q_div)
+      __delete(r_tauij_div)
+    end
+
+  end
+end
+
+task add_zflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l_z : region(ispace(int3d), primitive),
                            r_prim_r_z : region(ispace(int3d), primitive),
                            r_flux_c   : region(ispace(int3d), conserved),
@@ -406,29 +872,21 @@ task add_zflux_der_to_rhs( r_cnsr     : region(ispace(int3d), conserved),
                            sos_avg    : region(ispace(int3d), double),
                            block_d    : region(ispace(int3d), double[9]),
                            block_Uinv : region(ispace(int3d), double[9]),
-                           LU_z       : region(ispace(int3d), LU_struct),
-                           Nx         : int64,
-                           Ny         : int64,
-                           Nz         : int64 )
+                           LU_z       : region(ispace(int3d), LU_struct) )
 where
-  reads( r_cnsr, r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_13, _23, _33}, LU_z ),
-  reads writes( r_q._3, r_prim_l_z, r_prim_r_z, r_flux_c, r_flux_e_z, r_fder_c_z, r_rhs),
+  reads( r_prim_c, LU_z ),
+  reads writes( r_prim_l_z, r_prim_r_z, r_flux_c, r_flux_e_z, r_fder_c_z, r_rhs),
   reads writes( alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
 do
 
-  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1 - 2*interpolation.n_ghosts
 
   if (nz >= 8) then
-    -- var t_start = c.legion_get_current_time_in_micros()
     WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z, alpha_l, beta_l, gamma_l,
-                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv, Nx, Ny, Nz )
-    -- var t_interpolation = c.legion_get_current_time_in_micros()
-    positivity_enforcer_z( r_prim_c, r_prim_l_z, r_prim_r_z, Nx, Ny, Nz )
-    -- var t_positivity = c.legion_get_current_time_in_micros()
+                          alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv )
+    positivity_enforcer_z( r_prim_c, r_prim_l_z, r_prim_r_z, interpolation.n_ghosts )
     HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
-    -- var t_riemann = c.legion_get_current_time_in_micros()
-    get_zfluxes_r( r_prim_c, r_cnsr, r_flux_c )
-    -- var t_fluxes = c.legion_get_current_time_in_micros()
+    get_zfluxes_r( r_prim_c, r_flux_c )
 
     ddz_MND_rho ( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
     ddz_MND_rhou( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
@@ -444,7 +902,26 @@ do
       r_rhs[i].rhow -= r_fder_c_z[i].rhow
       r_rhs[i].rhoE -= r_fder_c_z[i].rhoE
     end
+  end
+end
 
+task add_viscous_zflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
+                                   r_aux_c    : region(ispace(int3d), auxiliary),
+                                   r_visc     : region(ispace(int3d), transport_coeffs),
+                                   r_tauij    : region(ispace(int3d), tensor2symm),
+                                   r_q        : region(ispace(int3d), vect),
+                                   r_flux_c   : region(ispace(int3d), conserved),
+                                   r_fder_c_z : region(ispace(int3d), conserved),
+                                   r_rhs      : region(ispace(int3d), conserved),
+                                   LU_z       : region(ispace(int3d), LU_struct) )
+where
+  reads( r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_13, _23, _33}, LU_z ),
+  reads writes( r_q._3, r_flux_c, r_fder_c_z, r_rhs)
+do
+
+  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1 - 2*interpolation.n_ghosts
+
+  if (nz >= 8) then
     if viscous then
       get_q_z(r_aux_c, r_visc, r_q, LU_z)
 
@@ -471,14 +948,56 @@ do
       end
     end
 
-    -- var t_end = c.legion_get_current_time_in_micros()
+  end
+end
 
-    -- c.printf("Z: Time for interpolation: %12.5e\n", (t_interpolation-t_start)*1e-6)
-    -- c.printf("Z: Time for positivity enforcer: %12.5e\n", (t_positivity-t_interpolation)*1e-6)
-    -- c.printf("Z: Time for Riemann solver: %12.5e\n", (t_riemann-t_positivity)*1e-6)
-    -- c.printf("Z: Time for fluxes: %12.5e\n", (t_fluxes-t_riemann)*1e-6)
-    -- c.printf("Z: Time for derivatives: %12.5e\n", (t_derivatives-t_fluxes)*1e-6)
-    -- c.printf("Z: Time for all flux stuff: %12.5e\n", (t_end-t_start)*1e-6)
+task add_nonconservative_viscous_zflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
+                                                   r_aux_c    : region(ispace(int3d), auxiliary),
+                                                   r_visc     : region(ispace(int3d), transport_coeffs),
+                                                   r_gradu    : region(ispace(int3d), tensor2),
+                                                   r_grad2u   : region(ispace(int3d), tensor2),
+                                                   r_tauij    : region(ispace(int3d), tensor2symm),
+                                                   r_rhs      : region(ispace(int3d), conserved),
+                                                   LU_z       : region(ispace(int3d), LU_struct),
+                                                   LU2_z      : region(ispace(int3d), LU_struct) )
+where
+  reads( r_prim_c.{u, v, w}, r_aux_c.T, r_visc, r_tauij.{_13, _23, _33}, LU_z, LU2_z ),
+  reads( r_gradu.{_11, _13, _22, _23, _31, _32, _33}, r_grad2u.{_13, _23, _33} ),
+  reads writes( r_rhs.{rhou, rhov, rhow, rhoE} )
+do
+
+  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+
+  var bounds_c = r_prim_c.ispace.bounds
+
+  regentlib.assert(bounds_c.lo.z - interpolation.n_ghosts == 0, "Can only add_nonconservative_viscous_zflux_der_to_rhs in the Z pencil")
+
+  if (nz >= 8) then
+    if viscous then
+      var r_q_div     = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), scalar )
+      var r_tauij_div = region( ispace(int3d, {nx, ny, nz}, bounds_c.lo), vect )
+
+      get_tauij_div_z(r_gradu, r_grad2u, r_visc, r_tauij_div, LU_z)
+      get_q_div_z(r_aux_c, r_visc, r_q_div, LU_z, LU2_z)
+
+      for i in r_rhs do
+        var viscpower = r_tauij[i]._13 * r_gradu[i]._13 + r_tauij[i]._23 * r_gradu[i]._23 + r_tauij[i]._33 * r_gradu[i]._33
+                      + r_prim_c[i].u * r_tauij_div[i]._1 + r_prim_c[i].v * r_tauij_div[i]._2+ r_prim_c[i].w * r_tauij_div[i]._3
+
+        r_rhs[i].rhou += r_tauij_div[i]._1
+        r_rhs[i].rhov += r_tauij_div[i]._2
+        r_rhs[i].rhow += r_tauij_div[i]._3
+        r_rhs[i].rhoE += - r_q_div[i]._ + viscpower
+      end
+
+      regentlib.c.legion_physical_region_destroy(__physical(r_q_div)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_tauij_div)[0])
+      __delete(r_q_div)
+      __delete(r_tauij_div)
+    end
+
   end
 end
 
@@ -518,11 +1037,13 @@ end
 
 task get_velocity_x_derivatives( r_prim_c : region(ispace(int3d), primitive),
                                  r_gradu  : region(ispace(int3d), tensor2),
-                                 LU_x     : region(ispace(int3d), LU_struct) )
+                                 r_grad2u : region(ispace(int3d), tensor2),
+                                 LU_x     : region(ispace(int3d), LU_struct),
+                                 LU2_x    : region(ispace(int3d), LU_struct) )
 where
-  reads (r_prim_c.{u, v, w}, LU_x), reads writes (r_gradu.{_11, _21, _31})
+  reads (r_prim_c.{u, v, w}, LU_x, LU2_x), reads writes (r_gradu.{_11, _21, _31}, r_grad2u.{_11, _21, _31})
 do
-  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+  var nx = r_gradu.ispace.bounds.hi.x - r_gradu.ispace.bounds.lo.x + 1
 
   var token = 1
   if (nx < 8) then
@@ -530,6 +1051,9 @@ do
       r_gradu[i]._11 = 0.0
       r_gradu[i]._21 = 0.0
       r_gradu[i]._31 = 0.0
+      r_grad2u[i]._11 = 0.0
+      r_grad2u[i]._21 = 0.0
+      r_grad2u[i]._31 = 0.0
     end
     return token
   end
@@ -538,16 +1062,22 @@ do
   token += ddx_v(r_prim_c, r_gradu, LU_x)
   token += ddx_w(r_prim_c, r_gradu, LU_x) 
 
+  token += d2dx2_u(r_prim_c, r_grad2u, LU2_x)
+  token += d2dx2_v(r_prim_c, r_grad2u, LU2_x)
+  token += d2dx2_w(r_prim_c, r_grad2u, LU2_x) 
+
   return token
 end
 
 task get_velocity_y_derivatives( r_prim_c : region(ispace(int3d), primitive),
                                  r_gradu  : region(ispace(int3d), tensor2),
-                                 LU_y     : region(ispace(int3d), LU_struct) )
+                                 r_grad2u : region(ispace(int3d), tensor2),
+                                 LU_y     : region(ispace(int3d), LU_struct),
+                                 LU2_y    : region(ispace(int3d), LU_struct) )
 where
-  reads (r_prim_c.{u, v, w}, LU_y), reads writes (r_gradu.{_12, _22, _32})
+  reads (r_prim_c.{u, v, w}, LU_y, LU2_y), reads writes (r_gradu.{_12, _22, _32}, r_grad2u.{_12, _22, _32})
 do
-  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+  var ny = r_gradu.ispace.bounds.hi.y - r_gradu.ispace.bounds.lo.y + 1
 
   var token = 1
   if (ny < 8) then
@@ -555,6 +1085,9 @@ do
       r_gradu[i]._12 = 0.0
       r_gradu[i]._22 = 0.0
       r_gradu[i]._32 = 0.0
+      r_grad2u[i]._12 = 0.0
+      r_grad2u[i]._22 = 0.0
+      r_grad2u[i]._32 = 0.0
     end
     return token
   end
@@ -563,16 +1096,22 @@ do
   token += ddy_v(r_prim_c, r_gradu, LU_y)
   token += ddy_w(r_prim_c, r_gradu, LU_y) 
 
+  token += d2dy2_u(r_prim_c, r_grad2u, LU2_y)
+  token += d2dy2_v(r_prim_c, r_grad2u, LU2_y)
+  token += d2dy2_w(r_prim_c, r_grad2u, LU2_y) 
+
   return token
 end
 
 task get_velocity_z_derivatives( r_prim_c : region(ispace(int3d), primitive),
                                  r_gradu  : region(ispace(int3d), tensor2),
-                                 LU_z     : region(ispace(int3d), LU_struct) )
+                                 r_grad2u : region(ispace(int3d), tensor2),
+                                 LU_z     : region(ispace(int3d), LU_struct),
+                                 LU2_z    : region(ispace(int3d), LU_struct) )
 where
-  reads (r_prim_c.{u, v, w}, LU_z), reads writes (r_gradu.{_13, _23, _33})
+  reads (r_prim_c.{u, v, w}, LU_z, LU2_z), reads writes (r_gradu.{_13, _23, _33}, r_grad2u.{_13, _23, _33})
 do
-  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+  var nz = r_gradu.ispace.bounds.hi.z - r_gradu.ispace.bounds.lo.z + 1
 
   var token = 1
   if (nz < 8) then
@@ -580,6 +1119,9 @@ do
       r_gradu[i]._13 = 0.0
       r_gradu[i]._23 = 0.0
       r_gradu[i]._33 = 0.0
+      r_grad2u[i]._13 = 0.0
+      r_grad2u[i]._23 = 0.0
+      r_grad2u[i]._33 = 0.0
     end
     return token
   end
@@ -588,71 +1130,201 @@ do
   token += ddz_v(r_prim_c, r_gradu, LU_z)
   token += ddz_w(r_prim_c, r_gradu, LU_z) 
 
+  token += d2dz2_u(r_prim_c, r_grad2u, LU2_z)
+  token += d2dz2_v(r_prim_c, r_grad2u, LU2_z)
+  token += d2dz2_w(r_prim_c, r_grad2u, LU2_z) 
+
   return token
 end
 
 
 
 
-task get_temperature_x_derivatives( r_aux_c : region(ispace(int3d), auxiliary),
-                                    r_gradT : region(ispace(int3d), vect),
-                                    LU_x    : region(ispace(int3d), LU_struct) )
+-- task get_temperature_x_derivatives( r_aux_c : region(ispace(int3d), auxiliary),
+--                                     r_gradT : region(ispace(int3d), vect),
+--                                     LU_x    : region(ispace(int3d), LU_struct) )
+-- where
+--   reads (r_aux_c.{T}, LU_x), reads writes (r_gradT.{_1})
+-- do
+--   var nx = r_aux_c.ispace.bounds.hi.x - r_aux_c.ispace.bounds.lo.x + 1
+-- 
+--   var token = 1
+--   if (nx < 8) then
+--     for i in r_gradT do
+--       r_gradT[i]._1 = 0.0
+--     end
+--     return token
+--   end
+-- 
+--   token += ddx_T(r_aux_c, r_gradT, LU_x)
+-- 
+--   return token
+-- end
+-- 
+-- task get_temperature_y_derivatives( r_aux_c : region(ispace(int3d), auxiliary),
+--                                     r_gradT : region(ispace(int3d), vect),
+--                                     LU_y    : region(ispace(int3d), LU_struct) )
+-- where
+--   reads (r_aux_c.{T}, LU_y), reads writes (r_gradT.{_2})
+-- do
+--   var ny = r_aux_c.ispace.bounds.hi.y - r_aux_c.ispace.bounds.lo.y + 1
+-- 
+--   var token = 1
+--   if (ny < 8) then
+--     for i in r_gradT do
+--       r_gradT[i]._2 = 0.0
+--     end
+--     return token
+--   end
+-- 
+--   token += ddy_T(r_aux_c, r_gradT, LU_y)
+-- 
+--   return token
+-- end
+-- 
+-- task get_temperature_z_derivatives( r_aux_c : region(ispace(int3d), auxiliary),
+--                                     r_gradT : region(ispace(int3d), vect),
+--                                     LU_z    : region(ispace(int3d), LU_struct) )
+-- where
+--   reads (r_aux_c.{T}, LU_z), reads writes (r_gradT.{_3})
+-- do
+--   var nz = r_aux_c.ispace.bounds.hi.z - r_aux_c.ispace.bounds.lo.z + 1
+-- 
+--   var token = 1
+--   if (nz < 8) then
+--     for i in r_gradT do
+--       r_gradT[i]._3 = 0.0
+--     end
+--     return token
+--   end
+-- 
+--   token += ddz_T(r_aux_c, r_gradT, LU_z)
+-- 
+--   return token
+-- end
+
+task get_density_x_derivatives( r_prim_c  : region(ispace(int3d), primitive),
+                                r_gradrho : region(ispace(int3d), vect),
+                                LU_x      : region(ispace(int3d), LU_struct) )
 where
-  reads (r_aux_c.{T}, LU_x), reads writes (r_gradT.{_1})
+  reads (r_prim_c.{rho}, LU_x), reads writes (r_gradrho.{_1})
 do
-  var nx = r_aux_c.ispace.bounds.hi.x - r_aux_c.ispace.bounds.lo.x + 1
+  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
 
   var token = 1
   if (nx < 8) then
-    for i in r_gradT do
-      r_gradT[i]._1 = 0.0
+    for i in r_gradrho do
+      r_gradrho[i]._1 = 0.0
     end
     return token
   end
 
-  token += ddx_T(r_aux_c, r_gradT, LU_x)
+  token += ddx_rho_prim(r_prim_c, r_gradrho, LU_x)
 
   return token
 end
 
-task get_temperature_y_derivatives( r_aux_c : region(ispace(int3d), auxiliary),
-                                    r_gradT : region(ispace(int3d), vect),
-                                    LU_y    : region(ispace(int3d), LU_struct) )
+task get_density_y_derivatives( r_prim_c  : region(ispace(int3d), primitive),
+                                r_gradrho : region(ispace(int3d), vect),
+                                LU_y      : region(ispace(int3d), LU_struct) )
 where
-  reads (r_aux_c.{T}, LU_y), reads writes (r_gradT.{_2})
+  reads (r_prim_c.{rho}, LU_y), reads writes (r_gradrho.{_2})
 do
-  var ny = r_aux_c.ispace.bounds.hi.y - r_aux_c.ispace.bounds.lo.y + 1
+  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
 
   var token = 1
   if (ny < 8) then
-    for i in r_gradT do
-      r_gradT[i]._2 = 0.0
+    for i in r_gradrho do
+      r_gradrho[i]._2 = 0.0
     end
     return token
   end
 
-  token += ddy_T(r_aux_c, r_gradT, LU_y)
+  token += ddy_rho_prim(r_prim_c, r_gradrho, LU_y)
 
   return token
 end
 
-task get_temperature_z_derivatives( r_aux_c : region(ispace(int3d), auxiliary),
-                                    r_gradT : region(ispace(int3d), vect),
-                                    LU_z    : region(ispace(int3d), LU_struct) )
+task get_density_z_derivatives( r_prim_c  : region(ispace(int3d), primitive),
+                                r_gradrho : region(ispace(int3d), vect),
+                                LU_z      : region(ispace(int3d), LU_struct) )
 where
-  reads (r_aux_c.{T}, LU_z), reads writes (r_gradT.{_3})
+  reads (r_prim_c.{rho}, LU_z), reads writes (r_gradrho.{_3})
 do
-  var nz = r_aux_c.ispace.bounds.hi.z - r_aux_c.ispace.bounds.lo.z + 1
+  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
 
   var token = 1
   if (nz < 8) then
-    for i in r_gradT do
-      r_gradT[i]._3 = 0.0
+    for i in r_gradrho do
+      r_gradrho[i]._3 = 0.0
     end
     return token
   end
 
-  token += ddz_T(r_aux_c, r_gradT, LU_z)
+  token += ddz_rho_prim(r_prim_c, r_gradrho, LU_z)
+
+  return token
+end
+
+task get_pressure_x_derivatives( r_prim_c : region(ispace(int3d), primitive),
+                                 r_gradp  : region(ispace(int3d), vect),
+                                 LU_x     : region(ispace(int3d), LU_struct) )
+where
+  reads (r_prim_c.{p}, LU_x), reads writes (r_gradp.{_1})
+do
+  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+
+  var token = 1
+  if (nx < 8) then
+    for i in r_gradp do
+      r_gradp[i]._1 = 0.0
+    end
+    return token
+  end
+
+  token += ddx_p(r_prim_c, r_gradp, LU_x)
+
+  return token
+end
+
+task get_pressure_y_derivatives( r_prim_c : region(ispace(int3d), primitive),
+                                 r_gradp  : region(ispace(int3d), vect),
+                                 LU_y     : region(ispace(int3d), LU_struct) )
+where
+  reads (r_prim_c.{p}, LU_y), reads writes (r_gradp.{_2})
+do
+  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1
+
+  var token = 1
+  if (ny < 8) then
+    for i in r_gradp do
+      r_gradp[i]._2 = 0.0
+    end
+    return token
+  end
+
+  token += ddy_p(r_prim_c, r_gradp, LU_y)
+
+  return token
+end
+
+task get_pressure_z_derivatives( r_prim_c : region(ispace(int3d), primitive),
+                                 r_gradp  : region(ispace(int3d), vect),
+                                 LU_z     : region(ispace(int3d), LU_struct) )
+where
+  reads (r_prim_c.{p}, LU_z), reads writes (r_gradp.{_3})
+do
+  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1
+
+  var token = 1
+  if (nz < 8) then
+    for i in r_gradp do
+      r_gradp[i]._3 = 0.0
+    end
+    return token
+  end
+
+  token += ddz_p(r_prim_c, r_gradp, LU_z)
 
   return token
 end

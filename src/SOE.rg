@@ -70,18 +70,17 @@ task get_xfluxes( rho  : double,
                   u    : double,
                   v    : double,
                   w    : double,
-                  p    : double, 
-                  rhou : double,
-                  rhov : double,
-                  rhow : double,
-                  rhoE : double )
+                  p    : double )
 
   var flux : double[5]
 
-  flux[0] =  rhou
-  flux[1] =  rhou * u + p
-  flux[2] =  rhou * v
-  flux[3] =  rhou * w
+  var rhoe : double = get_internal_energy(rho, p)
+  var rhoE : double = rhoe + 0.5 * rho * (u*u + v*v + w*w)
+
+  flux[0] =  rho * u
+  flux[1] =  rho * u * u + p
+  flux[2] =  rho * u * v
+  flux[3] =  rho * u * w
   flux[4] = (rhoE + p) * u
 
   return flux
@@ -92,18 +91,17 @@ task get_yfluxes( rho  : double,
                   u    : double,
                   v    : double,
                   w    : double,
-                  p    : double, 
-                  rhou : double,
-                  rhov : double,
-                  rhow : double,
-                  rhoE : double )
+                  p    : double )
 
   var flux : double[5]
 
-  flux[0] =  rhov
-  flux[1] =  rhov * u
-  flux[2] =  rhov * v + p
-  flux[3] =  rhov * w
+  var rhoe : double = get_internal_energy(rho, p)
+  var rhoE : double = rhoe + 0.5 * rho * (u*u + v*v + w*w)
+
+  flux[0] =  rho * v
+  flux[1] =  rho * v * u
+  flux[2] =  rho * v * v + p
+  flux[3] =  rho * v * w
   flux[4] = (rhoE + p) * v
 
   return flux
@@ -114,18 +112,17 @@ task get_zfluxes( rho  : double,
                   u    : double,
                   v    : double,
                   w    : double,
-                  p    : double, 
-                  rhou : double,
-                  rhov : double,
-                  rhow : double,
-                  rhoE : double )
+                  p    : double )
 
   var flux : double[5]
 
-  flux[0] =  rhow
-  flux[1] =  rhow * u
-  flux[2] =  rhow * v
-  flux[3] =  rhow * w + p
+  var rhoe : double = get_internal_energy(rho, p)
+  var rhoE : double = rhoe + 0.5 * rho * (u*u + v*v + w*w)
+
+  flux[0] =  rho * w
+  flux[1] =  rho * w * u
+  flux[2] =  rho * w * v
+  flux[3] =  rho * w * w + p
   flux[4] = (rhoE + p) * w
 
   return flux
@@ -133,16 +130,13 @@ end
 
 __demand(__inline)
 task get_rho_sos_avg_x( r_prim_c : region(ispace(int3d), primitive),
-                        idx      : int3d,
-                        Nx       : int64,
-                        Ny       : int64,
-                        Nz       : int64)
+                        idx      : int3d)
 where
   reads(r_prim_c)
 do
   var rhosos : double[2]
 
-  var idxm1 = [poff(idx, -1, 0, 0, Nx, Ny, Nz)]
+  var idxm1 = int3d {x = idx.x-1, y = idx.y, z = idx.z}
   rhosos[0] = 0.5*( r_prim_c[ idxm1 ].rho + r_prim_c[ idx ].rho )
   rhosos[1] = 0.5*( get_sos(r_prim_c[idxm1].rho, r_prim_c[idxm1].p) + get_sos(r_prim_c[idx].rho, r_prim_c[idx].p))
 
@@ -151,16 +145,13 @@ end
 
 __demand(__inline)
 task get_rho_sos_avg_y( r_prim_c : region(ispace(int3d), primitive),
-                        idx      : int3d,
-                        Nx       : int64,
-                        Ny       : int64,
-                        Nz       : int64)
+                        idx      : int3d)
 where
   reads(r_prim_c)
 do
   var rhosos : double[2]
 
-  var idxm1 = [poff(idx, 0, -1, 0, Nx, Ny, Nz)]
+  var idxm1 = int3d {x = idx.x, y = idx.y-1, z = idx.z}
   rhosos[0] = 0.5*( r_prim_c[ idxm1 ].rho + r_prim_c[ idx ].rho )
   rhosos[1] = 0.5*( get_sos(r_prim_c[idxm1].rho, r_prim_c[idxm1].p) + get_sos(r_prim_c[idx].rho, r_prim_c[idx].p))
 
@@ -169,16 +160,13 @@ end
 
 __demand(__inline)
 task get_rho_sos_avg_z( r_prim_c : region(ispace(int3d), primitive),
-                        idx      : int3d,
-                        Nx       : int64,
-                        Ny       : int64,
-                        Nz       : int64)
+                        idx      : int3d)
 where
   reads(r_prim_c)
 do
   var rhosos : double[2]
 
-  var idxm1 = [poff(idx, 0, 0, -1, Nx, Ny, Nz)]
+  var idxm1 = int3d {x = idx.x, y = idx.y, z = idx.z-1}
   rhosos[0] = 0.5*( r_prim_c[ idxm1 ].rho + r_prim_c[ idx ].rho )
   rhosos[1] = 0.5*( get_sos(r_prim_c[idxm1].rho, r_prim_c[idxm1].p) + get_sos(r_prim_c[idx].rho, r_prim_c[idx].p))
 
@@ -299,17 +287,14 @@ __demand(__inline)
 task get_char_values_x( r_prim_c : region(ispace(int3d), primitive),
                         rho_avg  : double,
                         sos_avg  : double,
-                        idx      : int3d,
-                        Nx       : int64,
-                        Ny       : int64,
-                        Nz       : int64)
+                        idx      : int3d )
 where
   reads(r_prim_c)
 do
   var char_values : double[6][5]
 
   for i = -3, 3 do
-    var p = [poff(idx, i, 0, 0, Nx, Ny, Nz)]
+    var p = int3d {x = idx.x+i, y = idx.y, z = idx.z}
     char_values[0][i+3] = -0.5*rho_avg*sos_avg * r_prim_c[p].u + 0.5*r_prim_c[p].p
     char_values[1][i+3] = r_prim_c[p].rho - r_prim_c[p].p/(sos_avg*sos_avg)
     char_values[2][i+3] = r_prim_c[p].v
@@ -321,20 +306,61 @@ do
 end
 
 __demand(__inline)
+task get_char_values_LB_x( r_prim_c : region(ispace(int3d), primitive),
+                           rho_avg  : double,
+                           sos_avg  : double,
+                           idx      : int3d)
+where
+  reads(r_prim_c)
+do
+  var char_values : double[7][5]
+
+  for i = -3, 4 do
+    var p = int3d {x = idx.x+i, y = idx.y, z = idx.z}
+    char_values[0][i+3] = -0.5*rho_avg*sos_avg * r_prim_c[p].u + 0.5*r_prim_c[p].p
+    char_values[1][i+3] = r_prim_c[p].rho - r_prim_c[p].p/(sos_avg*sos_avg)
+    char_values[2][i+3] = r_prim_c[p].v
+    char_values[3][i+3] = r_prim_c[p].w
+    char_values[4][i+3] = 0.5*rho_avg*sos_avg * r_prim_c[p].u + 0.5*r_prim_c[p].p
+  end
+
+  return char_values
+end
+
+__demand(__inline)
+task get_char_values_RB_x( r_prim_c : region(ispace(int3d), primitive),
+                           rho_avg  : double,
+                           sos_avg  : double,
+                           idx      : int3d)
+where
+  reads(r_prim_c)
+do
+  var char_values : double[7][5]
+
+  for i = -4, 3 do
+    var p = int3d {x = idx.x+i, y = idx.y, z = idx.z}
+    char_values[0][i+4] = -0.5*rho_avg*sos_avg * r_prim_c[p].u + 0.5*r_prim_c[p].p
+    char_values[1][i+4] = r_prim_c[p].rho - r_prim_c[p].p/(sos_avg*sos_avg)
+    char_values[2][i+4] = r_prim_c[p].v
+    char_values[3][i+4] = r_prim_c[p].w
+    char_values[4][i+4] = 0.5*rho_avg*sos_avg * r_prim_c[p].u + 0.5*r_prim_c[p].p
+  end
+
+  return char_values
+end
+
+__demand(__inline)
 task get_char_values_y( r_prim_c : region(ispace(int3d), primitive),
                         rho_avg  : double,
                         sos_avg  : double,
-                        idx      : int3d,
-                        Nx       : int64,
-                        Ny       : int64,
-                        Nz       : int64)
+                        idx      : int3d )
 where
   reads(r_prim_c)
 do
   var char_values : double[6][5]
 
   for i = -3, 3 do
-    var p = [poff(idx, 0, i, 0, Nx, Ny, Nz)]
+    var p = int3d {x = idx.x, y = idx.y+i, z = idx.z}
     char_values[0][i+3] = -0.5*rho_avg*sos_avg * r_prim_c[p].v + 0.5*r_prim_c[p].p
     char_values[1][i+3] = r_prim_c[p].u
     char_values[2][i+3] = r_prim_c[p].rho - r_prim_c[p].p/(sos_avg*sos_avg)
@@ -346,20 +372,61 @@ do
 end
 
 __demand(__inline)
+task get_char_values_LB_y( r_prim_c : region(ispace(int3d), primitive),
+                           rho_avg  : double,
+                           sos_avg  : double,
+                           idx      : int3d)
+where
+  reads(r_prim_c)
+do
+  var char_values : double[7][5]
+
+  for i = -3, 4 do
+    var p = int3d {x = idx.x, y = idx.y+i, z = idx.z}
+    char_values[0][i+3] = -0.5*rho_avg*sos_avg * r_prim_c[p].v + 0.5*r_prim_c[p].p
+    char_values[1][i+3] = r_prim_c[p].u
+    char_values[2][i+3] = r_prim_c[p].rho - r_prim_c[p].p/(sos_avg*sos_avg)
+    char_values[3][i+3] = r_prim_c[p].w
+    char_values[4][i+3] = 0.5*rho_avg*sos_avg * r_prim_c[p].v + 0.5*r_prim_c[p].p
+  end
+
+  return char_values
+end
+
+__demand(__inline)
+task get_char_values_RB_y( r_prim_c : region(ispace(int3d), primitive),
+                           rho_avg  : double,
+                           sos_avg  : double,
+                           idx      : int3d)
+where
+  reads(r_prim_c)
+do
+  var char_values : double[7][5]
+
+  for i = -4, 3 do
+    var p = int3d {x = idx.x, y = idx.y+i, z = idx.z}
+    char_values[0][i+4] = -0.5*rho_avg*sos_avg * r_prim_c[p].v + 0.5*r_prim_c[p].p
+    char_values[1][i+4] = r_prim_c[p].u
+    char_values[2][i+4] = r_prim_c[p].rho - r_prim_c[p].p/(sos_avg*sos_avg)
+    char_values[3][i+4] = r_prim_c[p].w
+    char_values[4][i+4] = 0.5*rho_avg*sos_avg * r_prim_c[p].v + 0.5*r_prim_c[p].p
+  end
+
+  return char_values
+end
+
+__demand(__inline)
 task get_char_values_z( r_prim_c : region(ispace(int3d), primitive),
                         rho_avg  : double,
                         sos_avg  : double,
-                        idx      : int3d,
-                        Nx       : int64,
-                        Ny       : int64,
-                        Nz       : int64)
+                        idx      : int3d)
 where
   reads(r_prim_c)
 do
   var char_values : double[6][5]
 
   for i = -3, 3 do
-    var p = [poff(idx, 0, 0, i, Nx, Ny, Nz)]
+    var p = int3d {x = idx.x, y = idx.y, z = idx.z+i}
     char_values[0][i+3] = -0.5*rho_avg*sos_avg * r_prim_c[p].w + 0.5*r_prim_c[p].p
     char_values[1][i+3] = r_prim_c[p].u
     char_values[2][i+3] = r_prim_c[p].v
@@ -371,22 +438,61 @@ do
 end
 
 __demand(__inline)
+task get_char_values_LB_z( r_prim_c : region(ispace(int3d), primitive),
+                           rho_avg  : double,
+                           sos_avg  : double,
+                           idx      : int3d)
+where
+  reads(r_prim_c)
+do
+  var char_values : double[7][5]
+
+  for i = -3, 4 do
+    var p = int3d {x = idx.x, y = idx.y, z = idx.z+i}
+    char_values[0][i+3] = -0.5*rho_avg*sos_avg * r_prim_c[p].w + 0.5*r_prim_c[p].p
+    char_values[1][i+3] = r_prim_c[p].u
+    char_values[2][i+3] = r_prim_c[p].v
+    char_values[3][i+3] = r_prim_c[p].rho - r_prim_c[p].p/(sos_avg*sos_avg)
+    char_values[4][i+3] = 0.5*rho_avg*sos_avg * r_prim_c[p].w + 0.5*r_prim_c[p].p
+  end
+
+  return char_values
+end
+
+__demand(__inline)
+task get_char_values_RB_z( r_prim_c : region(ispace(int3d), primitive),
+                           rho_avg  : double,
+                           sos_avg  : double,
+                           idx      : int3d)
+where
+  reads(r_prim_c)
+do
+  var char_values : double[7][5]
+
+  for i = -4, 3 do
+    var p = int3d {x = idx.x, y = idx.y, z = idx.z+i}
+    char_values[0][i+4] = -0.5*rho_avg*sos_avg * r_prim_c[p].w + 0.5*r_prim_c[p].p
+    char_values[1][i+4] = r_prim_c[p].u
+    char_values[2][i+4] = r_prim_c[p].v
+    char_values[3][i+4] = r_prim_c[p].rho - r_prim_c[p].p/(sos_avg*sos_avg)
+    char_values[4][i+4] = 0.5*rho_avg*sos_avg * r_prim_c[p].w + 0.5*r_prim_c[p].p
+  end
+
+  return char_values
+end
+
+__demand(__inline)
 task get_xfluxes_r( r_prim : region(ispace(int3d), primitive),
-                    r_cnsr : region(ispace(int3d), conserved),
                     r_flux : region(ispace(int3d), conserved) )
 where
-  reads (r_prim, r_cnsr), writes (r_flux)
+  reads (r_prim), writes (r_flux)
 do
   for i in r_prim do
     var flux : double[5] =  get_xfluxes( r_prim[i].rho ,
                                          r_prim[i].u   ,
                                          r_prim[i].v   ,
                                          r_prim[i].w   ,
-                                         r_prim[i].p   , 
-                                         r_cnsr[i].rhou,
-                                         r_cnsr[i].rhov,
-                                         r_cnsr[i].rhow,
-                                         r_cnsr[i].rhoE )
+                                         r_prim[i].p   )
     r_flux[i].rho  = flux[0]
     r_flux[i].rhou = flux[1]
     r_flux[i].rhov = flux[2]
@@ -397,21 +503,16 @@ end
 
 __demand(__inline)
 task get_yfluxes_r( r_prim : region(ispace(int3d), primitive),
-                    r_cnsr : region(ispace(int3d), conserved),
                     r_flux : region(ispace(int3d), conserved) )
 where
-  reads (r_prim, r_cnsr), writes (r_flux)
+  reads (r_prim), writes (r_flux)
 do
   for i in r_prim do
     var flux : double[5] = get_yfluxes( r_prim[i].rho ,
                                         r_prim[i].u   ,
                                         r_prim[i].v   ,
                                         r_prim[i].w   ,
-                                        r_prim[i].p   , 
-                                        r_cnsr[i].rhou,
-                                        r_cnsr[i].rhov,
-                                        r_cnsr[i].rhow,
-                                        r_cnsr[i].rhoE )
+                                        r_prim[i].p   )
     
     r_flux[i].rho  = flux[0]
     r_flux[i].rhou = flux[1]
@@ -423,21 +524,16 @@ end
 
 __demand(__inline)
 task get_zfluxes_r( r_prim : region(ispace(int3d), primitive),
-                    r_cnsr : region(ispace(int3d), conserved),
                     r_flux : region(ispace(int3d), conserved) )
 where
-  reads (r_prim, r_cnsr), writes (r_flux)
+  reads (r_prim), writes (r_flux)
 do
   for i in r_prim do
     var flux : double[5] = get_zfluxes( r_prim[i].rho ,
                                         r_prim[i].u   ,
                                         r_prim[i].v   ,
                                         r_prim[i].w   ,
-                                        r_prim[i].p   , 
-                                        r_cnsr[i].rhou,
-                                        r_cnsr[i].rhov,
-                                        r_cnsr[i].rhow,
-                                        r_cnsr[i].rhoE )
+                                        r_prim[i].p   )
     r_flux[i].rho  = flux[0]
     r_flux[i].rhou = flux[1]
     r_flux[i].rhov = flux[2]
@@ -476,12 +572,10 @@ do
                             - r_prim_r_x[i].rho * (s_R - r_prim_r_x[i].u))
 
     var Q_L : double[5] = get_conserved( r_prim_l_x[i].rho, r_prim_l_x[i].u, r_prim_l_x[i].v, r_prim_l_x[i].w, r_prim_l_x[i].p )
-    var F_L : double[5] = get_xfluxes( r_prim_l_x[i].rho, r_prim_l_x[i].u, r_prim_l_x[i].v, r_prim_l_x[i].w, r_prim_l_x[i].p,
-                                       Q_L[1], Q_L[2], Q_L[3], Q_L[4] )
+    var F_L : double[5] = get_xfluxes( r_prim_l_x[i].rho, r_prim_l_x[i].u, r_prim_l_x[i].v, r_prim_l_x[i].w, r_prim_l_x[i].p )
 
     var Q_R : double[5] = get_conserved( r_prim_r_x[i].rho, r_prim_r_x[i].u, r_prim_r_x[i].v, r_prim_r_x[i].w, r_prim_r_x[i].p )
-    var F_R : double[5] = get_xfluxes( r_prim_r_x[i].rho, r_prim_r_x[i].u, r_prim_r_x[i].v, r_prim_r_x[i].w, r_prim_r_x[i].p,
-                                       Q_R[1], Q_R[2], Q_R[3], Q_R[4] )
+    var F_R : double[5] = get_xfluxes( r_prim_r_x[i].rho, r_prim_r_x[i].u, r_prim_r_x[i].v, r_prim_r_x[i].w, r_prim_r_x[i].p )
 
     var chi_star_L : double = ( s_L - r_prim_l_x[i].u ) / ( s_L - s_star )
     var chi_star_R : double = ( s_R - r_prim_r_x[i].u ) / ( s_R - s_star )
@@ -545,12 +639,10 @@ do
                             - r_prim_r_y[i].rho * (s_R - r_prim_r_y[i].v))
 
     var Q_L : double[5] = get_conserved( r_prim_l_y[i].rho, r_prim_l_y[i].u, r_prim_l_y[i].v, r_prim_l_y[i].w, r_prim_l_y[i].p )
-    var F_L : double[5] = get_yfluxes( r_prim_l_y[i].rho, r_prim_l_y[i].u, r_prim_l_y[i].v, r_prim_l_y[i].w, r_prim_l_y[i].p,
-                                       Q_L[1], Q_L[2], Q_L[3], Q_L[4] )
+    var F_L : double[5] = get_yfluxes( r_prim_l_y[i].rho, r_prim_l_y[i].u, r_prim_l_y[i].v, r_prim_l_y[i].w, r_prim_l_y[i].p )
 
     var Q_R : double[5] = get_conserved( r_prim_r_y[i].rho, r_prim_r_y[i].u, r_prim_r_y[i].v, r_prim_r_y[i].w, r_prim_r_y[i].p )
-    var F_R : double[5] = get_yfluxes( r_prim_r_y[i].rho, r_prim_r_y[i].u, r_prim_r_y[i].v, r_prim_r_y[i].w, r_prim_r_y[i].p,
-                                       Q_R[1], Q_R[2], Q_R[3], Q_R[4] )
+    var F_R : double[5] = get_yfluxes( r_prim_r_y[i].rho, r_prim_r_y[i].u, r_prim_r_y[i].v, r_prim_r_y[i].w, r_prim_r_y[i].p )
 
     var chi_star_L : double = ( s_L - r_prim_l_y[i].v ) / ( s_L - s_star )
     var chi_star_R : double = ( s_R - r_prim_r_y[i].v ) / ( s_R - s_star )
@@ -614,12 +706,10 @@ do
                             - r_prim_r_z[i].rho * (s_R - r_prim_r_z[i].w))
 
     var Q_L : double[5] = get_conserved( r_prim_l_z[i].rho, r_prim_l_z[i].u, r_prim_l_z[i].v, r_prim_l_z[i].w, r_prim_l_z[i].p )
-    var F_L : double[5] = get_zfluxes( r_prim_l_z[i].rho, r_prim_l_z[i].u, r_prim_l_z[i].v, r_prim_l_z[i].w, r_prim_l_z[i].p,
-                                       Q_L[1], Q_L[2], Q_L[3], Q_L[4] )
+    var F_L : double[5] = get_zfluxes( r_prim_l_z[i].rho, r_prim_l_z[i].u, r_prim_l_z[i].v, r_prim_l_z[i].w, r_prim_l_z[i].p )
 
     var Q_R : double[5] = get_conserved( r_prim_r_z[i].rho, r_prim_r_z[i].u, r_prim_r_z[i].v, r_prim_r_z[i].w, r_prim_r_z[i].p )
-    var F_R : double[5] = get_zfluxes( r_prim_r_z[i].rho, r_prim_r_z[i].u, r_prim_r_z[i].v, r_prim_r_z[i].w, r_prim_r_z[i].p,
-                                       Q_R[1], Q_R[2], Q_R[3], Q_R[4] )
+    var F_R : double[5] = get_zfluxes( r_prim_r_z[i].rho, r_prim_r_z[i].u, r_prim_r_z[i].v, r_prim_r_z[i].w, r_prim_r_z[i].p )
 
     var chi_star_L : double = ( s_L - r_prim_l_z[i].w ) / ( s_L - s_star )
     var chi_star_R : double = ( s_R - r_prim_r_z[i].w ) / ( s_R - s_star )
@@ -661,9 +751,7 @@ __demand(__inline)
 task positivity_enforcer_x( r_prim_c   : region(ispace(int3d), primitive),
                             r_prim_l_x : region(ispace(int3d), primitive),
                             r_prim_r_x : region(ispace(int3d), primitive),
-                            Nx         : int64,
-                            Ny         : int64,
-                            Nz         : int64 )
+                            n_ghosts   : int64 )
 where
   reads(r_prim_c), reads writes(r_prim_l_x, r_prim_r_x)
 do
@@ -671,8 +759,8 @@ do
   for i in r_prim_l_x do
     
     if (r_prim_l_x[i].rho <= 0) or (r_prim_r_x[i].rho <= 0) or (r_prim_l_x[i].p <= 0) or (r_prim_r_x[i].p <= 0) then
-      var idxm1 = [poff(i, -1, 0, 0, Nx, Ny, Nz)]
-      var idxp1 = [poff(i,  0, 0, 0, Nx, Ny, Nz)]
+      var idxm1 = int3d { x = i.x + n_ghosts - 1, y = i.y, z = i.z}
+      var idxp1 = int3d { x = i.x + n_ghosts + 0, y = i.y, z = i.z}
 
       r_prim_l_x[i].rho = r_prim_c[idxm1].rho
       r_prim_l_x[i].u   = r_prim_c[idxm1].u
@@ -700,9 +788,7 @@ __demand(__inline)
 task positivity_enforcer_y( r_prim_c   : region(ispace(int3d), primitive),
                             r_prim_l_y : region(ispace(int3d), primitive),
                             r_prim_r_y : region(ispace(int3d), primitive),
-                            Nx         : int64,
-                            Ny         : int64,
-                            Nz         : int64 )
+                            n_ghosts   : int64 )
 where
   reads(r_prim_c), reads writes(r_prim_l_y, r_prim_r_y)
 do
@@ -710,8 +796,8 @@ do
   for i in r_prim_l_y do
     
     if (r_prim_l_y[i].rho <= 0) or (r_prim_r_y[i].rho <= 0) or (r_prim_l_y[i].p <= 0) or (r_prim_r_y[i].p <= 0) then
-      var idxm1 = [poff(i, 0, -1, 0, Nx, Ny, Nz)]
-      var idxp1 = [poff(i, 0,  0, 0, Nx, Ny, Nz)]
+      var idxm1 = int3d { x = i.x, y = i.y + n_ghosts - 1, z = i.z}
+      var idxp1 = int3d { x = i.x, y = i.y + n_ghosts + 0, z = i.z}
 
       r_prim_l_y[i].rho = r_prim_c[idxm1].rho
       r_prim_l_y[i].u   = r_prim_c[idxm1].u
@@ -739,9 +825,7 @@ __demand(__inline)
 task positivity_enforcer_z( r_prim_c   : region(ispace(int3d), primitive),
                             r_prim_l_z : region(ispace(int3d), primitive),
                             r_prim_r_z : region(ispace(int3d), primitive),
-                            Nx         : int64,
-                            Ny         : int64,
-                            Nz         : int64 )
+                            n_ghosts   : int64 )
 where
   reads(r_prim_c), reads writes(r_prim_l_z, r_prim_r_z)
 do
@@ -749,8 +833,8 @@ do
   for i in r_prim_l_z do
     
     if (r_prim_l_z[i].rho <= 0) or (r_prim_r_z[i].rho <= 0) or (r_prim_l_z[i].p <= 0) or (r_prim_r_z[i].p <= 0) then
-      var idxm1 = [poff(i, 0, 0, -1, Nx, Ny, Nz)]
-      var idxp1 = [poff(i, 0, 0,  0, Nx, Ny, Nz)]
+      var idxm1 = int3d { x = i.x, y = i.y, z = i.z + n_ghosts - 1}
+      var idxp1 = int3d { x = i.x, y = i.y, z = i.z + n_ghosts + 0}
 
       r_prim_l_z[i].rho = r_prim_c[idxm1].rho
       r_prim_l_z[i].u   = r_prim_c[idxm1].u

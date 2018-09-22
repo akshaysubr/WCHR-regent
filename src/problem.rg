@@ -1,1 +1,1 @@
-problems/advection_problem_1D_z.rg
+problems/CHIT_problem.rg

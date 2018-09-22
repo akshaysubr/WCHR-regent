@@ -5,6 +5,7 @@ if not use_io then
   task read_primitive( r_prim     : region(ispace(int3d), primitive),
                        fileprefix : rawstring,
                        vizcount   : int32,
+                       n_ghosts   : int64,
                        pencil     : int2d )
   where
     writes( r_prim )
@@ -14,6 +15,7 @@ if not use_io then
 
   task read_coords( r_coords   : region(ispace(int3d), coordinates),
                     fileprefix : rawstring,
+                    n_ghosts   : int64,
                     pencil     : int2d )
   where
     writes( r_coords )
@@ -24,6 +26,7 @@ if not use_io then
   task write_primitive( r_prim     : region(ispace(int3d), primitive),
                         fileprefix : rawstring,
                         vizcount   : int32,
+                        n_ghosts   : int64,
                         pencil     : int2d )
   where
     reads( r_prim )
@@ -33,6 +36,7 @@ if not use_io then
 
   task write_coords( r_coords   : region(ispace(int3d), coordinates),
                      fileprefix : rawstring,
+                     n_ghosts   : int64,
                      pencil     : int2d )
   where
     reads( r_coords )
@@ -129,6 +133,7 @@ end
 task write_primitive( r_prim     : region(ispace(int3d), primitive),
                       fileprefix : rawstring,
                       vizcount   : int32,
+                      n_ghosts   : int64,
                       pencil     : int2d )
 where
   reads( r_prim )
@@ -140,7 +145,7 @@ do
   -- var vizstr : &int8 = [&int8] ( c.malloc(21*8) )
   -- c.sprintf(vizstr, "%04d_px%04d_pz%04d.h5", vizcount, pencil.x, pencil.y)
   var vizstr : &int8 = [&int8] ( c.malloc(22*8) )
-  c.sprintf(vizstr, "%04d_px%04d_pz%04d.dat", vizcount, pencil.x, pencil.y)
+  c.sprintf(vizstr, "%04d_px%04d_pz%04d.dat", vizcount, pencil.x - 1, pencil.y - 1)
   var filename : &int8 = [&int8] ( c.malloc(256*8) )
   st.strcpy(filename, fileprefix)
   st.strcat(filename, vizstr)
@@ -151,8 +156,8 @@ do
   var file_handle = c.fopen(filename, 'w')
 
   var bounds_c = r_prim.ispace.bounds
-  c.fprintf(file_handle, "%d %d %d\n", bounds_c.lo.x, bounds_c.lo.y, bounds_c.lo.z )
-  c.fprintf(file_handle, "%d %d %d\n", bounds_c.hi.x, bounds_c.hi.y, bounds_c.hi.z )
+  c.fprintf(file_handle, "%d %d %d\n", bounds_c.lo.x - n_ghosts, bounds_c.lo.y - n_ghosts, bounds_c.lo.z - n_ghosts )
+  c.fprintf(file_handle, "%d %d %d\n", bounds_c.hi.x - n_ghosts, bounds_c.hi.y - n_ghosts, bounds_c.hi.z - n_ghosts )
 
   for k = bounds_c.lo.z, bounds_c.hi.z+1 do
     for j = bounds_c.lo.y, bounds_c.hi.y+1 do
@@ -182,6 +187,7 @@ end
 task read_primitive( r_prim     : region(ispace(int3d), primitive),
                      fileprefix : rawstring,
                      vizcount   : int32,
+                     n_ghosts   : int64,
                      pencil     : int2d )
 where
   writes( r_prim )
@@ -212,7 +218,7 @@ do
 
   var vizstr : &int8 = [&int8] ( c.malloc(22*8) )
   var filename : &int8 = [&int8] ( c.malloc(256*8) )
-  c.sprintf(vizstr, "%04d_px%04d_pz%04d.dat", vizcount, pencil.x, pencil.y)
+  c.sprintf(vizstr, "%04d_px%04d_pz%04d.dat", vizcount, pencil.x - 1, pencil.y - 1)
   st.strcpy(filename, fileprefix)
   st.strcat(filename, vizstr)
 
@@ -234,15 +240,15 @@ do
   var bounds_c = r_prim.ispace.bounds
   -- c.fprintf(file_handle, "%d %d %d\n", bounds_c.lo.x, bounds_c.lo.y, bounds_c.lo.z )
   read_grid(ix, iy, iz, file_handle)
-  regentlib.assert( (ix[0] == bounds_c.lo.x), "Grid size in restart file does not match partition size in x" )
-  regentlib.assert( (iy[0] == bounds_c.lo.y), "Grid size in restart file does not match partition size in y" )
-  regentlib.assert( (iz[0] == bounds_c.lo.z), "Grid size in restart file does not match partition size in z" )
+  regentlib.assert( (ix[0] == bounds_c.lo.x - n_ghosts), "Grid size in restart file does not match partition size in x" )
+  regentlib.assert( (iy[0] == bounds_c.lo.y - n_ghosts), "Grid size in restart file does not match partition size in y" )
+  regentlib.assert( (iz[0] == bounds_c.lo.z - n_ghosts), "Grid size in restart file does not match partition size in z" )
 
   -- c.fprintf(file_handle, "%d %d %d\n", bounds_c.hi.x, bounds_c.hi.y, bounds_c.hi.z )
   read_grid(ix, iy, iz, file_handle)
-  regentlib.assert( (ix[0] == bounds_c.hi.x), "Grid size in restart file does not match partition size in x" )
-  regentlib.assert( (iy[0] == bounds_c.hi.y), "Grid size in restart file does not match partition size in y" )
-  regentlib.assert( (iz[0] == bounds_c.hi.z), "Grid size in restart file does not match partition size in z" )
+  regentlib.assert( (ix[0] == bounds_c.hi.x - n_ghosts), "Grid size in restart file does not match partition size in x" )
+  regentlib.assert( (iy[0] == bounds_c.hi.y - n_ghosts), "Grid size in restart file does not match partition size in y" )
+  regentlib.assert( (iz[0] == bounds_c.hi.z - n_ghosts), "Grid size in restart file does not match partition size in z" )
 
   var rho_dat : double[1]
   var u_dat   : double[1]
@@ -298,6 +304,7 @@ end
 
 task write_coords( r_coords   : region(ispace(int3d), coordinates),
                    fileprefix : rawstring,
+                   n_ghosts   : int64,
                    pencil     : int2d )
 where
   reads( r_coords )
@@ -309,7 +316,7 @@ do
   -- var vizstr : &int8 = [&int8] ( c.malloc(23*8) )
   -- c.sprintf(vizstr, "coords_px%04d_pz%04d.h5", pencil.x, pencil.y)
   var vizstr : &int8 = [&int8] ( c.malloc(24*8) )
-  c.sprintf(vizstr, "coords_px%04d_pz%04d.dat", pencil.x, pencil.y)
+  c.sprintf(vizstr, "coords_px%04d_pz%04d.dat", pencil.x - 1, pencil.y - 1)
   var filename : &int8 = [&int8] ( c.malloc(256*8) )
   st.strcpy(filename, fileprefix)
   st.strcat(filename, vizstr)
@@ -318,8 +325,8 @@ do
   var file_handle = c.fopen(filename, 'w')
 
   var bounds_c = r_coords.ispace.bounds
-  c.fprintf(file_handle, "%d %d %d\n", bounds_c.lo.x, bounds_c.lo.y, bounds_c.lo.z )
-  c.fprintf(file_handle, "%d %d %d\n", bounds_c.hi.x, bounds_c.hi.y, bounds_c.hi.z )
+  c.fprintf(file_handle, "%d %d %d\n", bounds_c.lo.x - n_ghosts, bounds_c.lo.y - n_ghosts, bounds_c.lo.z - n_ghosts )
+  c.fprintf(file_handle, "%d %d %d\n", bounds_c.hi.x - n_ghosts, bounds_c.hi.y - n_ghosts, bounds_c.hi.z - n_ghosts )
 
   for k = bounds_c.lo.z, bounds_c.hi.z+1 do
     for j = bounds_c.lo.y, bounds_c.hi.y+1 do
@@ -349,6 +356,7 @@ end
 
 task read_coords( r_coords   : region(ispace(int3d), coordinates),
                   fileprefix : rawstring,
+                  n_ghosts   : int64,
                   pencil     : int2d )
 where
   writes( r_coords )
@@ -358,7 +366,7 @@ do
   var Nz = r_coords.ispace.bounds.hi.z - r_coords.ispace.bounds.lo.z + 1
 
   var vizstr : &int8 = [&int8] ( c.malloc(24*8) )
-  c.sprintf(vizstr, "coords_px%04d_pz%04d.dat", pencil.x, pencil.y)
+  c.sprintf(vizstr, "coords_px%04d_pz%04d.dat", pencil.x - 1, pencil.y - 1)
   var filename : &int8 = [&int8] ( c.malloc(256*8) )
   st.strcpy(filename, fileprefix)
   st.strcat(filename, vizstr)
@@ -381,15 +389,15 @@ do
 
   -- c.fprintf(file_handle, "%d %d %d\n", bounds_c.lo.x, bounds_c.lo.y, bounds_c.lo.z )
   read_grid(ix, iy, iz, file_handle)
-  regentlib.assert( (ix[0] == bounds_c.lo.x), "Grid size in restart file does not match partition size in x" )
-  regentlib.assert( (iy[0] == bounds_c.lo.y), "Grid size in restart file does not match partition size in y" )
-  regentlib.assert( (iz[0] == bounds_c.lo.z), "Grid size in restart file does not match partition size in z" )
+  regentlib.assert( (ix[0] == bounds_c.lo.x - n_ghosts), "Grid size in restart file does not match partition size in x" )
+  regentlib.assert( (iy[0] == bounds_c.lo.y - n_ghosts), "Grid size in restart file does not match partition size in y" )
+  regentlib.assert( (iz[0] == bounds_c.lo.z - n_ghosts), "Grid size in restart file does not match partition size in z" )
 
   -- c.fprintf(file_handle, "%d %d %d\n", bounds_c.hi.x, bounds_c.hi.y, bounds_c.hi.z )
   read_grid(ix, iy, iz, file_handle)
-  regentlib.assert( (ix[0] == bounds_c.hi.x), "Grid size in restart file does not match partition size in x" )
-  regentlib.assert( (iy[0] == bounds_c.hi.y), "Grid size in restart file does not match partition size in y" )
-  regentlib.assert( (iz[0] == bounds_c.hi.z), "Grid size in restart file does not match partition size in z" )
+  regentlib.assert( (ix[0] == bounds_c.hi.x - n_ghosts), "Grid size in restart file does not match partition size in x" )
+  regentlib.assert( (iy[0] == bounds_c.hi.y - n_ghosts), "Grid size in restart file does not match partition size in y" )
+  regentlib.assert( (iz[0] == bounds_c.hi.z - n_ghosts), "Grid size in restart file does not match partition size in z" )
 
   var x_dat : double[1]
   var y_dat : double[1]
