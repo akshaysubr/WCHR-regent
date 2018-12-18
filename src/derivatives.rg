@@ -43,27 +43,36 @@ c06d2 = (  0.0/100.0)/6.0
 -- c06MND = (0.0)/3.0
 
 -- Compact staggered finite difference
-alpha06MND = 9.0/62.0
-beta06MND  = 0.0
-a06MND = 63.0/62.0
-b06MND = (0.0/18.0)/2.0
-c06MND = (17.0/62.0)/3.0
+-- alpha06MND = 9.0/62.0
+-- beta06MND  = 0.0
+-- a06MND = 63.0/62.0
+-- b06MND = (0.0/18.0)/2.0
+-- c06MND = (17.0/62.0)/3.0
 
-a06MND_LB = (40./31.) * ( 1633./5376000.)
-b06MND_LB = (40./31.) * ( 9007./192000.)
-c06MND_LB = (40./31.) * ( -29567./48000.)
-d06MND_LB = (40./31.) * ( -65699./76800.)
-e06MND_LB = (40./31.) * ( 44033./24000.)
-f06MND_LB = (40./31.) * ( -26353./38400.)
-g06MND_LB = (40./31.) * ( 104579./336000.)
-h06MND_LB = (40./31.) * ( -27233./768000.)
+-- a06MND_LB = (40./31.) * ( 1633./5376000.)
+-- b06MND_LB = (40./31.) * ( 9007./192000.)
+-- c06MND_LB = (40./31.) * ( -29567./48000.)
+-- d06MND_LB = (40./31.) * ( -65699./76800.)
+-- e06MND_LB = (40./31.) * ( 44033./24000.)
+-- f06MND_LB = (40./31.) * ( -26353./38400.)
+-- g06MND_LB = (40./31.) * ( 104579./336000.)
+-- h06MND_LB = (40./31.) * ( -27233./768000.)
 
 -- Explicit MND finite difference
--- alpha06MND = 0.0
--- beta06MND  = 0.0
--- a06MND = 3.0/2.0
--- b06MND = (-3.0/10.0)
--- c06MND = (1.0)/30.0
+alpha06MND = 0.0
+beta06MND  = 0.0
+a06MND = 3.0/2.0
+b06MND = (-3.0/10.0)
+c06MND = (1.0)/30.0
+
+a06MND_LB = 0.
+b06MND_LB = 0.
+c06MND_LB = -1.
+d06MND_LB = 0.
+e06MND_LB = 1.
+f06MND_LB = 0.
+g06MND_LB = 0.
+h06MND_LB = 0.
 
 function poff_wg(i, x, y, z, Nx, Ny, Nz)
   return rexpr int3d { x = (i.x - ip.n_ghosts + x + Nx)%Nx + ip.n_ghosts, y = (i.y - ip.n_ghosts + y + Ny)%Ny + ip.n_ghosts, z = (i.z - ip.n_ghosts + z + Nz)%Nz + ip.n_ghosts } end

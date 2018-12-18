@@ -1232,13 +1232,15 @@ end
 
 
 
-task nonperiodic_ghost_cells_x( r_prim_c  : region(ispace(int3d), primitive),
+task nonperiodic_ghost_cells_x( coords    : region(ispace(int3d), coordinates),
+                                r_prim_c  : region(ispace(int3d), primitive),
                                 r_gradrho : region(ispace(int3d), vect),
                                 r_gradu   : region(ispace(int3d), tensor2),
                                 r_gradp   : region(ispace(int3d), vect),
+                                tsim      : double,
                                 n_ghosts  : int64 )
 where
-  reads writes(r_prim_c), reads(r_gradrho.{_2,_3}, r_gradu.{_12,_13,_22,_23,_32,_33}, r_gradp.{_2,_3})
+  reads writes(r_prim_c), reads(coords, r_gradrho.{_2,_3}, r_gradu.{_12,_13,_22,_23,_32,_33}, r_gradp.{_2,_3})
 do
   -- Left ghost cells
   if (problem.boundary_l_x.condition == "DIRICHLET") then
@@ -1249,6 +1251,8 @@ do
     subsonic_inflow_ghost_cells_l_x( r_prim_c, r_gradrho, r_gradu, r_gradp, n_ghosts )
   elseif (problem.boundary_l_x.condition == "SUBSONIC_OUTFLOW") then
     subsonic_outflow_ghost_cells_l_x( r_prim_c, r_gradrho, r_gradu, r_gradp, n_ghosts )
+  elseif (problem.boundary_l_x.condition == "CUSTOM") then
+    problem.fill_ghost_cells_l_x( coords, r_prim_c, tsim, n_ghosts )
   else
     regentlib.assert(false, "Unknown left boundary condition in the x-direction")
   end
@@ -1262,21 +1266,27 @@ do
     subsonic_inflow_ghost_cells_r_x( r_prim_c, r_gradrho, r_gradu, r_gradp, n_ghosts )
   elseif (problem.boundary_r_x.condition == "SUBSONIC_OUTFLOW") then
     subsonic_outflow_ghost_cells_r_x( r_prim_c, r_gradrho, r_gradu, r_gradp, n_ghosts )
+  elseif (problem.boundary_r_x.condition == "CUSTOM") then
+    problem.fill_ghost_cells_r_x( coords, r_prim_c, tsim, n_ghosts )
   else
     regentlib.assert(false, "Unknown right boundary condition in the x-direction")
   end
 end
 
-task nonperiodic_ghost_cells_y( r_prim_c  : region(ispace(int3d), primitive),
+task nonperiodic_ghost_cells_y( coords    : region(ispace(int3d), coordinates),
+                                r_prim_c  : region(ispace(int3d), primitive),
+                                tsim      : double,
                                 n_ghosts  : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes(r_prim_c), reads(coords)
 do
   -- Left ghost cells
   if (problem.boundary_l_y.condition == "DIRICHLET") then
     dirchlet_ghost_cells_l_y( r_prim_c, n_ghosts )
   elseif (problem.boundary_l_y.condition == "EXTRAPOLATION") then
     extrapolation_ghost_cells_l_y( r_prim_c, n_ghosts )
+  elseif (problem.boundary_l_y.condition == "CUSTOM") then
+    problem.fill_ghost_cells_l_y( coords, r_prim_c, tsim, n_ghosts )
   else
     regentlib.assert(false, "Unknown left boundary condition in the y-direction")
   end
@@ -1286,21 +1296,27 @@ do
     dirchlet_ghost_cells_r_y( r_prim_c, n_ghosts )
   elseif (problem.boundary_r_y.condition == "EXTRAPOLATION") then
     extrapolation_ghost_cells_r_y( r_prim_c, n_ghosts )
+  elseif (problem.boundary_r_y.condition == "CUSTOM") then
+    problem.fill_ghost_cells_r_y( coords, r_prim_c, tsim, n_ghosts )
   else
     regentlib.assert(false, "Unknown right boundary condition in the y-direction")
   end
 end
 
-task nonperiodic_ghost_cells_z( r_prim_c  : region(ispace(int3d), primitive),
+task nonperiodic_ghost_cells_z( coords    : region(ispace(int3d), coordinates),
+                                r_prim_c  : region(ispace(int3d), primitive),
+                                tsim      : double,
                                 n_ghosts  : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes(r_prim_c), reads(coords)
 do
   -- Left ghost cells
   if (problem.boundary_l_z.condition == "DIRICHLET") then
     dirchlet_ghost_cells_l_z( r_prim_c, n_ghosts )
   elseif (problem.boundary_l_z.condition == "EXTRAPOLATION") then
     extrapolation_ghost_cells_l_z( r_prim_c, n_ghosts )
+  elseif (problem.boundary_l_z.condition == "CUSTOM") then
+    problem.fill_ghost_cells_l_z( coords, r_prim_c, tsim, n_ghosts )
   else
     regentlib.assert(false, "Unknown left boundary condition in the z-direction")
   end
@@ -1310,6 +1326,8 @@ do
     dirchlet_ghost_cells_r_z( r_prim_c, n_ghosts )
   elseif (problem.boundary_r_z.condition == "EXTRAPOLATION") then
     extrapolation_ghost_cells_r_z( r_prim_c, n_ghosts )
+  elseif (problem.boundary_r_z.condition == "CUSTOM") then
+    problem.fill_ghost_cells_r_z( coords, r_prim_c, tsim, n_ghosts )
   else
     regentlib.assert(false, "Unknown right boundary condition in the z-direction")
   end

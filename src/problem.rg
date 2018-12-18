@@ -1,1 +1,1 @@
-problems/CHIT_problem.rg
+problems/angled_shock.rg

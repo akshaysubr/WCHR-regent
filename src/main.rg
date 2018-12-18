@@ -549,21 +549,21 @@ task main()
     __demand(__parallel)
     for i in pencil_interior do
       -- Fill in ghost cells
-      nonperiodic_ghost_cells_x(p_prim_c_x_wg[i], p_gradrho_x[i], p_gradu_x[i], p_gradp_x[i], n_ghosts)
+      nonperiodic_ghost_cells_x(p_coords_x[i], p_prim_c_x_wg[i], p_gradrho_x[i], p_gradu_x[i], p_gradp_x[i], tsim, n_ghosts)
     end
   end
   if not problem.periodic_y then
     __demand(__parallel)
     for i in pencil_interior do
       -- Fill in ghost cells
-      nonperiodic_ghost_cells_y(p_prim_c_y_wg[i], n_ghosts)
+      nonperiodic_ghost_cells_y(p_coords_y[i], p_prim_c_y_wg[i], tsim, n_ghosts)
     end
   end
   if not problem.periodic_z then
     __demand(__parallel)
     for i in pencil_interior do
       -- Fill in ghost cells
-      nonperiodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
+      nonperiodic_ghost_cells_z(p_coords_z[i], p_prim_c_z_wg[i], tsim, n_ghosts)
     end
   end
 
@@ -855,21 +855,21 @@ task main()
         __demand(__parallel)
         for i in pencil_interior do
           -- Fill in ghost cells
-          nonperiodic_ghost_cells_x(p_prim_c_x_wg[i], p_gradrho_x[i], p_gradu_x[i], p_gradp_x[i], n_ghosts)
+          nonperiodic_ghost_cells_x(p_coords_x[i], p_prim_c_x_wg[i], p_gradrho_x[i], p_gradu_x[i], p_gradp_x[i], tsim, n_ghosts)
         end
       end
       if not problem.periodic_y then
         __demand(__parallel)
         for i in pencil_interior do
           -- Fill in ghost cells
-          nonperiodic_ghost_cells_y(p_prim_c_y_wg[i], n_ghosts)
+          nonperiodic_ghost_cells_y(p_coords_y[i], p_prim_c_y_wg[i], tsim, n_ghosts)
         end
       end
       if not problem.periodic_z then
         __demand(__parallel)
         for i in pencil_interior do
           -- Fill in ghost cells
-          nonperiodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
+          nonperiodic_ghost_cells_z(p_coords_z[i], p_prim_c_z_wg[i], tsim, n_ghosts)
         end
       end
 
