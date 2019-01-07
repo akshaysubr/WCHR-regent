@@ -118,12 +118,6 @@ task main()
   var r_cnsr     = region(grid_c,   conserved)  -- conserved variables at cell center
 
   var r_prim_c   = region(grid_c,   primitive)  -- primitive variables at cell center
-  var r_prim_l_x = region(grid_e_x, primitive)  -- primitive variables at left x cell edge
-  var r_prim_l_y = region(grid_e_y, primitive)  -- primitive variables at left y cell edge
-  var r_prim_l_z = region(grid_e_z, primitive)  -- primitive variables at left z cell edge
-  var r_prim_r_x = region(grid_e_x, primitive)  -- primitive variables at right x cell edge
-  var r_prim_r_y = region(grid_e_y, primitive)  -- primitive variables at right y cell edge
-  var r_prim_r_z = region(grid_e_z, primitive)  -- primitive variables at right z cell edge
 
   var r_aux_c    = region(grid_c,   auxiliary)         -- auxiliary variables at cell center
   var r_visc     = region(grid_c,   transport_coeffs)  -- Transport coefficients at cell center
@@ -185,44 +179,11 @@ task main()
   var pencil = ispace(int2d, int2d {config.prow+2, config.pcol+2}) -- All pencil partitions including the ghost pencils
   var pencil_interior = ispace(int2d, int2d {config.prow, config.pcol}, int2d {1, 1}) -- Only the interior pencil partitions
 
-  var alpha_l_x = region( grid_e_x, coeffs )
-  var beta_l_x  = region( grid_e_x, coeffs )
-  var gamma_l_x = region( grid_e_x, coeffs )
-
-  var alpha_r_x = region( grid_e_x, coeffs )
-  var beta_r_x  = region( grid_e_x, coeffs )
-  var gamma_r_x = region( grid_e_x, coeffs )
-
-  var rho_avg_x = region( grid_e_x, double )
-  var sos_avg_x = region( grid_e_x, double )
-
   var block_d_x    = region( grid_e_x, double[9] )
   var block_Uinv_x = region( grid_e_x, double[9] )
 
-  var alpha_l_y = region( grid_e_y, coeffs )
-  var beta_l_y  = region( grid_e_y, coeffs )
-  var gamma_l_y = region( grid_e_y, coeffs )
-
-  var alpha_r_y = region( grid_e_y, coeffs )
-  var beta_r_y  = region( grid_e_y, coeffs )
-  var gamma_r_y = region( grid_e_y, coeffs )
-
-  var rho_avg_y = region( grid_e_y, double )
-  var sos_avg_y = region( grid_e_y, double )
-
   var block_d_y    = region( grid_e_y, double[9] )
   var block_Uinv_y = region( grid_e_y, double[9] )
-
-  var alpha_l_z = region( grid_e_z, coeffs )
-  var beta_l_z  = region( grid_e_z, coeffs )
-  var gamma_l_z = region( grid_e_z, coeffs )
-
-  var alpha_r_z = region( grid_e_z, coeffs )
-  var beta_r_z  = region( grid_e_z, coeffs )
-  var gamma_r_z = region( grid_e_z, coeffs )
-
-  var rho_avg_z = region( grid_e_z, double )
-  var sos_avg_z = region( grid_e_z, double )
 
   var block_d_z    = region( grid_e_z, double[9] )
   var block_Uinv_z = region( grid_e_z, double[9] )
@@ -249,14 +210,6 @@ task main()
   var p_prim_c_x_wg = partition_xpencil_prim(r_prim_c,    n_ghosts,  true, pencil)
   var p_prim_c_y_wg = partition_ypencil_prim(r_prim_c,    n_ghosts,  true, pencil)
   var p_prim_c_z_wg = partition_zpencil_prim(r_prim_c,    n_ghosts,  true, pencil)
-
-  var p_prim_l_x    = partition_xpencil_prim(r_prim_l_x,  n_ghosts,  true, pencil)
-  var p_prim_l_y    = partition_ypencil_prim(r_prim_l_y,  n_ghosts,  true, pencil)
-  var p_prim_l_z    = partition_zpencil_prim(r_prim_l_z,  n_ghosts,  true, pencil)
-
-  var p_prim_r_x    = partition_xpencil_prim(r_prim_r_x,  n_ghosts,  true, pencil)
-  var p_prim_r_y    = partition_ypencil_prim(r_prim_r_y,  n_ghosts,  true, pencil)
-  var p_prim_r_z    = partition_zpencil_prim(r_prim_r_z,  n_ghosts,  true, pencil)
 
   var p_aux_c_x     = partition_xpencil_aux (r_aux_c,     n_ghosts, false, pencil)
   var p_aux_c_y     = partition_ypencil_aux (r_aux_c,     n_ghosts, false, pencil)
@@ -338,44 +291,11 @@ task main()
   var p_LU2_N_y     = partition_LU(LU2_N_y, pencil)
   var p_LU2_N_z     = partition_LU(LU2_N_z, pencil)
 
-  var p_alpha_l_x = partition_xpencil_coeffs(alpha_l_x, n_ghosts,  true, pencil)
-  var p_beta_l_x  = partition_xpencil_coeffs(beta_l_x , n_ghosts,  true, pencil)
-  var p_gamma_l_x = partition_xpencil_coeffs(gamma_l_x, n_ghosts,  true, pencil)
-
-  var p_alpha_r_x = partition_xpencil_coeffs(alpha_r_x, n_ghosts,  true, pencil)
-  var p_beta_r_x  = partition_xpencil_coeffs(beta_r_x , n_ghosts,  true, pencil)
-  var p_gamma_r_x = partition_xpencil_coeffs(gamma_r_x, n_ghosts,  true, pencil)
-
-  var p_rho_avg_x = partition_xpencil_double(rho_avg_x, n_ghosts,  true, pencil)
-  var p_sos_avg_x = partition_xpencil_double(sos_avg_x, n_ghosts,  true, pencil)
-
   var p_block_d_x    = partition_xpencil_double9(block_d_x   , n_ghosts,  true, pencil)
   var p_block_Uinv_x = partition_xpencil_double9(block_Uinv_x, n_ghosts,  true, pencil)
 
-  var p_alpha_l_y = partition_ypencil_coeffs(alpha_l_y, n_ghosts,  true, pencil)
-  var p_beta_l_y  = partition_ypencil_coeffs(beta_l_y , n_ghosts,  true, pencil)
-  var p_gamma_l_y = partition_ypencil_coeffs(gamma_l_y, n_ghosts,  true, pencil)
-
-  var p_alpha_r_y = partition_ypencil_coeffs(alpha_r_y, n_ghosts,  true, pencil)
-  var p_beta_r_y  = partition_ypencil_coeffs(beta_r_y , n_ghosts,  true, pencil)
-  var p_gamma_r_y = partition_ypencil_coeffs(gamma_r_y, n_ghosts,  true, pencil)
-
-  var p_rho_avg_y = partition_ypencil_double(rho_avg_y, n_ghosts,  true, pencil)
-  var p_sos_avg_y = partition_ypencil_double(sos_avg_y, n_ghosts,  true, pencil)
-
   var p_block_d_y    = partition_ypencil_double9(block_d_y   , n_ghosts,  true, pencil)
   var p_block_Uinv_y = partition_ypencil_double9(block_Uinv_y, n_ghosts,  true, pencil)
-
-  var p_alpha_l_z = partition_zpencil_coeffs(alpha_l_z, n_ghosts,  true, pencil)
-  var p_beta_l_z  = partition_zpencil_coeffs(beta_l_z , n_ghosts,  true, pencil)
-  var p_gamma_l_z = partition_zpencil_coeffs(gamma_l_z, n_ghosts,  true, pencil)
-
-  var p_alpha_r_z = partition_zpencil_coeffs(alpha_r_z, n_ghosts,  true, pencil)
-  var p_beta_r_z  = partition_zpencil_coeffs(beta_r_z , n_ghosts,  true, pencil)
-  var p_gamma_r_z = partition_zpencil_coeffs(gamma_r_z, n_ghosts,  true, pencil)
-
-  var p_rho_avg_z = partition_zpencil_double(rho_avg_z, n_ghosts,  true, pencil)
-  var p_sos_avg_z = partition_zpencil_double(sos_avg_z, n_ghosts,  true, pencil)
 
   var p_block_d_z    = partition_zpencil_double9(block_d_z   , n_ghosts,  true, pencil)
   var p_block_Uinv_z = partition_zpencil_double9(block_Uinv_z, n_ghosts,  true, pencil)
@@ -720,9 +640,8 @@ task main()
       -- Add x-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_l_x[i], p_prim_r_x[i], p_flux_c_x_wg[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
-                              p_alpha_l_x[i], p_beta_l_x[i], p_gamma_l_x[i], p_alpha_r_x[i], p_beta_r_x[i], p_gamma_r_x[i], 
-                              p_rho_avg_x[i], p_sos_avg_x[i], p_block_d_x[i], p_block_Uinv_x[i], p_LU_x[i] )
+        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_flux_c_x_wg[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
+                              p_block_d_x[i], p_block_Uinv_x[i], p_LU_x[i] )
       end
 
       -- Add x-direction viscous flux derivative to RHS.
@@ -743,9 +662,8 @@ task main()
       -- Add y-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_l_y[i], p_prim_r_y[i], p_flux_c_y_wg[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
-                              p_alpha_l_y[i], p_beta_l_y[i], p_gamma_l_y[i], p_alpha_r_y[i], p_beta_r_y[i], p_gamma_r_y[i], 
-                              p_rho_avg_y[i], p_sos_avg_y[i], p_block_d_y[i], p_block_Uinv_y[i], p_LU_y[i] )
+        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_flux_c_y_wg[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
+                              p_block_d_y[i], p_block_Uinv_y[i], p_LU_y[i] )
       end
 
       -- Add y-direction viscous flux derivative to RHS.
@@ -766,9 +684,8 @@ task main()
       -- Add z-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_l_z[i], p_prim_r_z[i], p_flux_c_z_wg[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
-                              p_alpha_l_z[i], p_beta_l_z[i], p_gamma_l_z[i], p_alpha_r_z[i], p_beta_r_z[i], p_gamma_r_z[i], 
-                              p_rho_avg_z[i], p_sos_avg_z[i], p_block_d_z[i], p_block_Uinv_z[i], p_LU_z[i] )
+        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_flux_c_z_wg[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
+                              p_block_d_z[i], p_block_Uinv_z[i], p_LU_z[i] )
       end
 
       -- Add z-direction viscous flux derivative to RHS.

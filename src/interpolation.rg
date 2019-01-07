@@ -551,18 +551,10 @@ __demand(__inline)
 task WCHR_interpolation_x( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l   : region(ispace(int3d), primitive),
                            r_prim_r   : region(ispace(int3d), primitive),
-                           alpha_l    : region(ispace(int3d), coeffs),
-                           beta_l     : region(ispace(int3d), coeffs),
-                           gamma_l    : region(ispace(int3d), coeffs),
-                           alpha_r    : region(ispace(int3d), coeffs),
-                           beta_r     : region(ispace(int3d), coeffs),
-                           gamma_r    : region(ispace(int3d), coeffs),
-                           rho_avg    : region(ispace(int3d), double),
-                           sos_avg    : region(ispace(int3d), double),
                            block_d    : region(ispace(int3d), double[9]),
                            block_Uinv : region(ispace(int3d), double[9]) )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv)
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, block_d, block_Uinv)
 do
 
   -- var t_start = c.legion_get_current_time_in_micros()
@@ -572,10 +564,25 @@ do
 
   var Nx = bounds_x.hi.x
 
+  var nx_e = bounds_x.hi.x - bounds_x.lo.x + 1
+  var ny_e = bounds_x.hi.y - bounds_x.lo.y + 1
+  var nz_e = bounds_x.hi.z - bounds_x.lo.z + 1
+
   regentlib.assert(bounds_c.lo.x == 0, "Can only perform X interpolation in the X pencil")
   regentlib.assert(bounds_x.lo.x == 0, "Can only perform X interpolation in the X pencil")
 
-  for i in alpha_l do
+  var alpha_l = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_x.lo), coeffs )
+  var beta_l  = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_x.lo), coeffs )
+  var gamma_l = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_x.lo), coeffs )
+
+  var alpha_r = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_x.lo), coeffs )
+  var beta_r  = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_x.lo), coeffs )
+  var gamma_r = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_x.lo), coeffs )
+
+  var rho_avg = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_x.lo), double )
+  var sos_avg = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_x.lo), double )
+
+  for i in r_prim_l do
     var idx_c = int3d { x = i.x + ip.n_ghosts, y = i.y, z = i.z }
     var rhosos_avg : double[2] = get_rho_sos_avg_x( r_prim_c, idx_c )
 
@@ -602,7 +609,7 @@ do
       rho_avg[i] = rhosos_avg[0]
       sos_avg[i] = rhosos_avg[1]
 
-      -- RHS for left sided interpolation
+      -- RHS for left-biased interpolation
       r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
                       + coeffs_l[0][4] * char_values[0][1]
                       + coeffs_l[0][5] * char_values[0][2]
@@ -643,7 +650,7 @@ do
                       + coeffs_l[4][8] * char_values[4][5]
                       + coeffs_l[4][9] * char_values[4][6]
 
-      -- RHS for right sided interpolation
+      -- RHS for right-biased interpolation
       r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
                       + coeffs_r[0][4] * char_values[0][1]
                       + coeffs_r[0][5] * char_values[0][2]
@@ -707,7 +714,7 @@ do
       rho_avg[i] = rhosos_avg[0]
       sos_avg[i] = rhosos_avg[1]
 
-      -- RHS for left sided interpolation
+      -- RHS for left-biased interpolation
       r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
                       + coeffs_l[0][4] * char_values[0][1]
                       + coeffs_l[0][5] * char_values[0][2]
@@ -748,7 +755,7 @@ do
                       + coeffs_l[4][8] * char_values[4][5]
                       + coeffs_l[4][9] * char_values[4][6]
 
-      -- RHS for right sided interpolation
+      -- RHS for right-biased interpolation
       r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
                       + coeffs_r[0][4] * char_values[0][1]
                       + coeffs_r[0][5] * char_values[0][2]
@@ -812,7 +819,7 @@ do
       rho_avg[i] = rhosos_avg[0]
       sos_avg[i] = rhosos_avg[1]
 
-      -- RHS for left sided interpolation
+      -- RHS for left-biased interpolation
       r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
                       + coeffs_l[0][4] * char_values[0][1]
                       + coeffs_l[0][5] * char_values[0][2]
@@ -848,7 +855,7 @@ do
                       + coeffs_l[4][7] * char_values[4][4]
                       + coeffs_l[4][8] * char_values[4][5]
 
-      -- RHS for right sided interpolation
+      -- RHS for right-biased interpolation
       r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
                       + coeffs_r[0][4] * char_values[0][1]
                       + coeffs_r[0][5] * char_values[0][2]
@@ -903,7 +910,30 @@ do
   -- c.printf("X: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_start)*1e-6)
   -- c.printf("X: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
   -- c.printf("X: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
- return 1
+
+  regentlib.c.legion_physical_region_destroy(__physical(alpha_l)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(beta_l)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(gamma_l)[0])
+
+  regentlib.c.legion_physical_region_destroy(__physical(alpha_r)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(beta_r)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(gamma_r)[0])
+
+  regentlib.c.legion_physical_region_destroy(__physical(rho_avg)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(sos_avg)[0])
+
+  __delete(alpha_l)
+  __delete(beta_l)
+  __delete(gamma_l)
+
+  __delete(alpha_r)
+  __delete(beta_r)
+  __delete(gamma_r)
+
+  __delete(rho_avg)
+  __delete(sos_avg)
+
+  return 1
 end
 
 solve_tridiagonal_y_u = make_solve_tridiagonal_y('_1', 'u')
@@ -913,18 +943,10 @@ __demand(__inline)
 task WCHR_interpolation_y( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l   : region(ispace(int3d), primitive),
                            r_prim_r   : region(ispace(int3d), primitive),
-                           alpha_l    : region(ispace(int3d), coeffs),
-                           beta_l     : region(ispace(int3d), coeffs),
-                           gamma_l    : region(ispace(int3d), coeffs),
-                           alpha_r    : region(ispace(int3d), coeffs),
-                           beta_r     : region(ispace(int3d), coeffs),
-                           gamma_r    : region(ispace(int3d), coeffs),
-                           rho_avg    : region(ispace(int3d), double),
-                           sos_avg    : region(ispace(int3d), double),
                            block_d    : region(ispace(int3d), double[9]),
                            block_Uinv : region(ispace(int3d), double[9]) )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv)
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, block_d, block_Uinv)
 do
 
   -- var t_start = c.legion_get_current_time_in_micros()
@@ -934,10 +956,25 @@ do
 
   var Ny = bounds_y.hi.y
 
+  var nx_e = bounds_y.hi.x - bounds_y.lo.x + 1
+  var ny_e = bounds_y.hi.y - bounds_y.lo.y + 1
+  var nz_e = bounds_y.hi.z - bounds_y.lo.z + 1
+
   regentlib.assert(bounds_c.lo.y == 0, "Can only perform Y interpolation in the Y pencil")
   regentlib.assert(bounds_y.lo.y == 0, "Can only perform Y interpolation in the Y pencil")
 
-  for i in alpha_l do
+  var alpha_l = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_y.lo), coeffs )
+  var beta_l  = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_y.lo), coeffs )
+  var gamma_l = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_y.lo), coeffs )
+
+  var alpha_r = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_y.lo), coeffs )
+  var beta_r  = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_y.lo), coeffs )
+  var gamma_r = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_y.lo), coeffs )
+
+  var rho_avg = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_y.lo), double )
+  var sos_avg = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_y.lo), double )
+
+  for i in r_prim_l do
     var idx_c = int3d { x = i.x, y = i.y + ip.n_ghosts, z = i.z }
     var rhosos_avg : double[2] = get_rho_sos_avg_y( r_prim_c, idx_c )
 
@@ -964,7 +1001,7 @@ do
       rho_avg[i] = rhosos_avg[0]
       sos_avg[i] = rhosos_avg[1]
 
-      -- RHS for left sided interpolation
+      -- RHS for left-biased interpolation
       r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
                       + coeffs_l[0][4] * char_values[0][1]
                       + coeffs_l[0][5] * char_values[0][2]
@@ -1005,7 +1042,7 @@ do
                       + coeffs_l[4][8] * char_values[4][5]
                       + coeffs_l[4][9] * char_values[4][6]
 
-      -- RHS for right sided interpolation
+      -- RHS for right-biased interpolation
       r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
                       + coeffs_r[0][4] * char_values[0][1]
                       + coeffs_r[0][5] * char_values[0][2]
@@ -1069,7 +1106,7 @@ do
       rho_avg[i] = rhosos_avg[0]
       sos_avg[i] = rhosos_avg[1]
 
-      -- RHS for left sided interpolation
+      -- RHS for left-biased interpolation
       r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
                       + coeffs_l[0][4] * char_values[0][1]
                       + coeffs_l[0][5] * char_values[0][2]
@@ -1110,7 +1147,7 @@ do
                       + coeffs_l[4][8] * char_values[4][5]
                       + coeffs_l[4][9] * char_values[4][6]
 
-      -- RHS for right sided interpolation
+      -- RHS for right-biased interpolation
       r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
                       + coeffs_r[0][4] * char_values[0][1]
                       + coeffs_r[0][5] * char_values[0][2]
@@ -1174,7 +1211,7 @@ do
       rho_avg[i] = rhosos_avg[0]
       sos_avg[i] = rhosos_avg[1]
   
-      -- RHS for left sided interpolation
+      -- RHS for left-biased interpolation
       r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
                       + coeffs_l[0][4] * char_values[0][1]
                       + coeffs_l[0][5] * char_values[0][2]
@@ -1210,7 +1247,7 @@ do
                       + coeffs_l[4][7] * char_values[4][4]
                       + coeffs_l[4][8] * char_values[4][5]
   
-      -- RHS for right sided interpolation
+      -- RHS for right-biased interpolation
       r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
                       + coeffs_r[0][4] * char_values[0][1]
                       + coeffs_r[0][5] * char_values[0][2]
@@ -1265,7 +1302,30 @@ do
   -- c.printf("Y: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_start)*1e-6)
   -- c.printf("Y: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
   -- c.printf("Y: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
- return 1
+
+  regentlib.c.legion_physical_region_destroy(__physical(alpha_l)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(beta_l)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(gamma_l)[0])
+
+  regentlib.c.legion_physical_region_destroy(__physical(alpha_r)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(beta_r)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(gamma_r)[0])
+
+  regentlib.c.legion_physical_region_destroy(__physical(rho_avg)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(sos_avg)[0])
+
+  __delete(alpha_l)
+  __delete(beta_l)
+  __delete(gamma_l)
+
+  __delete(alpha_r)
+  __delete(beta_r)
+  __delete(gamma_r)
+
+  __delete(rho_avg)
+  __delete(sos_avg)
+
+  return 1
 end
 
 solve_tridiagonal_z_u = make_solve_tridiagonal_z('_1', 'u')
@@ -1275,18 +1335,10 @@ __demand(__inline)
 task WCHR_interpolation_z( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l   : region(ispace(int3d), primitive),
                            r_prim_r   : region(ispace(int3d), primitive),
-                           alpha_l    : region(ispace(int3d), coeffs),
-                           beta_l     : region(ispace(int3d), coeffs),
-                           gamma_l    : region(ispace(int3d), coeffs),
-                           alpha_r    : region(ispace(int3d), coeffs),
-                           beta_r     : region(ispace(int3d), coeffs),
-                           gamma_r    : region(ispace(int3d), coeffs),
-                           rho_avg    : region(ispace(int3d), double),
-                           sos_avg    : region(ispace(int3d), double),
                            block_d    : region(ispace(int3d), double[9]),
                            block_Uinv : region(ispace(int3d), double[9]) )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, alpha_l, beta_l, gamma_l, alpha_r, beta_r, gamma_r, rho_avg, sos_avg, block_d, block_Uinv)
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, block_d, block_Uinv)
 do
 
   -- var t_start = c.legion_get_current_time_in_micros()
@@ -1296,10 +1348,25 @@ do
 
   var Nz = bounds_z.hi.z
 
+  var nx_e = bounds_z.hi.x - bounds_z.lo.x + 1
+  var ny_e = bounds_z.hi.y - bounds_z.lo.y + 1
+  var nz_e = bounds_z.hi.z - bounds_z.lo.z + 1
+
   regentlib.assert(bounds_c.lo.z == 0, "Can only perform Z interpolation in the Z pencil")
   regentlib.assert(bounds_z.lo.z == 0, "Can only perform Z interpolation in the Z pencil")
 
-  for i in alpha_l do
+  var alpha_l = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_z.lo), coeffs )
+  var beta_l  = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_z.lo), coeffs )
+  var gamma_l = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_z.lo), coeffs )
+
+  var alpha_r = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_z.lo), coeffs )
+  var beta_r  = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_z.lo), coeffs )
+  var gamma_r = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_z.lo), coeffs )
+
+  var rho_avg = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_z.lo), double )
+  var sos_avg = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_z.lo), double )
+
+  for i in r_prim_l do
     var idx_c = int3d { x = i.x, y = i.y, z = i.z + ip.n_ghosts }
     var rhosos_avg : double[2] = get_rho_sos_avg_z( r_prim_c, idx_c )
 
@@ -1326,7 +1393,7 @@ do
       rho_avg[i] = rhosos_avg[0]
       sos_avg[i] = rhosos_avg[1]
 
-      -- RHS for left sided interpolation
+      -- RHS for left-biased interpolation
       r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
                       + coeffs_l[0][4] * char_values[0][1]
                       + coeffs_l[0][5] * char_values[0][2]
@@ -1367,7 +1434,7 @@ do
                       + coeffs_l[4][8] * char_values[4][5]
                       + coeffs_l[4][9] * char_values[4][6]
 
-      -- RHS for right sided interpolation
+      -- RHS for right-biased interpolation
       r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
                       + coeffs_r[0][4] * char_values[0][1]
                       + coeffs_r[0][5] * char_values[0][2]
@@ -1431,7 +1498,7 @@ do
       rho_avg[i] = rhosos_avg[0]
       sos_avg[i] = rhosos_avg[1]
 
-      -- RHS for left sided interpolation
+      -- RHS for left-biased interpolation
       r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
                       + coeffs_l[0][4] * char_values[0][1]
                       + coeffs_l[0][5] * char_values[0][2]
@@ -1472,7 +1539,7 @@ do
                       + coeffs_l[4][8] * char_values[4][5]
                       + coeffs_l[4][9] * char_values[4][6]
 
-      -- RHS for right sided interpolation
+      -- RHS for right-biased interpolation
       r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
                       + coeffs_r[0][4] * char_values[0][1]
                       + coeffs_r[0][5] * char_values[0][2]
@@ -1536,7 +1603,7 @@ do
       rho_avg[i] = rhosos_avg[0]
       sos_avg[i] = rhosos_avg[1]
 
-      -- RHS for left sided interpolation
+      -- RHS for left-biased interpolation
       r_prim_l[i].rho = coeffs_l[0][3] * char_values[0][0]
                       + coeffs_l[0][4] * char_values[0][1]
                       + coeffs_l[0][5] * char_values[0][2]
@@ -1572,7 +1639,7 @@ do
                       + coeffs_l[4][7] * char_values[4][4]
                       + coeffs_l[4][8] * char_values[4][5]
 
-      -- RHS for right sided interpolation
+      -- RHS for right-biased interpolation
       r_prim_r[i].rho = coeffs_r[0][3] * char_values[0][0]
                       + coeffs_r[0][4] * char_values[0][1]
                       + coeffs_r[0][5] * char_values[0][2]
@@ -1624,10 +1691,32 @@ do
 
   -- var t_end = c.legion_get_current_time_in_micros()
 
-
   -- c.printf("Z: Time to get coefficients and RHS: %12.5e\n", (t_weights-t_start)*1e-6)
   -- c.printf("Z: Time for block tridiagonal solves: %12.5e\n", (t_end-t_weights)*1e-6)
   -- c.printf("Z: Time to get the WCHR interpolation: %12.5e\n", (t_end-t_start)*1e-6)
+
+  regentlib.c.legion_physical_region_destroy(__physical(alpha_l)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(beta_l)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(gamma_l)[0])
+
+  regentlib.c.legion_physical_region_destroy(__physical(alpha_r)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(beta_r)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(gamma_r)[0])
+
+  regentlib.c.legion_physical_region_destroy(__physical(rho_avg)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(sos_avg)[0])
+
+  __delete(alpha_l)
+  __delete(beta_l)
+  __delete(gamma_l)
+
+  __delete(alpha_r)
+  __delete(beta_r)
+  __delete(gamma_r)
+
+  __delete(rho_avg)
+  __delete(sos_avg)
+
   return 1
 end
 

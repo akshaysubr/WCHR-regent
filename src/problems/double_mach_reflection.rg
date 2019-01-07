@@ -64,11 +64,10 @@ problem.ONEBYDX = 1.0 / problem.DX
 problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
-problem.interpolation_scheme = "WCNS-LD"
+problem.interpolation_scheme = "WCNS-JS"
 problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
 problem.dt_or_CFL_num        = 0.1
-problem.tstop                = 0.002
--- problem.tstop                = 0.2
+problem.tstop                = 0.2
 problem.tviz                 = 0.01*problem.tstop
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
