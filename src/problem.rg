@@ -1,1 +1,1 @@
-problems/angled_shock.rg
+problems/double_mach_reflection.rg

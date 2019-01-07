@@ -64,10 +64,11 @@ problem.ONEBYDX = 1.0 / problem.DX
 problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
-problem.interpolation_scheme = "WCNS-JS"
+problem.interpolation_scheme = "WCNS-LD"
 problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
-problem.dt_or_CFL_num        = 0.5
-problem.tstop                = 0.2
+problem.dt_or_CFL_num        = 0.1
+problem.tstop                = 0.002
+-- problem.tstop                = 0.2
 problem.tviz                 = 0.01*problem.tstop
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
@@ -176,8 +177,10 @@ do
       for i = bounds_c.lo.x, bounds_c.hi.x + 1 do
         var ghost_r = int3d {i, Ny + n_ghosts + j, k}
         var coord_r = int3d {i, coord_idx_y, k}
+        var x_c = coords[coord_r].x_c
+        var y_c = coords[coord_r].y_c + (j + 1)*problem.DY
 
-        if ( (coords[coord_r].x_c - problem.x_wall) < coords[coord_r].y_c * cmath.tan(problem.theta_post) + problem.Mach * problem.sos_pre / cmath.cos(problem.theta_post) ) then
+        if ( (x_c - problem.x_wall) < y_c * cmath.tan(problem.theta_post) + tsim * problem.Mach * problem.sos_pre / cmath.cos(problem.theta_post) ) then
           r_prim_c[ghost_r].rho = problem.rho_post
           r_prim_c[ghost_r].u   = problem.u_post
           r_prim_c[ghost_r].v   = problem.v_post

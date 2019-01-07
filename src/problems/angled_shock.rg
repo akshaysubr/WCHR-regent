@@ -15,8 +15,8 @@ problem.viscous = false
 
 problem.Mach   = 10.0
 problem.x_wall = 1.0 / 6.0
--- problem.theta_post = PI / 6.0
-problem.theta_post = 0.0
+problem.theta_post = PI / 6.0
+-- problem.theta_post = 0.0
 
 problem.rho_pre = 1.4
 problem.p_pre   = 1.
@@ -44,10 +44,10 @@ problem.periodic_z = true
 -- condition: DIRICHLET, EXTRAPOLATION, SUBSONIC_INFLOW, SUBSONIC_OUTFLOW
 problem.boundary_l_x = { condition="DIRICHLET", rho=problem.rho_post, u=problem.u_post, v=problem.v_post, w=0., p=problem.p_post }
 problem.boundary_r_x = { condition="EXTRAPOLATION" }
-problem.boundary_l_y = { condition="EXTRAPOLATION" }
-problem.boundary_r_y = { condition="EXTRAPOLATION" }
--- problem.boundary_l_y = { condition="CUSTOM" }
--- problem.boundary_r_y = { condition="CUSTOM" }
+-- problem.boundary_l_y = { condition="EXTRAPOLATION" }
+-- problem.boundary_r_y = { condition="EXTRAPOLATION" }
+problem.boundary_l_y = { condition="CUSTOM" }
+problem.boundary_r_y = { condition="CUSTOM" }
 
 -- Domain size
 problem.LX = 4.0
@@ -67,11 +67,11 @@ problem.ONEBYDX = 1.0 / problem.DX
 problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
--- problem.interpolation_scheme = "WCNS-JS"
-problem.interpolation_scheme = "WCNS-LD"
+problem.interpolation_scheme = "WCNS-JS"
+-- problem.interpolation_scheme = "WCNS-LD"
 problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
 problem.dt_or_CFL_num        = 0.5
-problem.tstop                = 0.002
+problem.tstop                = 0.2
 problem.tviz                 = 0.01*problem.tstop
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),

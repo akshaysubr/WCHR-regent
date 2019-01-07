@@ -1329,3 +1329,84 @@ do
   return token
 end
 
+
+
+
+
+
+-- task get_RHS( r_rhs : region(ispace(int3d), conserved),
+--               p_rhs_x : partition(disjoint, r_rhs),
+--               p_rhs_y : partition(disjoint, r_rhs),
+--               p_rhs_z : partition(disjoint, r_rhs),
+-- 
+--               r_prim_c : region(ispace(int3d), primitive),
+--               p_prim_c_x : partition(disjoint, r_prim_c),
+--               p_prim_c_y : partition(disjoint, r_prim_c),
+--               p_prim_c_z : partition(disjoint, r_prim_c),
+--               p_prim_c_x_wg : partition(disjoint, r_prim_c),
+--               p_prim_c_y_wg : partition(disjoint, r_prim_c),
+--               p_prim_c_z_wg : partition(disjoint, r_prim_c),
+-- 
+--               r_prim_l_x : region(ispace(int3d), primitive),
+--               p_prim_l_x : partition(disjoint, r_prim_l_x),
+-- 
+--               r_prim_l_y : region(ispace(int3d), primitive),
+--               p_prim_l_y : partition(disjoint, r_prim_l_y),
+-- 
+--               r_prim_l_z : region(ispace(int3d), primitive),
+--               p_prim_l_z : partition(disjoint, r_prim_l_z),
+-- 
+--               r_prim_r_x : region(ispace(int3d), primitive),
+--               p_prim_r_x : partition(disjoint, r_prim_r_x),
+-- 
+--               r_prim_r_y : region(ispace(int3d), primitive),
+--               p_prim_r_y : partition(disjoint, r_prim_r_y),
+-- 
+--               r_prim_r_z : region(ispace(int3d), primitive),
+--               p_prim_r_z : partition(disjoint, r_prim_r_z),
+-- 
+--               r_aux_c : region(ispace(int3d), auxiliary),
+--               p_aux_c_x : partition(disjoint, r_aux_c),
+--               p_aux_c_y : partition(disjoint, r_aux_c),
+--               p_aux_c_z : partition(disjoint, r_aux_c),
+-- 
+--               r_visc : region(ispace(int3d), transport_coeffs),
+--               p_visc_x : partition(disjoint, r_visc),
+--               p_visc_y : partition(disjoint, r_visc),
+--               p_visc_z : partition(disjoint, r_visc),
+-- 
+--               r_gradu : region(ispace(int3d), tensor2),
+--               p_gradu_x : partition(disjoint, r_gradu),
+--               p_gradu_y : partition(disjoint, r_gradu),
+--               p_gradu_z : partition(disjoint, r_gradu),
+-- 
+--               r_grad2u : region(ispace(int3d), tensor2),
+--               p_grad2u_x : partition(disjoint, r_grad2u),
+--               p_grad2u_y : partition(disjoint, r_grad2u),
+--               p_grad2u_z : partition(disjoint, r_grad2u),
+-- 
+--               r_tauij : region(ispace(int3d), tensor2symm),
+--               p_tauij_x : partition(disjoint, r_tauij),
+--               p_tauij_y : partition(disjoint, r_tauij),
+--               p_tauij_z : partition(disjoint, r_tauij),
+-- 
+--               r_q : region(ispace(int3d), vect),
+--               p_q_x : partition(disjoint, r_q),
+--               p_q_y : partition(disjoint, r_q),
+--               p_q_z : partition(disjoint, r_q),
+-- 
+--               r_gradrho : region(ispace(int3d), vect),
+--               p_gradrho_x : partition(disjoint, r_gradrho),
+--               p_gradrho_y : partition(disjoint, r_gradrho),
+--               p_gradrho_z : partition(disjoint, r_gradrho),
+-- 
+--               r_gradp : region(ispace(int3d), vect),
+--               p_gradp_x : partition(disjoint, r_gradp),
+--               p_gradp_y : partition(disjoint, r_gradp),
+--               p_gradp_z : partition(disjoint, r_gradp),
+
+
+
+
+
+
