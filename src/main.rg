@@ -130,22 +130,12 @@ task main()
   var r_gradrho  = region(grid_c,   vect)       -- Density gradient
   var r_gradp    = region(grid_c,   vect)       -- Pressure gradient
 
-  var r_rhs_l_x  = region(grid_e_x, primitive)  -- store RHS for left interpolation in x
-  var r_rhs_r_x  = region(grid_e_x, primitive)  -- store RHS for right interpolation in x
-  var r_rhs_l_y  = region(grid_e_y, primitive)  -- store RHS for left interpolation in y
-  var r_rhs_r_y  = region(grid_e_y, primitive)  -- store RHS for right interpolation in y
-  var r_rhs_l_z  = region(grid_e_z, primitive)  -- store RHS for left interpolation in z
-  var r_rhs_r_z  = region(grid_e_z, primitive)  -- store RHS for right interpolation in z
-
   var r_flux_c   = region(grid_c,   conserved)  -- flux at cell center
-  var r_flux_e_x = region(grid_e_x, conserved)  -- flux at x cell edge
-  var r_flux_e_y = region(grid_e_y, conserved)  -- flux at y cell edge
-  var r_flux_e_z = region(grid_e_z, conserved)  -- flux at z cell edge
-  
+
   var r_fder_c_x = region(grid_c,   conserved)  -- x flux derivative
   var r_fder_c_y = region(grid_c,   conserved)  -- y flux derivative
   var r_fder_c_z = region(grid_c,   conserved)  -- z flux derivative
-  
+
   var r_rhs      = region(grid_c,   conserved)  -- RHS for time stepping at cell center
   var r_qrhs     = region(grid_c,   conserved)  -- buffer for RK45 time stepping
 
@@ -246,14 +236,6 @@ task main()
   var p_flux_c_x    = partition_xpencil_cnsr(r_flux_c,   n_ghosts, false, pencil)
   var p_flux_c_y    = partition_ypencil_cnsr(r_flux_c,   n_ghosts, false, pencil)
   var p_flux_c_z    = partition_zpencil_cnsr(r_flux_c,   n_ghosts, false, pencil)
-
-  var p_flux_c_x_wg = partition_xpencil_cnsr(r_flux_c,   n_ghosts,  true, pencil)
-  var p_flux_c_y_wg = partition_ypencil_cnsr(r_flux_c,   n_ghosts,  true, pencil)
-  var p_flux_c_z_wg = partition_zpencil_cnsr(r_flux_c,   n_ghosts,  true, pencil)
-
-  var p_flux_e_x    = partition_xpencil_cnsr(r_flux_e_x, n_ghosts,  true, pencil)
-  var p_flux_e_y    = partition_ypencil_cnsr(r_flux_e_y, n_ghosts,  true, pencil)
-  var p_flux_e_z    = partition_zpencil_cnsr(r_flux_e_z, n_ghosts,  true, pencil)
 
   var p_fder_c_x    = partition_xpencil_cnsr(r_fder_c_x, n_ghosts, false, pencil)
   var p_fder_c_y    = partition_ypencil_cnsr(r_fder_c_y, n_ghosts, false, pencil)
@@ -640,8 +622,7 @@ task main()
       -- Add x-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_flux_c_x_wg[i], p_flux_e_x[i], p_fder_c_x[i], p_rhs_x[i],
-                              p_block_d_x[i], p_block_Uinv_x[i], p_LU_x[i] )
+        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_rhs_x[i], p_block_d_x[i], p_block_Uinv_x[i], p_LU_x[i] )
       end
 
       -- Add x-direction viscous flux derivative to RHS.
@@ -662,8 +643,7 @@ task main()
       -- Add y-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_flux_c_y_wg[i], p_flux_e_y[i], p_fder_c_y[i], p_rhs_y[i],
-                              p_block_d_y[i], p_block_Uinv_y[i], p_LU_y[i] )
+        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_rhs_y[i], p_block_d_y[i], p_block_Uinv_y[i], p_LU_y[i] )
       end
 
       -- Add y-direction viscous flux derivative to RHS.
@@ -684,8 +664,7 @@ task main()
       -- Add z-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_flux_c_z_wg[i], p_flux_e_z[i], p_fder_c_z[i], p_rhs_z[i],
-                              p_block_d_z[i], p_block_Uinv_z[i], p_LU_z[i] )
+        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_rhs_z[i], p_block_d_z[i], p_block_Uinv_z[i], p_LU_z[i] )
       end
 
       -- Add z-direction viscous flux derivative to RHS.
