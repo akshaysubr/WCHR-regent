@@ -58,6 +58,8 @@ local function v_index(i,is_left)
   end
 end
 
+
+
 local function v_index_B(i,is_left_boundary)
   if is_left_boundary then
     return i
@@ -65,6 +67,8 @@ local function v_index_B(i,is_left_boundary)
     return (6 - i)
   end
 end
+
+
 
 local function v_index_LB(i,is_left_biased)
   if is_left_biased then
@@ -74,6 +78,8 @@ local function v_index_LB(i,is_left_biased)
   end
 end
 
+
+
 local function v_index_RB(i,is_left_biased)
   if is_left_biased then
     return (i + 1)
@@ -82,6 +88,8 @@ local function v_index_RB(i,is_left_biased)
   end
 end
 
+
+
 local function nl_index(i,is_left)
   if is_left then
     return rexpr i end
@@ -89,6 +97,8 @@ local function nl_index(i,is_left)
     return rexpr (4 - i - 1) end
   end
 end
+
+
 
 local function make_get_beta(is_left)
   local get_beta __demand(__inline) task get_beta( values : double[6][5], eq : int32 )
@@ -118,6 +128,8 @@ local function make_get_beta(is_left)
   return get_beta
 end
 
+
+
 local function make_get_beta_LB(is_left)
   local get_beta_LB __demand(__inline) task get_beta_LB( values : double[7][5], eq : int32 )
     var beta : double[4]
@@ -145,6 +157,8 @@ local function make_get_beta_LB(is_left)
   end
   return get_beta_LB
 end
+
+
 
 local function make_get_beta_RB(is_left)
   local get_beta_RB __demand(__inline) task get_beta_RB( values : double[7][5], eq : int32 )
@@ -182,6 +196,8 @@ get_beta_LB_r = make_get_beta_LB(false)
 
 get_beta_RB_l = make_get_beta_RB(true)
 get_beta_RB_r = make_get_beta_RB(false)
+
+
 
 local function make_get_nonlinear_weights_LD(get_beta, is_left)
 
@@ -277,6 +293,8 @@ local function make_get_nonlinear_weights_LD(get_beta, is_left)
   end
   return get_nonlinear_weights_LD
 end
+
+
 
 local function make_get_nonlinear_weights_LD_LBLB(get_beta, is_left_biased, is_left_boundary)
 
@@ -376,6 +394,8 @@ local function make_get_nonlinear_weights_LD_LBLB(get_beta, is_left_biased, is_l
   end
   return get_nonlinear_weights_LD_LBLB
 end
+
+
 
 local function make_get_nonlinear_weights_LD_LBRB(get_beta, is_left_biased, is_left_boundary)
 
@@ -485,6 +505,8 @@ get_nonlinear_weights_LD_LBLB_r = make_get_nonlinear_weights_LD_LBLB(get_beta_RB
 get_nonlinear_weights_LD_LBRB_l = make_get_nonlinear_weights_LD_LBRB(get_beta_RB_l, true,  false)
 get_nonlinear_weights_LD_LBRB_r = make_get_nonlinear_weights_LD_LBRB(get_beta_LB_r, false, true)
 
+
+
 __demand(__inline)
 task get_coefficients_ECI( nlweights : double[4][5] )
 
@@ -504,6 +526,8 @@ task get_coefficients_ECI( nlweights : double[4][5] )
   return coeffs
 end
 
+
+
 __demand(__inline)
 task get_coefficients_ECI_LBLB( nlweights : double[4][5] )
   var lcoeff0 = array(0.0, 1.0,                0.0,                   3.0/8.0, -5.0/4.0, 15.0/8.0,        0.0,           0.0,               0.0,                0.0)
@@ -521,6 +545,8 @@ task get_coefficients_ECI_LBLB( nlweights : double[4][5] )
 
   return coeffs
 end
+
+
 
 __demand(__inline)
 task get_coefficients_ECI_LBRB( nlweights : double[4][5] )
@@ -543,6 +569,8 @@ end
 terra wait_for(x : int)
   return x
 end
+
+
 
 solve_tridiagonal_x_v = make_solve_tridiagonal_x('_2', 'v')
 solve_tridiagonal_x_w = make_solve_tridiagonal_x('_3', 'w')
@@ -936,6 +964,8 @@ do
   return 1
 end
 
+
+
 solve_tridiagonal_y_u = make_solve_tridiagonal_y('_1', 'u')
 solve_tridiagonal_y_w = make_solve_tridiagonal_y('_3', 'w')
 
@@ -1327,6 +1357,8 @@ do
 
   return 1
 end
+
+
 
 solve_tridiagonal_z_u = make_solve_tridiagonal_z('_1', 'u')
 solve_tridiagonal_z_v = make_solve_tridiagonal_z('_2', 'v')

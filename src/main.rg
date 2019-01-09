@@ -125,16 +125,9 @@ task main()
   var r_gradu    = region(grid_c,   tensor2)      -- Velocity gradient tensor at the cell center
   var r_grad2u   = region(grid_c,   tensor2)      -- Velocity second-derivative tensor at the cell center (d^2 u_i / d x_j^2)
   var r_tauij    = region(grid_c,   tensor2symm)  -- Viscous stress tensor at the cell center
-  var r_q        = region(grid_c,   vect)         -- Heat flux vector at the cell center
 
   var r_gradrho  = region(grid_c,   vect)       -- Density gradient
   var r_gradp    = region(grid_c,   vect)       -- Pressure gradient
-
-  var r_flux_c   = region(grid_c,   conserved)  -- flux at cell center
-
-  var r_fder_c_x = region(grid_c,   conserved)  -- x flux derivative
-  var r_fder_c_y = region(grid_c,   conserved)  -- y flux derivative
-  var r_fder_c_z = region(grid_c,   conserved)  -- z flux derivative
 
   var r_rhs      = region(grid_c,   conserved)  -- RHS for time stepping at cell center
   var r_qrhs     = region(grid_c,   conserved)  -- buffer for RK45 time stepping
@@ -209,10 +202,6 @@ task main()
   var p_visc_y      = partition_ypencil_visc(r_visc,      n_ghosts, false, pencil)
   var p_visc_z      = partition_zpencil_visc(r_visc,      n_ghosts, false, pencil)
 
-  var p_q_x         = partition_xpencil_vect(r_q,         n_ghosts, false, pencil)
-  var p_q_y         = partition_ypencil_vect(r_q,         n_ghosts, false, pencil)
-  var p_q_z         = partition_zpencil_vect(r_q,         n_ghosts, false, pencil)
-
   var p_gradrho_x   = partition_xpencil_vect(r_gradrho,   n_ghosts, false, pencil)
   var p_gradrho_y   = partition_ypencil_vect(r_gradrho,   n_ghosts, false, pencil)
   var p_gradrho_z   = partition_zpencil_vect(r_gradrho,   n_ghosts, false, pencil)
@@ -233,21 +222,13 @@ task main()
   var p_tauij_y     = partition_ypencil_tnsr2symm(r_tauij, n_ghosts, false, pencil)
   var p_tauij_z     = partition_zpencil_tnsr2symm(r_tauij, n_ghosts, false, pencil)
 
-  var p_flux_c_x    = partition_xpencil_cnsr(r_flux_c,   n_ghosts, false, pencil)
-  var p_flux_c_y    = partition_ypencil_cnsr(r_flux_c,   n_ghosts, false, pencil)
-  var p_flux_c_z    = partition_zpencil_cnsr(r_flux_c,   n_ghosts, false, pencil)
-
-  var p_fder_c_x    = partition_xpencil_cnsr(r_fder_c_x, n_ghosts, false, pencil)
-  var p_fder_c_y    = partition_ypencil_cnsr(r_fder_c_y, n_ghosts, false, pencil)
-  var p_fder_c_z    = partition_zpencil_cnsr(r_fder_c_z, n_ghosts, false, pencil)
-
   var p_rhs_x       = partition_xpencil_cnsr(r_rhs,      n_ghosts, false, pencil)
   var p_rhs_y       = partition_ypencil_cnsr(r_rhs,      n_ghosts, false, pencil)
   var p_rhs_z       = partition_zpencil_cnsr(r_rhs,      n_ghosts, false, pencil)
 
-  var p_qrhs_x      = partition_xpencil_cnsr(r_qrhs,     n_ghosts, false, pencil)
+  -- var p_qrhs_x      = partition_xpencil_cnsr(r_qrhs,     n_ghosts, false, pencil)
   var p_qrhs_y      = partition_ypencil_cnsr(r_qrhs,     n_ghosts, false, pencil)
-  var p_qrhs_z      = partition_zpencil_cnsr(r_qrhs,     n_ghosts, false, pencil)
+  -- var p_qrhs_z      = partition_zpencil_cnsr(r_qrhs,     n_ghosts, false, pencil)
 
   var p_mat_x       = partition_mat(mat_x, pencil)
   var p_mat_y       = partition_mat(mat_y, pencil)
@@ -629,8 +610,7 @@ task main()
       if problem.conservative_viscous_terms then
         __demand(__parallel)
         for i in pencil_interior do
-          add_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_q_x[i],
-                                        p_flux_c_x[i], p_fder_c_x[i], p_rhs_x[i], p_LU_N_x[i] )
+          add_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_rhs_x[i], p_LU_N_x[i] )
         end
       else
         __demand(__parallel)
@@ -650,8 +630,7 @@ task main()
       if problem.conservative_viscous_terms then
         __demand(__parallel)
         for i in pencil_interior do
-          add_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_q_y[i],
-                                        p_flux_c_y[i], p_fder_c_y[i], p_rhs_y[i], p_LU_N_y[i] )
+          add_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_rhs_y[i], p_LU_N_y[i] )
         end
       else
         __demand(__parallel)
@@ -671,8 +650,7 @@ task main()
       if problem.conservative_viscous_terms then
         __demand(__parallel)
         for i in pencil_interior do
-          add_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_q_z[i],
-                                        p_flux_c_z[i], p_fder_c_z[i], p_rhs_z[i], p_LU_N_z[i] )
+          add_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_rhs_z[i], p_LU_N_z[i] )
         end
       else
         __demand(__parallel)

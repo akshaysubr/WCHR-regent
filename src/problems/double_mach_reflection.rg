@@ -66,7 +66,7 @@ problem.ONEBYDZ = 1.0 / problem.DZ
 
 problem.interpolation_scheme = "WCNS-JS"
 problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
-problem.dt_or_CFL_num        = 0.1
+problem.dt_or_CFL_num        = 0.5
 problem.tstop                = 0.2
 problem.tviz                 = 0.01*problem.tstop
 

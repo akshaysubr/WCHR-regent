@@ -592,13 +592,13 @@ do
 
   var bounds_c = r_prim_c.ispace.bounds
 
-  var bounds_der_lo = {bounds_c.lo.x + interpolation.n_ghosts, bounds_c.lo.y, bounds_c.lo.z}
-
   var Nx   = problem.NX
   var Nx_g = Nx + 2*interpolation.n_ghosts
 
   regentlib.assert(bounds_c.lo.x == 0,      "Can only add X flux derivative in the X pencil")
   regentlib.assert(bounds_c.hi.x == Nx_g-1, "Can only add X flux derivative in the X pencil")
+
+  var bounds_der_lo = {bounds_c.lo.x + interpolation.n_ghosts, bounds_c.lo.y, bounds_c.lo.z}
 
   var Nx_e = Nx + 1
 
@@ -654,19 +654,29 @@ task add_viscous_xflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive)
                                    r_aux_c    : region(ispace(int3d), auxiliary),
                                    r_visc     : region(ispace(int3d), transport_coeffs),
                                    r_tauij    : region(ispace(int3d), tensor2symm),
-                                   r_q        : region(ispace(int3d), vect),
-                                   r_flux_c   : region(ispace(int3d), conserved),
-                                   r_fder_c_x : region(ispace(int3d), conserved),
                                    r_rhs      : region(ispace(int3d), conserved),
                                    LU_x       : region(ispace(int3d), LU_struct) )
 where
   reads( r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_11, _12, _13}, LU_x ),
-  reads writes( r_q._1, r_flux_c, r_fder_c_x, r_rhs)
+  reads writes( r_rhs )
 do
 
-  var nx = r_prim_c.ispace.bounds.hi.x - r_prim_c.ispace.bounds.lo.x + 1
+  var bounds_c = r_prim_c.ispace.bounds
 
-  if (nx >= 8) then
+  var Nx   = problem.NX
+
+  regentlib.assert(bounds_c.lo.x == interpolation.n_ghosts,          "Can only add X flux derivative in the X pencil")
+  regentlib.assert(bounds_c.hi.x == Nx + interpolation.n_ghosts - 1, "Can only add X flux derivative in the X pencil")
+
+  var ny = bounds_c.hi.y - bounds_c.lo.y + 1
+  var nz = bounds_c.hi.z - bounds_c.lo.z + 1
+
+  var r_q = region( ispace(int3d, {Nx, ny, nz}, bounds_c.lo), vect )
+
+  var r_flux_c   = region( ispace(int3d, {Nx, ny, nz}, bounds_c.lo), conserved )
+  var r_fder_c_x = region( ispace(int3d, {Nx, ny, nz}, bounds_c.lo), conserved )
+
+  if (Nx >= 8) then
     if viscous then
       get_q_x(r_aux_c, r_visc, r_q, LU_x)
 
@@ -692,8 +702,17 @@ do
         r_rhs[i].rhoE += r_fder_c_x[i].rhoE
       end
     end
-
   end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_q)[0])
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_flux_c)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_fder_c_x)[0])
+
+  __delete(r_q)
+
+  __delete(r_flux_c)
+  __delete(r_fder_c_x)
 end
 
 
@@ -762,13 +781,13 @@ do
 
   var bounds_c = r_prim_c.ispace.bounds
 
-  var bounds_der_lo = {bounds_c.lo.x, bounds_c.lo.y + interpolation.n_ghosts, bounds_c.lo.z}
-
   var Ny   = problem.NY
   var Ny_g = Ny + 2*interpolation.n_ghosts
 
   regentlib.assert(bounds_c.lo.y == 0,      "Can only add Y flux derivative in the Y pencil")
   regentlib.assert(bounds_c.hi.y == Ny_g-1, "Can only add Y flux derivative in the Y pencil")
+
+  var bounds_der_lo = {bounds_c.lo.x, bounds_c.lo.y + interpolation.n_ghosts, bounds_c.lo.z}
 
   var Ny_e = Ny + 1
 
@@ -824,19 +843,29 @@ task add_viscous_yflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive)
                                    r_aux_c    : region(ispace(int3d), auxiliary),
                                    r_visc     : region(ispace(int3d), transport_coeffs),
                                    r_tauij    : region(ispace(int3d), tensor2symm),
-                                   r_q        : region(ispace(int3d), vect),
-                                   r_flux_c   : region(ispace(int3d), conserved),
-                                   r_fder_c_y : region(ispace(int3d), conserved),
                                    r_rhs      : region(ispace(int3d), conserved),
                                    LU_y       : region(ispace(int3d), LU_struct) )
 where
   reads( r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_12, _22, _23}, LU_y ),
-  reads writes( r_q._2, r_flux_c, r_fder_c_y, r_rhs)
+  reads writes( r_rhs )
 do
 
-  var ny = r_prim_c.ispace.bounds.hi.y - r_prim_c.ispace.bounds.lo.y + 1 - 2*interpolation.n_ghosts
+  var bounds_c = r_prim_c.ispace.bounds
 
-  if (ny >= 8) then
+  var Ny   = problem.NY
+
+  regentlib.assert(bounds_c.lo.y == interpolation.n_ghosts,          "Can only add Y flux derivative in the Y pencil")
+  regentlib.assert(bounds_c.hi.y == Ny + interpolation.n_ghosts - 1, "Can only add Y flux derivative in the Y pencil")
+
+  var nx = bounds_c.hi.x - bounds_c.lo.x + 1
+  var nz = bounds_c.hi.z - bounds_c.lo.z + 1
+
+  var r_q = region( ispace(int3d, {nx, Ny, nz}, bounds_c.lo), vect )
+
+  var r_flux_c   = region( ispace(int3d, {nx, Ny, nz}, bounds_c.lo), conserved )
+  var r_fder_c_y = region( ispace(int3d, {nx, Ny, nz}, bounds_c.lo), conserved )
+
+  if (Ny >= 8) then
     if viscous then
       get_q_y(r_aux_c, r_visc, r_q, LU_y)
 
@@ -862,8 +891,17 @@ do
         r_rhs[i].rhoE += r_fder_c_y[i].rhoE
       end
     end
-
   end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_q)[0])
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_flux_c)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_fder_c_y)[0])
+
+  __delete(r_q)
+
+  __delete(r_flux_c)
+  __delete(r_fder_c_y)
 end
 
 
@@ -932,13 +970,13 @@ do
 
   var bounds_c = r_prim_c.ispace.bounds
 
-  var bounds_der_lo = {bounds_c.lo.x, bounds_c.lo.y, bounds_c.lo.z + interpolation.n_ghosts}
-
   var Nz   = problem.NZ
   var Nz_g = Nz + 2*interpolation.n_ghosts
 
   regentlib.assert(bounds_c.lo.z == 0,      "Can only add Z flux derivative in the Z pencil")
   regentlib.assert(bounds_c.hi.z == Nz_g-1, "Can only add Z flux derivative in the Z pencil")
+
+  var bounds_der_lo = {bounds_c.lo.x, bounds_c.lo.y, bounds_c.lo.z + interpolation.n_ghosts}
 
   var Nz_e = Nz + 1
 
@@ -995,19 +1033,29 @@ task add_viscous_zflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive)
                                    r_aux_c    : region(ispace(int3d), auxiliary),
                                    r_visc     : region(ispace(int3d), transport_coeffs),
                                    r_tauij    : region(ispace(int3d), tensor2symm),
-                                   r_q        : region(ispace(int3d), vect),
-                                   r_flux_c   : region(ispace(int3d), conserved),
-                                   r_fder_c_z : region(ispace(int3d), conserved),
                                    r_rhs      : region(ispace(int3d), conserved),
                                    LU_z       : region(ispace(int3d), LU_struct) )
 where
   reads( r_prim_c, r_aux_c.T, r_visc.kappa, r_tauij.{_13, _23, _33}, LU_z ),
-  reads writes( r_q._3, r_flux_c, r_fder_c_z, r_rhs)
+  reads writes( r_rhs )
 do
 
-  var nz = r_prim_c.ispace.bounds.hi.z - r_prim_c.ispace.bounds.lo.z + 1 - 2*interpolation.n_ghosts
+  var bounds_c = r_prim_c.ispace.bounds
 
-  if (nz >= 8) then
+  var Nz   = problem.NZ
+
+  regentlib.assert(bounds_c.lo.z == interpolation.n_ghosts,          "Can only add Z flux derivative in the Z pencil")
+  regentlib.assert(bounds_c.hi.z == Nz + interpolation.n_ghosts - 1, "Can only add Z flux derivative in the Z pencil")
+
+  var nx = bounds_c.hi.x - bounds_c.lo.x + 1
+  var ny = bounds_c.hi.y - bounds_c.lo.y + 1
+
+  var r_q = region( ispace(int3d, {nx, ny, Nz}, bounds_c.lo), vect )
+
+  var r_flux_c   = region( ispace(int3d, {nx, ny, Nz}, bounds_c.lo), conserved )
+  var r_fder_c_z = region( ispace(int3d, {nx, ny, Nz}, bounds_c.lo), conserved )
+
+  if (Nz >= 8) then
     if viscous then
       get_q_z(r_aux_c, r_visc, r_q, LU_z)
 
@@ -1033,8 +1081,17 @@ do
         r_rhs[i].rhoE += r_fder_c_z[i].rhoE
       end
     end
-
   end
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_q)[0])
+
+  regentlib.c.legion_physical_region_destroy(__physical(r_flux_c)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(r_fder_c_z)[0])
+
+  __delete(r_q)
+
+  __delete(r_flux_c)
+  __delete(r_fder_c_z)
 end
 
 
