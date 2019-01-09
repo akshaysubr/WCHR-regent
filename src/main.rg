@@ -162,15 +162,6 @@ task main()
   var pencil = ispace(int2d, int2d {config.prow+2, config.pcol+2}) -- All pencil partitions including the ghost pencils
   var pencil_interior = ispace(int2d, int2d {config.prow, config.pcol}, int2d {1, 1}) -- Only the interior pencil partitions
 
-  var block_d_x    = region( grid_e_x, double[9] )
-  var block_Uinv_x = region( grid_e_x, double[9] )
-
-  var block_d_y    = region( grid_e_y, double[9] )
-  var block_Uinv_y = region( grid_e_y, double[9] )
-
-  var block_d_z    = region( grid_e_z, double[9] )
-  var block_Uinv_z = region( grid_e_z, double[9] )
-
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
 
@@ -253,15 +244,6 @@ task main()
   var p_LU2_N_x     = partition_LU(LU2_N_x, pencil)
   var p_LU2_N_y     = partition_LU(LU2_N_y, pencil)
   var p_LU2_N_z     = partition_LU(LU2_N_z, pencil)
-
-  var p_block_d_x    = partition_xpencil_double9(block_d_x   , n_ghosts,  true, pencil)
-  var p_block_Uinv_x = partition_xpencil_double9(block_Uinv_x, n_ghosts,  true, pencil)
-
-  var p_block_d_y    = partition_ypencil_double9(block_d_y   , n_ghosts,  true, pencil)
-  var p_block_Uinv_y = partition_ypencil_double9(block_Uinv_y, n_ghosts,  true, pencil)
-
-  var p_block_d_z    = partition_zpencil_double9(block_d_z   , n_ghosts,  true, pencil)
-  var p_block_Uinv_z = partition_zpencil_double9(block_Uinv_z, n_ghosts,  true, pencil)
 
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
@@ -603,7 +585,7 @@ task main()
       -- Add x-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_rhs_x[i], p_block_d_x[i], p_block_Uinv_x[i], p_LU_x[i] )
+        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_rhs_x[i], p_LU_x[i] )
       end
 
       -- Add x-direction viscous flux derivative to RHS.
@@ -623,7 +605,7 @@ task main()
       -- Add y-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_rhs_y[i], p_block_d_y[i], p_block_Uinv_y[i], p_LU_y[i] )
+        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_rhs_y[i], p_LU_y[i] )
       end
 
       -- Add y-direction viscous flux derivative to RHS.
@@ -643,7 +625,7 @@ task main()
       -- Add z-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_rhs_z[i], p_block_d_z[i], p_block_Uinv_z[i], p_LU_z[i] )
+        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_rhs_z[i], p_LU_z[i] )
       end
 
       -- Add z-direction viscous flux derivative to RHS.

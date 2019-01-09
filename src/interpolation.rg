@@ -578,11 +578,9 @@ solve_tridiagonal_x_w = make_solve_tridiagonal_x('_3', 'w')
 __demand(__inline)
 task WCHR_interpolation_x( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l   : region(ispace(int3d), primitive),
-                           r_prim_r   : region(ispace(int3d), primitive),
-                           block_d    : region(ispace(int3d), double[9]),
-                           block_Uinv : region(ispace(int3d), double[9]) )
+                           r_prim_r   : region(ispace(int3d), primitive) )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, block_d, block_Uinv)
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r)
 do
 
   -- var t_start = c.legion_get_current_time_in_micros()
@@ -609,6 +607,9 @@ do
 
   var rho_avg = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_x.lo), double )
   var sos_avg = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_x.lo), double )
+
+  var block_d    = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_x.lo), double[9] )
+  var block_Uinv = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_x.lo), double[9] )
 
   for i in r_prim_l do
     var idx_c = int3d { x = i.x + ip.n_ghosts, y = i.y, z = i.z }
@@ -950,6 +951,9 @@ do
   regentlib.c.legion_physical_region_destroy(__physical(rho_avg)[0])
   regentlib.c.legion_physical_region_destroy(__physical(sos_avg)[0])
 
+  regentlib.c.legion_physical_region_destroy(__physical(block_d)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(block_Uinv)[0])
+
   __delete(alpha_l)
   __delete(beta_l)
   __delete(gamma_l)
@@ -960,6 +964,9 @@ do
 
   __delete(rho_avg)
   __delete(sos_avg)
+
+  __delete(block_d)
+  __delete(block_Uinv)
 
   return 1
 end
@@ -972,11 +979,9 @@ solve_tridiagonal_y_w = make_solve_tridiagonal_y('_3', 'w')
 __demand(__inline)
 task WCHR_interpolation_y( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l   : region(ispace(int3d), primitive),
-                           r_prim_r   : region(ispace(int3d), primitive),
-                           block_d    : region(ispace(int3d), double[9]),
-                           block_Uinv : region(ispace(int3d), double[9]) )
+                           r_prim_r   : region(ispace(int3d), primitive) )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, block_d, block_Uinv)
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r)
 do
 
   -- var t_start = c.legion_get_current_time_in_micros()
@@ -1003,6 +1008,9 @@ do
 
   var rho_avg = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_y.lo), double )
   var sos_avg = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_y.lo), double )
+
+  var block_d    = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_y.lo), double[9] )
+  var block_Uinv = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_y.lo), double[9] )
 
   for i in r_prim_l do
     var idx_c = int3d { x = i.x, y = i.y + ip.n_ghosts, z = i.z }
@@ -1344,6 +1352,9 @@ do
   regentlib.c.legion_physical_region_destroy(__physical(rho_avg)[0])
   regentlib.c.legion_physical_region_destroy(__physical(sos_avg)[0])
 
+  regentlib.c.legion_physical_region_destroy(__physical(block_d)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(block_Uinv)[0])
+
   __delete(alpha_l)
   __delete(beta_l)
   __delete(gamma_l)
@@ -1354,6 +1365,9 @@ do
 
   __delete(rho_avg)
   __delete(sos_avg)
+
+  __delete(block_d)
+  __delete(block_Uinv)
 
   return 1
 end
@@ -1366,11 +1380,9 @@ solve_tridiagonal_z_v = make_solve_tridiagonal_z('_2', 'v')
 __demand(__inline)
 task WCHR_interpolation_z( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l   : region(ispace(int3d), primitive),
-                           r_prim_r   : region(ispace(int3d), primitive),
-                           block_d    : region(ispace(int3d), double[9]),
-                           block_Uinv : region(ispace(int3d), double[9]) )
+                           r_prim_r   : region(ispace(int3d), primitive) )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r, block_d, block_Uinv)
+  reads(r_prim_c), reads writes(r_prim_l, r_prim_r)
 do
 
   -- var t_start = c.legion_get_current_time_in_micros()
@@ -1397,6 +1409,9 @@ do
 
   var rho_avg = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_z.lo), double )
   var sos_avg = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_z.lo), double )
+
+  var block_d    = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_z.lo), double[9] )
+  var block_Uinv = region( ispace(int3d, {nx_e, ny_e, nz_e}, bounds_z.lo), double[9] )
 
   for i in r_prim_l do
     var idx_c = int3d { x = i.x, y = i.y, z = i.z + ip.n_ghosts }
@@ -1738,6 +1753,9 @@ do
   regentlib.c.legion_physical_region_destroy(__physical(rho_avg)[0])
   regentlib.c.legion_physical_region_destroy(__physical(sos_avg)[0])
 
+  regentlib.c.legion_physical_region_destroy(__physical(block_d)[0])
+  regentlib.c.legion_physical_region_destroy(__physical(block_Uinv)[0])
+
   __delete(alpha_l)
   __delete(beta_l)
   __delete(gamma_l)
@@ -1748,6 +1766,9 @@ do
 
   __delete(rho_avg)
   __delete(sos_avg)
+
+  __delete(block_d)
+  __delete(block_Uinv)
 
   return 1
 end
