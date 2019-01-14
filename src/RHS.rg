@@ -1482,263 +1482,263 @@ do
 end
 
 
-__demand(__inline)
-task pre_substep()
-where
-do
-      -- if problem.viscous then
-      --   -- Get the transport coefficients.
-      --   __demand(__parallel)
-      --   for i in pencil_interior do
-      --     problem.get_transport_coeffs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i] )
-      --   end
+-- __demand(__inline)
+-- task pre_substep()
+-- where
+-- do
+--       -- if problem.viscous then
+--       --   -- Get the transport coefficients.
+--       --   __demand(__parallel)
+--       --   for i in pencil_interior do
+--       --     problem.get_transport_coeffs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i] )
+--       --   end
+-- 
+--       --   -- Get the viscous stress tensor.
+--       --   __demand(__parallel)
+--       --   for i in pencil_interior do
+--       --     get_tauij( p_gradu_y[i], p_tauij_y[i], p_visc_y[i] )
+--       --   end
+--       -- end
+-- 
+-- end
 
-      --   -- Get the viscous stress tensor.
-      --   __demand(__parallel)
-      --   for i in pencil_interior do
-      --     get_tauij( p_gradu_y[i], p_tauij_y[i], p_visc_y[i] )
-      --   end
-      -- end
 
-end
+-- __demand(__inline)
+-- task get_RHS( r_rhs : region(ispace(int3d), conserved),
+--               p_rhs_x : partition(disjoint, r_rhs, ispace(int2d)),
+--               p_rhs_y : partition(disjoint, r_rhs, ispace(int2d)),
+--               p_rhs_z : partition(disjoint, r_rhs, ispace(int2d)),
+-- 
+--               r_prim_c : region(ispace(int3d), primitive),
+--               p_prim_c_x : partition(disjoint, r_prim_c, ispace(int2d)),
+--               p_prim_c_y : partition(disjoint, r_prim_c, ispace(int2d)),
+--               p_prim_c_z : partition(disjoint, r_prim_c, ispace(int2d)),
+--               p_prim_c_x_wg : partition(disjoint, r_prim_c, ispace(int2d)),
+--               p_prim_c_y_wg : partition(disjoint, r_prim_c, ispace(int2d)),
+--               p_prim_c_z_wg : partition(disjoint, r_prim_c, ispace(int2d)),
+-- 
+--               r_aux_c : region(ispace(int3d), auxiliary),
+--               p_aux_c_x : partition(disjoint, r_aux_c, ispace(int2d)),
+--               p_aux_c_y : partition(disjoint, r_aux_c, ispace(int2d)),
+--               p_aux_c_z : partition(disjoint, r_aux_c, ispace(int2d)),
+-- 
+--               r_visc : region(ispace(int3d), transport_coeffs),
+--               p_visc_x : partition(disjoint, r_visc, ispace(int2d)),
+--               p_visc_y : partition(disjoint, r_visc, ispace(int2d)),
+--               p_visc_z : partition(disjoint, r_visc, ispace(int2d)),
+-- 
+--               r_gradu : region(ispace(int3d), tensor2),
+--               p_gradu_x : partition(disjoint, r_gradu, ispace(int2d)),
+--               p_gradu_y : partition(disjoint, r_gradu, ispace(int2d)),
+--               p_gradu_z : partition(disjoint, r_gradu, ispace(int2d)),
+-- 
+--               r_grad2u : region(ispace(int3d), tensor2),
+--               p_grad2u_x : partition(disjoint, r_grad2u, ispace(int2d)),
+--               p_grad2u_y : partition(disjoint, r_grad2u, ispace(int2d)),
+--               p_grad2u_z : partition(disjoint, r_grad2u, ispace(int2d)),
+-- 
+--               r_tauij : region(ispace(int3d), tensor2symm),
+--               p_tauij_x : partition(disjoint, r_tauij, ispace(int2d)),
+--               p_tauij_y : partition(disjoint, r_tauij, ispace(int2d)),
+--               p_tauij_z : partition(disjoint, r_tauij, ispace(int2d)),
+-- 
+--               LU_x : region(ispace(int3d), LU_struct),
+--               p_LU_x : partition(disjoint, LU_x, ispace(int2d)),
+--               LU_y : region(ispace(int3d), LU_struct),
+--               p_LU_y : partition(disjoint, LU_y, ispace(int2d)),
+--               LU_z : region(ispace(int3d), LU_struct),
+--               p_LU_z : partition(disjoint, LU_z, ispace(int2d)),
+-- 
+--               LU_N_x : region(ispace(int3d), LU_struct),
+--               p_LU_N_x : partition(disjoint, LU_N_x, ispace(int2d)),
+--               LU_N_y : region(ispace(int3d), LU_struct),
+--               p_LU_N_y : partition(disjoint, LU_N_y, ispace(int2d)),
+--               LU_N_z : region(ispace(int3d), LU_struct),
+--               p_LU_N_z : partition(disjoint, LU_N_z, ispace(int2d)),
+-- 
+--               LU2_N_x : region(ispace(int3d), LU_struct),
+--               p_LU2_N_x : partition(disjoint, LU2_N_x, ispace(int2d)),
+--               LU2_N_y : region(ispace(int3d), LU_struct),
+--               p_LU2_N_y : partition(disjoint, LU2_N_y, ispace(int2d)),
+--               LU2_N_z : region(ispace(int3d), LU_struct),
+--               p_LU2_N_z : partition(disjoint, LU2_N_z, ispace(int2d)),
+-- 
+--               pencil_interior : ispace(int2d) )
+-- where
+--   reads writes(r_rhs),
+--   reads(r_prim_c, r_aux_c.T, r_visc, r_tauij, r_gradu, r_grad2u),
+--   reads(LU_x, LU_y, LU_z, LU_N_x, LU_N_y, LU_N_z, LU2_N_x, LU2_N_y, LU2_N_z)
+-- do
+-- 
+--       -- Set RHS to zero.
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         set_zero_cnsr( p_rhs_y[i] )
+--       end
+--       
+--       -- Add x-direction convective flux derivative to RHS.
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_rhs_x[i], p_LU_x[i] )
+--       end
+-- 
+--       -- Add x-direction viscous flux derivative to RHS.
+--       if problem.conservative_viscous_terms then
+--         __demand(__parallel)
+--         for i in pencil_interior do
+--           add_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_rhs_x[i], p_LU_N_x[i] )
+--         end
+--       else
+--         __demand(__parallel)
+--         for i in pencil_interior do
+--           add_nonconservative_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_gradu_x[i], p_grad2u_x[i], 
+--                                                         p_tauij_x[i], p_rhs_x[i], p_LU_N_x[i], p_LU2_N_x[i] )
+--         end
+--       end
+-- 
+--       -- Add y-direction convective flux derivative to RHS.
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_rhs_y[i], p_LU_y[i] )
+--       end
+-- 
+--       -- Add y-direction viscous flux derivative to RHS.
+--       if problem.conservative_viscous_terms then
+--         __demand(__parallel)
+--         for i in pencil_interior do
+--           add_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_rhs_y[i], p_LU_N_y[i] )
+--         end
+--       else
+--         __demand(__parallel)
+--         for i in pencil_interior do
+--           add_nonconservative_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_gradu_y[i], p_grad2u_y[i], 
+--                                                         p_tauij_y[i], p_rhs_y[i], p_LU_N_y[i], p_LU2_N_y[i] )
+--         end
+--       end
+-- 
+--       -- Add z-direction convective flux derivative to RHS.
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_rhs_z[i], p_LU_z[i] )
+--       end
+-- 
+--       -- Add z-direction viscous flux derivative to RHS.
+--       if problem.conservative_viscous_terms then
+--         __demand(__parallel)
+--         for i in pencil_interior do
+--           add_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_rhs_z[i], p_LU_N_z[i] )
+--         end
+--       else
+--         __demand(__parallel)
+--         for i in pencil_interior do
+--           add_nonconservative_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_gradu_z[i], p_grad2u_z[i], 
+--                                                         p_tauij_z[i], p_rhs_z[i], p_LU_N_z[i], p_LU2_N_z[i] )
+--         end
+--       end
+-- 
+-- end
 
-
-__demand(__inline)
-task get_RHS( r_rhs : region(ispace(int3d), conserved),
-              p_rhs_x : partition(disjoint, r_rhs, ispace(int2d)),
-              p_rhs_y : partition(disjoint, r_rhs, ispace(int2d)),
-              p_rhs_z : partition(disjoint, r_rhs, ispace(int2d)),
-
-              r_prim_c : region(ispace(int3d), primitive),
-              p_prim_c_x : partition(disjoint, r_prim_c, ispace(int2d)),
-              p_prim_c_y : partition(disjoint, r_prim_c, ispace(int2d)),
-              p_prim_c_z : partition(disjoint, r_prim_c, ispace(int2d)),
-              p_prim_c_x_wg : partition(disjoint, r_prim_c, ispace(int2d)),
-              p_prim_c_y_wg : partition(disjoint, r_prim_c, ispace(int2d)),
-              p_prim_c_z_wg : partition(disjoint, r_prim_c, ispace(int2d)),
-
-              r_aux_c : region(ispace(int3d), auxiliary),
-              p_aux_c_x : partition(disjoint, r_aux_c, ispace(int2d)),
-              p_aux_c_y : partition(disjoint, r_aux_c, ispace(int2d)),
-              p_aux_c_z : partition(disjoint, r_aux_c, ispace(int2d)),
-
-              r_visc : region(ispace(int3d), transport_coeffs),
-              p_visc_x : partition(disjoint, r_visc, ispace(int2d)),
-              p_visc_y : partition(disjoint, r_visc, ispace(int2d)),
-              p_visc_z : partition(disjoint, r_visc, ispace(int2d)),
-
-              r_gradu : region(ispace(int3d), tensor2),
-              p_gradu_x : partition(disjoint, r_gradu, ispace(int2d)),
-              p_gradu_y : partition(disjoint, r_gradu, ispace(int2d)),
-              p_gradu_z : partition(disjoint, r_gradu, ispace(int2d)),
-
-              r_grad2u : region(ispace(int3d), tensor2),
-              p_grad2u_x : partition(disjoint, r_grad2u, ispace(int2d)),
-              p_grad2u_y : partition(disjoint, r_grad2u, ispace(int2d)),
-              p_grad2u_z : partition(disjoint, r_grad2u, ispace(int2d)),
-
-              r_tauij : region(ispace(int3d), tensor2symm),
-              p_tauij_x : partition(disjoint, r_tauij, ispace(int2d)),
-              p_tauij_y : partition(disjoint, r_tauij, ispace(int2d)),
-              p_tauij_z : partition(disjoint, r_tauij, ispace(int2d)),
-
-              LU_x : region(ispace(int3d), LU_struct),
-              p_LU_x : partition(disjoint, LU_x, ispace(int2d)),
-              LU_y : region(ispace(int3d), LU_struct),
-              p_LU_y : partition(disjoint, LU_y, ispace(int2d)),
-              LU_z : region(ispace(int3d), LU_struct),
-              p_LU_z : partition(disjoint, LU_z, ispace(int2d)),
-
-              LU_N_x : region(ispace(int3d), LU_struct),
-              p_LU_N_x : partition(disjoint, LU_N_x, ispace(int2d)),
-              LU_N_y : region(ispace(int3d), LU_struct),
-              p_LU_N_y : partition(disjoint, LU_N_y, ispace(int2d)),
-              LU_N_z : region(ispace(int3d), LU_struct),
-              p_LU_N_z : partition(disjoint, LU_N_z, ispace(int2d)),
-
-              LU2_N_x : region(ispace(int3d), LU_struct),
-              p_LU2_N_x : partition(disjoint, LU2_N_x, ispace(int2d)),
-              LU2_N_y : region(ispace(int3d), LU_struct),
-              p_LU2_N_y : partition(disjoint, LU2_N_y, ispace(int2d)),
-              LU2_N_z : region(ispace(int3d), LU_struct),
-              p_LU2_N_z : partition(disjoint, LU2_N_z, ispace(int2d)),
-
-              pencil_interior : ispace(int2d) )
-where
-  reads writes(r_rhs),
-  reads(r_prim_c, r_aux_c.T, r_visc, r_tauij, r_gradu, r_grad2u),
-  reads(LU_x, LU_y, LU_z, LU_N_x, LU_N_y, LU_N_z, LU2_N_x, LU2_N_y, LU2_N_z)
-do
-
-      -- Set RHS to zero.
-      __demand(__parallel)
-      for i in pencil_interior do
-        set_zero_cnsr( p_rhs_y[i] )
-      end
-      
-      -- Add x-direction convective flux derivative to RHS.
-      __demand(__parallel)
-      for i in pencil_interior do
-        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_rhs_x[i], p_LU_x[i] )
-      end
-
-      -- Add x-direction viscous flux derivative to RHS.
-      if problem.conservative_viscous_terms then
-        __demand(__parallel)
-        for i in pencil_interior do
-          add_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_rhs_x[i], p_LU_N_x[i] )
-        end
-      else
-        __demand(__parallel)
-        for i in pencil_interior do
-          add_nonconservative_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_gradu_x[i], p_grad2u_x[i], 
-                                                        p_tauij_x[i], p_rhs_x[i], p_LU_N_x[i], p_LU2_N_x[i] )
-        end
-      end
-
-      -- Add y-direction convective flux derivative to RHS.
-      __demand(__parallel)
-      for i in pencil_interior do
-        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_rhs_y[i], p_LU_y[i] )
-      end
-
-      -- Add y-direction viscous flux derivative to RHS.
-      if problem.conservative_viscous_terms then
-        __demand(__parallel)
-        for i in pencil_interior do
-          add_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_rhs_y[i], p_LU_N_y[i] )
-        end
-      else
-        __demand(__parallel)
-        for i in pencil_interior do
-          add_nonconservative_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_gradu_y[i], p_grad2u_y[i], 
-                                                        p_tauij_y[i], p_rhs_y[i], p_LU_N_y[i], p_LU2_N_y[i] )
-        end
-      end
-
-      -- Add z-direction convective flux derivative to RHS.
-      __demand(__parallel)
-      for i in pencil_interior do
-        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_rhs_z[i], p_LU_z[i] )
-      end
-
-      -- Add z-direction viscous flux derivative to RHS.
-      if problem.conservative_viscous_terms then
-        __demand(__parallel)
-        for i in pencil_interior do
-          add_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_rhs_z[i], p_LU_N_z[i] )
-        end
-      else
-        __demand(__parallel)
-        for i in pencil_interior do
-          add_nonconservative_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_gradu_z[i], p_grad2u_z[i], 
-                                                        p_tauij_z[i], p_rhs_z[i], p_LU_N_z[i], p_LU2_N_z[i] )
-        end
-      end
-
-end
-
-__demand(__inline)
-task post_substep()
-where
-do
-      -- Update the primitive variables.
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
-      end
-
-      -- Update temperature.
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_temperature_r( p_prim_c_y[i], p_aux_c_y[i] )
-      end
-
-      -- Update velocity gradient tensor.
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_grad2u_x[i], p_LU_N_x[i], p_LU2_N_x[i] )
-      end
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_grad2u_y[i], p_LU_N_y[i], p_LU2_N_y[i] )
-      end
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_grad2u_z[i], p_LU_N_z[i], p_LU2_N_z[i] )
-      end
-
-      -- Get the density derivatives
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_density_x_derivatives( p_prim_c_x[i], p_gradrho_x[i], p_LU_N_x[i] )
-      end
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_density_y_derivatives( p_prim_c_y[i], p_gradrho_y[i], p_LU_N_y[i] )
-      end
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_density_z_derivatives( p_prim_c_z[i], p_gradrho_z[i], p_LU_N_z[i] )
-      end
- 
-      -- Get the pressure derivatives
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_pressure_x_derivatives( p_prim_c_x[i], p_gradp_x[i], p_LU_N_x[i] )
-      end
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_pressure_y_derivatives( p_prim_c_y[i], p_gradp_y[i], p_LU_N_y[i] )
-      end
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_pressure_z_derivatives( p_prim_c_z[i], p_gradp_z[i], p_LU_N_z[i] )
-      end
- 
-      -- Fill ghost cells in non-periodic directions first
-      if not problem.periodic_x then
-        __demand(__parallel)
-        for i in pencil_interior do
-          -- Fill in ghost cells
-          nonperiodic_ghost_cells_x(p_coords_x[i], p_prim_c_x_wg[i], p_gradrho_x[i], p_gradu_x[i], p_gradp_x[i], tsim, n_ghosts)
-        end
-      end
-      if not problem.periodic_y then
-        __demand(__parallel)
-        for i in pencil_interior do
-          -- Fill in ghost cells
-          nonperiodic_ghost_cells_y(p_coords_y[i], p_prim_c_y_wg[i], tsim, n_ghosts)
-        end
-      end
-      if not problem.periodic_z then
-        __demand(__parallel)
-        for i in pencil_interior do
-          -- Fill in ghost cells
-          nonperiodic_ghost_cells_z(p_coords_z[i], p_prim_c_z_wg[i], tsim, n_ghosts)
-        end
-      end
-
-      -- Fill ghost cells in periodic directions next
-      if problem.periodic_x then
-        __demand(__parallel)
-        for i in pencil_interior do
-          -- Fill in ghost cells
-          periodic_ghost_cells_x(p_prim_c_x_wg[i], n_ghosts)
-        end
-      end
-      if problem.periodic_y then
-        __demand(__parallel)
-        for i in pencil_interior do
-          -- Fill in ghost cells
-          periodic_ghost_cells_y(p_prim_c_y_wg[i], n_ghosts)
-        end
-      end
-      if problem.periodic_z then
-        __demand(__parallel)
-        for i in pencil_interior do
-          -- Fill in ghost cells
-          periodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
-        end
-      end
-end
+-- __demand(__inline)
+-- task post_substep()
+-- where
+-- do
+--       -- Update the primitive variables.
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
+--       end
+-- 
+--       -- Update temperature.
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         token += get_temperature_r( p_prim_c_y[i], p_aux_c_y[i] )
+--       end
+-- 
+--       -- Update velocity gradient tensor.
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_grad2u_x[i], p_LU_N_x[i], p_LU2_N_x[i] )
+--       end
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_grad2u_y[i], p_LU_N_y[i], p_LU2_N_y[i] )
+--       end
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_grad2u_z[i], p_LU_N_z[i], p_LU2_N_z[i] )
+--       end
+-- 
+--       -- Get the density derivatives
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         token += get_density_x_derivatives( p_prim_c_x[i], p_gradrho_x[i], p_LU_N_x[i] )
+--       end
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         token += get_density_y_derivatives( p_prim_c_y[i], p_gradrho_y[i], p_LU_N_y[i] )
+--       end
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         token += get_density_z_derivatives( p_prim_c_z[i], p_gradrho_z[i], p_LU_N_z[i] )
+--       end
+--  
+--       -- Get the pressure derivatives
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         token += get_pressure_x_derivatives( p_prim_c_x[i], p_gradp_x[i], p_LU_N_x[i] )
+--       end
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         token += get_pressure_y_derivatives( p_prim_c_y[i], p_gradp_y[i], p_LU_N_y[i] )
+--       end
+--       __demand(__parallel)
+--       for i in pencil_interior do
+--         token += get_pressure_z_derivatives( p_prim_c_z[i], p_gradp_z[i], p_LU_N_z[i] )
+--       end
+--  
+--       -- Fill ghost cells in non-periodic directions first
+--       if not problem.periodic_x then
+--         __demand(__parallel)
+--         for i in pencil_interior do
+--           -- Fill in ghost cells
+--           nonperiodic_ghost_cells_x(p_coords_x[i], p_prim_c_x_wg[i], p_gradrho_x[i], p_gradu_x[i], p_gradp_x[i], tsim, n_ghosts)
+--         end
+--       end
+--       if not problem.periodic_y then
+--         __demand(__parallel)
+--         for i in pencil_interior do
+--           -- Fill in ghost cells
+--           nonperiodic_ghost_cells_y(p_coords_y[i], p_prim_c_y_wg[i], tsim, n_ghosts)
+--         end
+--       end
+--       if not problem.periodic_z then
+--         __demand(__parallel)
+--         for i in pencil_interior do
+--           -- Fill in ghost cells
+--           nonperiodic_ghost_cells_z(p_coords_z[i], p_prim_c_z_wg[i], tsim, n_ghosts)
+--         end
+--       end
+-- 
+--       -- Fill ghost cells in periodic directions next
+--       if problem.periodic_x then
+--         __demand(__parallel)
+--         for i in pencil_interior do
+--           -- Fill in ghost cells
+--           periodic_ghost_cells_x(p_prim_c_x_wg[i], n_ghosts)
+--         end
+--       end
+--       if problem.periodic_y then
+--         __demand(__parallel)
+--         for i in pencil_interior do
+--           -- Fill in ghost cells
+--           periodic_ghost_cells_y(p_prim_c_y_wg[i], n_ghosts)
+--         end
+--       end
+--       if problem.periodic_z then
+--         __demand(__parallel)
+--         for i in pencil_interior do
+--           -- Fill in ghost cells
+--           periodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
+--         end
+--       end
+-- end

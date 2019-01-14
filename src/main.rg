@@ -589,16 +589,18 @@ task main()
       end
 
       -- Add x-direction viscous flux derivative to RHS.
-      if problem.conservative_viscous_terms then
-        __demand(__parallel)
-        for i in pencil_interior do
-          add_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_rhs_x[i], p_LU_N_x[i] )
-        end
-      else
-        __demand(__parallel)
-        for i in pencil_interior do
-          add_nonconservative_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_gradu_x[i], p_grad2u_x[i], 
-                                                        p_tauij_x[i], p_rhs_x[i], p_LU_N_x[i], p_LU2_N_x[i] )
+      if problem.viscous then
+        if problem.conservative_viscous_terms then
+          __demand(__parallel)
+          for i in pencil_interior do
+            add_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_rhs_x[i], p_LU_N_x[i] )
+          end
+        else
+          __demand(__parallel)
+          for i in pencil_interior do
+            add_nonconservative_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_gradu_x[i], p_grad2u_x[i], 
+                                                          p_tauij_x[i], p_rhs_x[i], p_LU_N_x[i], p_LU2_N_x[i] )
+          end
         end
       end
 
@@ -609,16 +611,18 @@ task main()
       end
 
       -- Add y-direction viscous flux derivative to RHS.
-      if problem.conservative_viscous_terms then
-        __demand(__parallel)
-        for i in pencil_interior do
-          add_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_rhs_y[i], p_LU_N_y[i] )
-        end
-      else
-        __demand(__parallel)
-        for i in pencil_interior do
-          add_nonconservative_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_gradu_y[i], p_grad2u_y[i], 
-                                                        p_tauij_y[i], p_rhs_y[i], p_LU_N_y[i], p_LU2_N_y[i] )
+      if problem.viscous then
+        if problem.conservative_viscous_terms then
+          __demand(__parallel)
+          for i in pencil_interior do
+            add_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_rhs_y[i], p_LU_N_y[i] )
+          end
+        else
+          __demand(__parallel)
+          for i in pencil_interior do
+            add_nonconservative_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_gradu_y[i], p_grad2u_y[i], 
+                                                          p_tauij_y[i], p_rhs_y[i], p_LU_N_y[i], p_LU2_N_y[i] )
+          end
         end
       end
 
@@ -629,24 +633,33 @@ task main()
       end
 
       -- Add z-direction viscous flux derivative to RHS.
-      if problem.conservative_viscous_terms then
-        __demand(__parallel)
-        for i in pencil_interior do
-          add_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_rhs_z[i], p_LU_N_z[i] )
-        end
-      else
-        __demand(__parallel)
-        for i in pencil_interior do
-          add_nonconservative_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_gradu_z[i], p_grad2u_z[i], 
-                                                        p_tauij_z[i], p_rhs_z[i], p_LU_N_z[i], p_LU2_N_z[i] )
+      if problem.viscous then
+        if problem.conservative_viscous_terms then
+          __demand(__parallel)
+          for i in pencil_interior do
+            add_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_rhs_z[i], p_LU_N_z[i] )
+          end
+        else
+          __demand(__parallel)
+          for i in pencil_interior do
+            add_nonconservative_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_gradu_z[i], p_grad2u_z[i], 
+                                                          p_tauij_z[i], p_rhs_z[i], p_LU_N_z[i], p_LU2_N_z[i] )
+          end
         end
       end
 
+      var found_nan_cnsr : int = 0
+      var found_nan_prim : int = 0
       -- Update solution in this substep.
       __demand(__parallel)
       for i in pencil_interior do
         update_substep( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK45[isub], B_RK45[isub] )
       end
+      __demand(__parallel)
+      for i in pencil_interior do
+        found_nan_cnsr += check_nan_cnsr( p_cnsr_y[i] )
+      end
+
 
       -- Update simulation time as well.
       Q_t = dt + A_RK45[isub]*Q_t
@@ -657,6 +670,22 @@ task main()
       for i in pencil_interior do
         token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
       end
+      __demand(__parallel)
+      for i in pencil_interior do
+        found_nan_prim += check_nan_prim( p_prim_c_y[i] )
+      end
+
+      if (found_nan_cnsr > 0) then
+        c.printf("Found %d nans in conserved variables\n", found_nan_cnsr)
+        tsim = tstop
+      end
+      if (found_nan_prim > 0) then
+        c.printf("Found %d nans in primitive variables\n", found_nan_prim)
+        tsim = tstop
+      end
+      wait_for(found_nan_cnsr)
+      wait_for(found_nan_prim)
+      -- regentlib.assert( (found_nan_cnsr + found_nan_prim) > 0, "Stopping simulation because code blew up! :'( \n")
 
       -- Update temperature.
       __demand(__parallel)
