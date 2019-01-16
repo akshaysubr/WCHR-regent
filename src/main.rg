@@ -648,18 +648,11 @@ task main()
         end
       end
 
-      var found_nan_cnsr : int = 0
-      var found_nan_prim : int = 0
       -- Update solution in this substep.
       __demand(__parallel)
       for i in pencil_interior do
         update_substep( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK45[isub], B_RK45[isub] )
       end
-      __demand(__parallel)
-      for i in pencil_interior do
-        found_nan_cnsr += check_nan_cnsr( p_cnsr_y[i] )
-      end
-
 
       -- Update simulation time as well.
       Q_t = dt + A_RK45[isub]*Q_t
@@ -670,22 +663,6 @@ task main()
       for i in pencil_interior do
         token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
       end
-      __demand(__parallel)
-      for i in pencil_interior do
-        found_nan_prim += check_nan_prim( p_prim_c_y[i] )
-      end
-
-      if (found_nan_cnsr > 0) then
-        c.printf("Found %d nans in conserved variables\n", found_nan_cnsr)
-        tsim = tstop
-      end
-      if (found_nan_prim > 0) then
-        c.printf("Found %d nans in primitive variables\n", found_nan_prim)
-        tsim = tstop
-      end
-      wait_for(found_nan_cnsr)
-      wait_for(found_nan_prim)
-      -- regentlib.assert( (found_nan_cnsr + found_nan_prim) > 0, "Stopping simulation because code blew up! :'( \n")
 
       -- Update temperature.
       __demand(__parallel)
