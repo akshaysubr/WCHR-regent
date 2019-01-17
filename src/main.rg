@@ -185,6 +185,10 @@ task main()
   var p_prim_c_y_wg = partition_ypencil_prim(r_prim_c,    n_ghosts,  true, pencil)
   var p_prim_c_z_wg = partition_zpencil_prim(r_prim_c,    n_ghosts,  true, pencil)
 
+  var p_prim_c_x_wo_wg = partition_xpencil_with_overlap_prim(r_prim_c, 1, n_ghosts, true, pencil)
+  var p_prim_c_y_wo_wg = partition_ypencil_with_overlap_prim(r_prim_c, 1, n_ghosts, true, pencil)
+  var p_prim_c_z_wo_wg = partition_zpencil_with_overlap_prim(r_prim_c, 1, n_ghosts, true, pencil)
+
   var p_aux_c_x     = partition_xpencil_aux (r_aux_c,     n_ghosts, false, pencil)
   var p_aux_c_y     = partition_ypencil_aux (r_aux_c,     n_ghosts, false, pencil)
   var p_aux_c_z     = partition_zpencil_aux (r_aux_c,     n_ghosts, false, pencil)
@@ -585,7 +589,7 @@ task main()
       -- Add x-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_rhs_x[i], p_LU_x[i] )
+        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_c_x_wo_wg[i], p_rhs_x[i], p_LU_x[i] )
       end
 
       -- Add x-direction viscous flux derivative to RHS.
@@ -607,7 +611,7 @@ task main()
       -- Add y-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_rhs_y[i], p_LU_y[i] )
+        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_c_y_wo_wg[i], p_rhs_y[i], p_LU_y[i] )
       end
 
       -- Add y-direction viscous flux derivative to RHS.
@@ -629,7 +633,7 @@ task main()
       -- Add z-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_rhs_z[i], p_LU_z[i] )
+        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_c_z_wo_wg[i], p_rhs_z[i], p_LU_z[i] )
       end
 
       -- Add z-direction viscous flux derivative to RHS.

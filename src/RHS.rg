@@ -2,9 +2,9 @@ import "regent"
 
 require("fields")
 require("derivatives")
-interpolation = require("interpolation")
 require("SOE")
 
+local interpolation = require("interpolation")
 local problem = require("problem")
 
 local c     = regentlib.c
@@ -580,11 +580,12 @@ end
 
 
 
-task add_xflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
-                           r_rhs      : region(ispace(int3d), conserved),
-                           LU_x       : region(ispace(int3d), LU_struct) )
+task add_xflux_der_to_rhs( r_prim_c    : region(ispace(int3d), primitive),
+                           r_prim_c_wo : region(ispace(int3d), primitive),
+                           r_rhs       : region(ispace(int3d), conserved),
+                           LU_x        : region(ispace(int3d), LU_struct) )
 where
-  reads( r_prim_c, LU_x ),
+  reads( r_prim_c, r_prim_c_wo, LU_x ),
   reads writes( r_rhs )
 do
 
@@ -619,7 +620,26 @@ do
     elseif (problem.Riemann_solver == "HLLC") then
       HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
     else
-      HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
+      var r_gradu_l_x       = region( ispace(int3d, {Nx_e, ny, nz}, bounds_c.lo), tensor2 )
+      var r_gradu_r_x       = region( ispace(int3d, {Nx_e, ny, nz}, bounds_c.lo), tensor2 )
+      var r_theta_avg_x     = region( ispace(int3d, {Nx_e, ny, nz}, bounds_c.lo), double )
+      var r_omega_mag_avg_x = region( ispace(int3d, {Nx_e, ny, nz}, bounds_c.lo), double )
+
+      get_velocity_derivatives_x(r_prim_c_wo, r_gradu_l_x, r_gradu_r_x, interpolation.n_ghosts)
+      compute_theta_avg(r_gradu_l_x, r_gradu_r_x, r_theta_avg_x)
+      compute_omega_mag_avg(r_gradu_l_x, r_gradu_r_x, r_omega_mag_avg_x)
+
+      HLLC_HLL_x( r_prim_l_x, r_prim_r_x, r_theta_avg_x, r_omega_mag_avg_x, r_flux_e_x )
+
+      regentlib.c.legion_physical_region_destroy(__physical(r_gradu_l_x)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_gradu_r_x)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_theta_avg_x)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_omega_mag_avg_x)[0])
+
+      __delete(r_gradu_l_x)
+      __delete(r_gradu_r_x)
+      __delete(r_theta_avg_x)
+      __delete(r_omega_mag_avg_x)
     end
 
     get_xfluxes_r( r_prim_c, r_flux_c )
@@ -775,11 +795,12 @@ end
 
 
 
-task add_yflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
-                           r_rhs      : region(ispace(int3d), conserved),
-                           LU_y       : region(ispace(int3d), LU_struct) )
+task add_yflux_der_to_rhs( r_prim_c    : region(ispace(int3d), primitive),
+                           r_prim_c_wo : region(ispace(int3d), primitive),
+                           r_rhs       : region(ispace(int3d), conserved),
+                           LU_y        : region(ispace(int3d), LU_struct) )
 where
-  reads( r_prim_c, LU_y ),
+  reads( r_prim_c, r_prim_c_wo, LU_y ),
   reads writes( r_rhs )
 do
 
@@ -814,7 +835,26 @@ do
     elseif (problem.Riemann_solver == "HLLC") then
       HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
     else
-      HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
+      var r_gradu_l_y       = region( ispace(int3d, {nx, Ny_e, nz}, bounds_c.lo), tensor2 )
+      var r_gradu_r_y       = region( ispace(int3d, {nx, Ny_e, nz}, bounds_c.lo), tensor2 )
+      var r_theta_avg_y     = region( ispace(int3d, {nx, Ny_e, nz}, bounds_c.lo), double )
+      var r_omega_mag_avg_y = region( ispace(int3d, {nx, Ny_e, nz}, bounds_c.lo), double )
+
+      get_velocity_derivatives_y(r_prim_c_wo, r_gradu_l_y, r_gradu_r_y, interpolation.n_ghosts)
+      compute_theta_avg(r_gradu_l_y, r_gradu_r_y, r_theta_avg_y)
+      compute_omega_mag_avg(r_gradu_l_y, r_gradu_r_y, r_omega_mag_avg_y)
+
+      HLLC_HLL_y( r_prim_l_y, r_prim_r_y, r_theta_avg_y, r_omega_mag_avg_y, r_flux_e_y )
+
+      regentlib.c.legion_physical_region_destroy(__physical(r_gradu_l_y)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_gradu_r_y)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_theta_avg_y)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_omega_mag_avg_y)[0])
+
+      __delete(r_gradu_l_y)
+      __delete(r_gradu_r_y)
+      __delete(r_theta_avg_y)
+      __delete(r_omega_mag_avg_y)
     end
 
     get_yfluxes_r( r_prim_c, r_flux_c )
@@ -971,10 +1011,11 @@ end
 
 
 task add_zflux_der_to_rhs( r_prim_c   : region(ispace(int3d), primitive),
+                           r_prim_c_wo : region(ispace(int3d), primitive),
                            r_rhs      : region(ispace(int3d), conserved),
                            LU_z       : region(ispace(int3d), LU_struct) )
 where
-  reads( r_prim_c, LU_z ),
+  reads( r_prim_c, r_prim_c_wo, LU_z ),
   reads writes( r_rhs )
 do
 
@@ -1009,7 +1050,26 @@ do
     elseif (problem.Riemann_solver == "HLLC") then
       HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
     else
-      HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
+      var r_gradu_l_z       = region( ispace(int3d, {nx, ny, Nz_e}, bounds_c.lo), tensor2 )
+      var r_gradu_r_z       = region( ispace(int3d, {nx, ny, Nz_e}, bounds_c.lo), tensor2 )
+      var r_theta_avg_z     = region( ispace(int3d, {nx, ny, Nz_e}, bounds_c.lo), double )
+      var r_omega_mag_avg_z = region( ispace(int3d, {nx, ny, Nz_e}, bounds_c.lo), double )
+
+      get_velocity_derivatives_z(r_prim_c_wo, r_gradu_l_z, r_gradu_r_z, interpolation.n_ghosts)
+      compute_theta_avg(r_gradu_l_z, r_gradu_r_z, r_theta_avg_z)
+      compute_omega_mag_avg(r_gradu_l_z, r_gradu_r_z, r_omega_mag_avg_z)
+
+      HLLC_HLL_z( r_prim_l_z, r_prim_r_z, r_theta_avg_z, r_omega_mag_avg_z, r_flux_e_z )
+
+      regentlib.c.legion_physical_region_destroy(__physical(r_gradu_l_z)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_gradu_r_z)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_theta_avg_z)[0])
+      regentlib.c.legion_physical_region_destroy(__physical(r_omega_mag_avg_z)[0])
+
+      __delete(r_gradu_l_z)
+      __delete(r_gradu_r_z)
+      __delete(r_theta_avg_z)
+      __delete(r_omega_mag_avg_z)
     end
 
     get_zfluxes_r( r_prim_c, r_flux_c )

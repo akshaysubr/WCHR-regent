@@ -289,6 +289,231 @@ local function make_partition_zpencil(r)
   return partition_zpencil
 end
 
+local function make_partition_xpencil_with_overlap(r)
+  local task partition_xpencil_with_overlap( [r],
+                                             n_overlap   : int64,
+                                             n_ghosts    : int64,
+                                             with_ghosts : bool,
+                                             xpencil     : ispace(int2d) )
+    var coloring = c.legion_domain_point_coloring_create()
+  
+    -- xpencil is of size (prow+2)(pcol+2)
+    var prow = xpencil.bounds.hi.x - 1
+    var pcol = xpencil.bounds.hi.y - 1
+  
+    var bounds = [r].ispace.bounds
+    var Nx_g = bounds.hi.x + 1
+    var Ny_g = bounds.hi.y + 1
+    var Nz_g = bounds.hi.z + 1
+    
+    var Nx = Nx_g - 2*n_ghosts
+    var Ny = Ny_g - 2*n_ghosts
+    var Nz = Nz_g - 2*n_ghosts
+  
+    for i in xpencil do
+      var xst : int64
+      var xen : int64
+      var yst : int64
+      var yen : int64
+      var zst : int64
+      var zen : int64
+
+      if (with_ghosts) then
+        xst = 0
+        xen = Nx_g - 1
+      else
+        xst = n_ghosts
+        xen = Nx + n_ghosts - 1
+      end
+
+      if ( (i.x > 0) and (i.x < prow+1) ) then
+        yst = (i.x-1)*(Ny/prow)+n_ghosts - n_overlap
+        yen = (i.x)*(Ny/prow)+n_ghosts-1 + n_overlap
+      end
+      if (i.x == 0) then
+        yst = 0
+        yen = n_ghosts-1 + n_overlap
+      end
+      if (i.x == prow+1) then
+        yst = Ny+n_ghosts - n_overlap
+        yen = Ny+2*n_ghosts-1
+      end
+
+      if ( (i.y > 0) and (i.y < pcol+1) ) then
+        zst = (i.y-1)*(Nz/pcol)+n_ghosts - n_overlap
+        zen = (i.y)*(Nz/pcol)+n_ghosts-1 + n_overlap
+      end
+      if (i.y == 0) then
+        zst = 0
+        zen = n_ghosts-1 + n_overlap
+      end
+      if (i.y == pcol+1) then
+        zst = Nz+n_ghosts - n_overlap
+        zen = Nz+2*n_ghosts-1
+      end
+
+      var lo = int3d { x = xst, y = yst, z = zst }
+      var hi = int3d { x = xen, y = yen, z = zen }
+      var rect = rect3d { lo = lo, hi = hi }
+      c.legion_domain_point_coloring_color_domain(coloring, i, rect)
+    end
+    var p = partition(aliased, [r], coloring, xpencil)
+    c.legion_domain_point_coloring_destroy(coloring)
+    return p
+  end
+  return partition_xpencil_with_overlap
+end
+
+local function make_partition_ypencil_with_overlap(r)
+  local task partition_ypencil_with_overlap( [r],
+                                             n_overlap   : int64,
+                                             n_ghosts    : int64,
+                                             with_ghosts : bool,
+                                             ypencil     : ispace(int2d) )
+    var coloring = c.legion_domain_point_coloring_create()
+  
+    -- xpencil is of size (prow+2)(pcol+2)
+    var prow = ypencil.bounds.hi.x - 1
+    var pcol = ypencil.bounds.hi.y - 1
+ 
+    var bounds = [r].ispace.bounds
+    var Nx_g = bounds.hi.x + 1
+    var Ny_g = bounds.hi.y + 1
+    var Nz_g = bounds.hi.z + 1
+    
+    var Nx = Nx_g - 2*n_ghosts
+    var Ny = Ny_g - 2*n_ghosts
+    var Nz = Nz_g - 2*n_ghosts
+  
+    for i in ypencil do
+      var xst : int64
+      var xen : int64
+      var yst : int64
+      var yen : int64
+      var zst : int64
+      var zen : int64
+
+      if (with_ghosts) then
+        yst = 0
+        yen = Ny_g - 1
+      else
+        yst = n_ghosts
+        yen = Ny + n_ghosts - 1
+      end
+
+      if ( (i.x > 0) and (i.x < prow+1) ) then
+        xst = (i.x-1)*(Nx/prow)+n_ghosts - n_overlap
+        xen = (i.x)*(Nx/prow)+n_ghosts-1 + n_overlap
+      end
+      if (i.x == 0) then
+        xst = 0
+        xen = n_ghosts-1 + n_overlap
+      end
+      if (i.x == prow+1) then
+        xst = Nx+n_ghosts - n_overlap
+        xen = Nx+2*n_ghosts-1
+      end
+
+      if ( (i.y > 0) and (i.y < pcol+1) ) then
+        zst = (i.y-1)*(Nz/pcol)+n_ghosts - n_overlap
+        zen = (i.y)*(Nz/pcol)+n_ghosts-1 + n_overlap
+      end
+      if (i.y == 0) then
+        zst = 0
+        zen = n_ghosts-1 + n_overlap
+      end
+      if (i.y == pcol+1) then
+        zst = Nz+n_ghosts - n_overlap
+        zen = Nz+2*n_ghosts-1
+      end
+
+      var lo = int3d { x = xst, y = yst, z = zst }
+      var hi = int3d { x = xen, y = yen, z = zen }
+      var rect = rect3d { lo = lo, hi = hi }
+      c.legion_domain_point_coloring_color_domain(coloring, i, rect)
+    end
+    var p = partition(aliased, [r], coloring, ypencil)
+    c.legion_domain_point_coloring_destroy(coloring)
+    return p
+  end
+  return partition_ypencil_with_overlap
+end
+
+local function make_partition_zpencil_with_overlap(r)
+  local task partition_zpencil_with_overlap( [r],
+                                             n_overlap   : int64,
+                                             n_ghosts    : int64,
+                                             with_ghosts : bool,
+                                             zpencil     : ispace(int2d) )
+    var coloring = c.legion_domain_point_coloring_create()
+  
+    -- zpencil is of size (prow+2)(pcol+2)
+    var prow = zpencil.bounds.hi.x - 1
+    var pcol = zpencil.bounds.hi.y - 1
+  
+    var bounds = [r].ispace.bounds
+    var Nx_g = bounds.hi.x + 1
+    var Ny_g = bounds.hi.y + 1
+    var Nz_g = bounds.hi.z + 1
+
+    var Nx = Nx_g - 2*n_ghosts
+    var Ny = Ny_g - 2*n_ghosts
+    var Nz = Nz_g - 2*n_ghosts
+  
+    for i in zpencil do
+      var xst : int64
+      var xen : int64
+      var yst : int64
+      var yen : int64
+      var zst : int64
+      var zen : int64
+
+      if (with_ghosts) then
+        zst = 0
+        zen = Nz_g - 1
+      else
+        zst = n_ghosts
+        zen = Nz + n_ghosts - 1
+      end
+
+      if ( (i.x > 0) and (i.x < prow+1) ) then
+        xst = (i.x-1)*(Nx/prow)+n_ghosts - n_overlap
+        xen = (i.x)*(Nx/prow)+n_ghosts-1 + n_overlap
+      end
+      if (i.x == 0) then
+        xst = 0
+        xen = n_ghosts-1 + n_overlap
+      end
+      if (i.x == prow+1) then
+        xst = Nx+n_ghosts - n_overlap
+        xen = Nx+2*n_ghosts-1
+      end
+
+      if ( (i.y > 0) and (i.y < pcol+1) ) then
+        yst = (i.y-1)*(Ny/pcol)+n_ghosts - n_overlap
+        yen = (i.y)*(Ny/pcol)+n_ghosts-1 + n_overlap
+      end
+      if (i.y == 0) then
+        yst = 0
+        yen = n_ghosts-1 + n_overlap
+      end
+      if (i.y == pcol+1) then
+        yst = Ny+n_ghosts - n_overlap
+        yen = Ny+2*n_ghosts-1
+      end
+
+      var lo = int3d { x = xst, y = yst, z = zst }
+      var hi = int3d { x = xen, y = yen, z = zen }
+      var rect = rect3d { lo = lo, hi = hi }
+      c.legion_domain_point_coloring_color_domain(coloring, i, rect)
+    end
+    var p = partition(aliased, [r], coloring, zpencil)
+    c.legion_domain_point_coloring_destroy(coloring)
+    return p
+  end
+  return partition_zpencil_with_overlap
+end
+
 local coords   = regentlib.newsymbol(region(ispace(int3d), coordinates), "coords")
 partition_xpencil_coords = make_partition_xpencil(coords)
 partition_ypencil_coords = make_partition_ypencil(coords)
@@ -298,6 +523,10 @@ local r_prim   = regentlib.newsymbol(region(ispace(int3d), primitive), "r_prim")
 partition_xpencil_prim = make_partition_xpencil(r_prim)
 partition_ypencil_prim = make_partition_ypencil(r_prim)
 partition_zpencil_prim = make_partition_zpencil(r_prim)
+
+partition_xpencil_with_overlap_prim = make_partition_xpencil_with_overlap(r_prim)
+partition_ypencil_with_overlap_prim = make_partition_ypencil_with_overlap(r_prim)
+partition_zpencil_with_overlap_prim = make_partition_zpencil_with_overlap(r_prim)
 
 local r_cnsr   = regentlib.newsymbol(region(ispace(int3d), conserved), "r_cnsr")
 partition_xpencil_cnsr = make_partition_xpencil(r_cnsr)

@@ -3,6 +3,8 @@ import "regent"
 require("fields")
 require("EOS")
 
+local problem = require("problem")
+
 local c     = regentlib.c
 local cmath = terralib.includec("math.h")
 
@@ -1133,32 +1135,44 @@ do
   end
 end
 
--- __demand(__inline)
--- task compute_theta_x( r_prim_c  : region(ispace(int3d), primitive),
---                       r_theta_x : region(ispace(int3d), double),
---                       dx        : double,
---                       dy        : double,
---                       dz        : double,
---                       n_ghosts  : int64 )
--- where
---   reads(r_prim_c), reads writes(r_theta_x)
--- do
---   one_over_two_dx = 1.0/(2.0*dx)
---   one_over_two_dy = 1.0/(2.0*dy)
---   one_over_two_dz = 1.0/(2.0*dz)
--- 
---   for i in r_theta_x do
---     var idxm2 = int3d { x = i.x + n_ghosts - 2, y = i.y, z = i.z}
---     var idxm1 = int3d { x = i.x + n_ghosts - 1, y = i.y, z = i.z}
---     var idxp1 = int3d { x = i.x + n_ghosts + 0, y = i.y, z = i.z}
---     var idxp2 = int3d { x = i.x + n_ghosts + 1, y = i.y, z = i.z}
--- 
---     var dudx_l = one_over_two_dx*(r_prim_c[idxp1] - r_prim_c[idxm2])
---     var dudx_r = one_over_two_dx*(r_prim_c[idxp2] - r_prim_c[idxm1])
--- 
---     r_theta_x[i] = 0.5*(dudx_l + dudx_r)
---   end
--- end
+__demand(__inline)
+task compute_theta_avg( r_gradu_l   : region(ispace(int3d), tensor2),
+                        r_gradu_r   : region(ispace(int3d), tensor2), 
+                        r_theta_avg : region(ispace(int3d), double) )
+where
+  reads(r_gradu_l.{_11, _22, _33}, r_gradu_r.{_11, _22, _33}),
+  writes(r_theta_avg)
+do
+  for i in r_theta_avg do
+    var theta_l = r_gradu_l[i]._11 + r_gradu_l[i]._22 + r_gradu_l[i]._33
+    var theta_r = r_gradu_r[i]._11 + r_gradu_r[i]._22 + r_gradu_r[i]._33
+
+    r_theta_avg[i] = 0.5*(theta_l + theta_r)
+  end
+end
+
+__demand(__inline)
+task compute_omega_mag_avg( r_gradu_l   : region(ispace(int3d), tensor2),
+                            r_gradu_r   : region(ispace(int3d), tensor2), 
+                            r_omega_mag_avg : region(ispace(int3d), double) )
+where
+  reads(r_gradu_l.{_12, _13, _21, _23, _31, _32}, r_gradu_r.{_12, _13, _21, _23, _31, _32}),
+  writes(r_omega_mag_avg)
+do
+  for i in r_omega_mag_avg do
+    var omega_x_l = r_gradu_l[i]._32 - r_gradu_l[i]._23
+    var omega_y_l = r_gradu_l[i]._13 - r_gradu_l[i]._31
+    var omega_z_l = r_gradu_l[i]._21 - r_gradu_l[i]._12
+    var omega_mag_l = cmath.sqrt(omega_x_l*omega_x_l + omega_y_l*omega_y_l + omega_z_l*omega_z_l)
+
+    var omega_x_r = r_gradu_r[i]._32 - r_gradu_r[i]._23
+    var omega_y_r = r_gradu_r[i]._13 - r_gradu_r[i]._31
+    var omega_z_r = r_gradu_r[i]._21 - r_gradu_r[i]._12
+    var omega_mag_r = cmath.sqrt(omega_x_r*omega_x_r + omega_y_r*omega_y_r + omega_z_r*omega_z_r)
+
+    r_omega_mag_avg[i] = 0.5*(omega_mag_l + omega_mag_r)
+  end
+end
 
 __demand(__inline)
 task positivity_enforcer_x( r_prim_c   : region(ispace(int3d), primitive),
@@ -1270,3 +1284,354 @@ do
     c.printf("WARNING: Positivity enforcer was used in Z %d times!\n", counter)
   end
 end
+
+
+
+task get_velocity_derivatives_x( r_prim_c    : region(ispace(int3d), primitive),
+                                 r_gradu_l_x : region(ispace(int3d), tensor2),
+                                 r_gradu_r_x : region(ispace(int3d), tensor2),
+                                 n_ghosts    : int64 )
+where
+  reads (r_prim_c.{u, v, w}), reads writes (r_gradu_l_x, r_gradu_r_x)
+do
+  var Nx = problem.NX
+  var Ny = problem.NY
+  var Nz = problem.NZ
+
+  if (Nx < 8) then
+    for i in r_gradu_l_x do
+      r_gradu_l_x[i]._11 = 0.0
+      r_gradu_l_x[i]._21 = 0.0
+      r_gradu_l_x[i]._31 = 0.0
+    end
+
+    for i in r_gradu_r_x do
+      r_gradu_r_x[i]._11 = 0.0
+      r_gradu_r_x[i]._21 = 0.0
+      r_gradu_r_x[i]._31 = 0.0
+    end
+  else
+    var one_over_two_dx = 1.0/(2.0*problem.DX)
+
+    for i in r_gradu_l_x do
+      var idx_l = int3d { x = i.x + n_ghosts - 2, y = i.y, z = i.z }
+      var idx_r = int3d { x = i.x + n_ghosts + 0, y = i.y, z = i.z }
+
+      r_gradu_l_x[i]._11 = one_over_two_dx*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_l_x[i]._21 = one_over_two_dx*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_l_x[i]._31 = one_over_two_dx*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+
+    for i in r_gradu_r_x do
+      var idx_l = int3d { x = i.x + n_ghosts - 1, y = i.y, z = i.z }
+      var idx_r = int3d { x = i.x + n_ghosts + 1, y = i.y, z = i.z }
+
+      r_gradu_r_x[i]._11 = one_over_two_dx*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_r_x[i]._21 = one_over_two_dx*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_r_x[i]._31 = one_over_two_dx*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+  end
+
+  if (Ny < 8) then
+    for i in r_gradu_l_x do
+      r_gradu_l_x[i]._12 = 0.0
+      r_gradu_l_x[i]._22 = 0.0
+      r_gradu_l_x[i]._32 = 0.0
+    end
+
+    for i in r_gradu_r_x do
+      r_gradu_r_x[i]._12 = 0.0
+      r_gradu_r_x[i]._22 = 0.0
+      r_gradu_r_x[i]._32 = 0.0
+    end
+  else
+    var one_over_two_dy = 1.0/(2.0*problem.DY)
+
+    for i in r_gradu_l_x do
+      var idx_l = int3d { x = i.x + n_ghosts - 1, y = i.y - 1, z = i.z }
+      var idx_r = int3d { x = i.x + n_ghosts - 1, y = i.y + 1, z = i.z }
+
+      r_gradu_l_x[i]._12 = one_over_two_dy*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_l_x[i]._22 = one_over_two_dy*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_l_x[i]._32 = one_over_two_dy*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+
+    for i in r_gradu_r_x do
+      var idx_l = int3d { x = i.x + n_ghosts + 0, y = i.y - 1, z = i.z }
+      var idx_r = int3d { x = i.x + n_ghosts + 0, y = i.y + 1, z = i.z }
+
+      r_gradu_r_x[i]._12 = one_over_two_dy*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_r_x[i]._22 = one_over_two_dy*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_r_x[i]._32 = one_over_two_dy*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+  end
+
+  if (Nz < 8) then
+    for i in r_gradu_l_x do
+      r_gradu_l_x[i]._13 = 0.0
+      r_gradu_l_x[i]._23 = 0.0
+      r_gradu_l_x[i]._33 = 0.0
+    end
+
+    for i in r_gradu_r_x do
+      r_gradu_r_x[i]._13 = 0.0
+      r_gradu_r_x[i]._23 = 0.0
+      r_gradu_r_x[i]._33 = 0.0
+    end
+  else
+    var one_over_two_dz = 1.0/(2.0*problem.DZ)
+
+    for i in r_gradu_l_x do
+      var idx_l = int3d { x = i.x + n_ghosts - 1, y = i.y, z = i.z - 1 }
+      var idx_r = int3d { x = i.x + n_ghosts - 1, y = i.y, z = i.z + 1 }
+
+      r_gradu_l_x[i]._13 = one_over_two_dz*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_l_x[i]._23 = one_over_two_dz*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_l_x[i]._33 = one_over_two_dz*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+
+    for i in r_gradu_r_x do
+      var idx_l = int3d { x = i.x + n_ghosts + 0, y = i.y, z = i.z - 1 }
+      var idx_r = int3d { x = i.x + n_ghosts + 0, y = i.y, z = i.z + 1 }
+
+      r_gradu_r_x[i]._13 = one_over_two_dz*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_r_x[i]._23 = one_over_two_dz*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_r_x[i]._33 = one_over_two_dz*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+  end
+end
+
+
+
+task get_velocity_derivatives_y( r_prim_c    : region(ispace(int3d), primitive),
+                                 r_gradu_l_y : region(ispace(int3d), tensor2),
+                                 r_gradu_r_y : region(ispace(int3d), tensor2),
+                                 n_ghosts    : int64 )
+where
+  reads (r_prim_c.{u, v, w}), reads writes (r_gradu_l_y, r_gradu_r_y)
+do
+  var Nx = problem.NX
+  var Ny = problem.NY
+  var Nz = problem.NZ
+
+  if (Ny < 8) then
+    for i in r_gradu_l_y do
+      r_gradu_l_y[i]._12 = 0.0
+      r_gradu_l_y[i]._22 = 0.0
+      r_gradu_l_y[i]._32 = 0.0
+    end
+
+    for i in r_gradu_r_y do
+      r_gradu_r_y[i]._12 = 0.0
+      r_gradu_r_y[i]._22 = 0.0
+      r_gradu_r_y[i]._32 = 0.0
+    end
+  else
+    var one_over_two_dy = 1.0/(2.0*problem.DY)
+
+    for i in r_gradu_l_y do
+      var idx_l = int3d { x = i.x, y = i.y + n_ghosts - 2, z = i.z }
+      var idx_r = int3d { x = i.x, y = i.y + n_ghosts + 0, z = i.z }
+
+      r_gradu_l_y[i]._12 = one_over_two_dy*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_l_y[i]._22 = one_over_two_dy*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_l_y[i]._32 = one_over_two_dy*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+
+    for i in r_gradu_r_y do
+      var idx_l = int3d { x = i.x, y = i.y + n_ghosts - 1, z = i.z }
+      var idx_r = int3d { x = i.x, y = i.y + n_ghosts + 1, z = i.z }
+
+      r_gradu_r_y[i]._12 = one_over_two_dy*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_r_y[i]._22 = one_over_two_dy*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_r_y[i]._32 = one_over_two_dy*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+  end
+
+  if (Nx < 8) then
+    for i in r_gradu_l_y do
+      r_gradu_l_y[i]._11 = 0.0
+      r_gradu_l_y[i]._21 = 0.0
+      r_gradu_l_y[i]._31 = 0.0
+    end
+
+    for i in r_gradu_r_y do
+      r_gradu_r_y[i]._11 = 0.0
+      r_gradu_r_y[i]._21 = 0.0
+      r_gradu_r_y[i]._31 = 0.0
+    end
+  else
+    var one_over_two_dx = 1.0/(2.0*problem.DX)
+
+    for i in r_gradu_l_y do
+      var idx_l = int3d { x = i.x - 1, y = i.y + n_ghosts - 1, z = i.z }
+      var idx_r = int3d { x = i.x + 1, y = i.y + n_ghosts - 1, z = i.z }
+
+      r_gradu_l_y[i]._11 = one_over_two_dx*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_l_y[i]._21 = one_over_two_dx*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_l_y[i]._31 = one_over_two_dx*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+
+    for i in r_gradu_r_y do
+      var idx_l = int3d { x = i.x - 1, y = i.y + n_ghosts + 0, z = i.z }
+      var idx_r = int3d { x = i.x + 1, y = i.y + n_ghosts + 0, z = i.z }
+
+      r_gradu_r_y[i]._11 = one_over_two_dx*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_r_y[i]._21 = one_over_two_dx*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_r_y[i]._31 = one_over_two_dx*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+  end
+
+  if (Nz < 8) then
+    for i in r_gradu_l_y do
+      r_gradu_l_y[i]._13 = 0.0
+      r_gradu_l_y[i]._23 = 0.0
+      r_gradu_l_y[i]._33 = 0.0
+    end
+
+    for i in r_gradu_r_y do
+      r_gradu_r_y[i]._13 = 0.0
+      r_gradu_r_y[i]._23 = 0.0
+      r_gradu_r_y[i]._33 = 0.0
+    end
+  else
+    var one_over_two_dz = 1.0/(2.0*problem.DZ)
+
+    for i in r_gradu_l_y do
+      var idx_l = int3d { x = i.x, y = i.y + n_ghosts - 1, z = i.z - 1 }
+      var idx_r = int3d { x = i.x, y = i.y + n_ghosts - 1, z = i.z + 1 }
+
+      r_gradu_l_y[i]._13 = one_over_two_dz*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_l_y[i]._23 = one_over_two_dz*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_l_y[i]._33 = one_over_two_dz*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+
+    for i in r_gradu_r_y do
+      var idx_l = int3d { x = i.x, y = i.y + n_ghosts + 0, z = i.z - 1 }
+      var idx_r = int3d { x = i.x, y = i.y + n_ghosts + 0, z = i.z + 1 }
+
+      r_gradu_r_y[i]._13 = one_over_two_dz*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_r_y[i]._23 = one_over_two_dz*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_r_y[i]._33 = one_over_two_dz*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+  end
+end
+
+
+
+task get_velocity_derivatives_z( r_prim_c    : region(ispace(int3d), primitive),
+                                 r_gradu_l_z : region(ispace(int3d), tensor2),
+                                 r_gradu_r_z : region(ispace(int3d), tensor2),
+                                 n_ghosts    : int64 )
+where
+  reads (r_prim_c.{u, v, w}), reads writes (r_gradu_l_z, r_gradu_r_z)
+do
+  var Nx = problem.NX
+  var Ny = problem.NY
+  var Nz = problem.NZ
+
+  if (Nz < 8) then
+    for i in r_gradu_l_z do
+      r_gradu_l_z[i]._13 = 0.0
+      r_gradu_l_z[i]._23 = 0.0
+      r_gradu_l_z[i]._33 = 0.0
+    end
+
+    for i in r_gradu_r_z do
+      r_gradu_r_z[i]._13 = 0.0
+      r_gradu_r_z[i]._23 = 0.0
+      r_gradu_r_z[i]._33 = 0.0
+    end
+  else
+    var one_over_two_dz = 1.0/(2.0*problem.DZ)
+
+    for i in r_gradu_l_z do
+      var idx_l = int3d { x = i.x, y = i.y, z = i.z + n_ghosts - 2 }
+      var idx_r = int3d { x = i.x, y = i.y, z = i.z + n_ghosts + 0 }
+
+      r_gradu_l_z[i]._13 = one_over_two_dz*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_l_z[i]._23 = one_over_two_dz*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_l_z[i]._33 = one_over_two_dz*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+
+    for i in r_gradu_r_z do
+      var idx_l = int3d { x = i.x, y = i.y, z = i.z + n_ghosts - 1 }
+      var idx_r = int3d { x = i.x, y = i.y, z = i.z + n_ghosts + 1 }
+
+      r_gradu_r_z[i]._13 = one_over_two_dz*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_r_z[i]._23 = one_over_two_dz*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_r_z[i]._33 = one_over_two_dz*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+  end
+
+  if (Nx < 8) then
+    for i in r_gradu_l_z do
+      r_gradu_l_z[i]._11 = 0.0
+      r_gradu_l_z[i]._21 = 0.0
+      r_gradu_l_z[i]._31 = 0.0
+    end
+
+    for i in r_gradu_r_z do
+      r_gradu_r_z[i]._11 = 0.0
+      r_gradu_r_z[i]._21 = 0.0
+      r_gradu_r_z[i]._31 = 0.0
+    end
+  else
+    var one_over_two_dx = 1.0/(2.0*problem.DX)
+
+    for i in r_gradu_l_z do
+      var idx_l = int3d { x = i.x - 1, y = i.y, z = i.z + n_ghosts - 1 }
+      var idx_r = int3d { x = i.x + 1, y = i.y, z = i.z + n_ghosts - 1 }
+
+      r_gradu_l_z[i]._11 = one_over_two_dx*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_l_z[i]._21 = one_over_two_dx*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_l_z[i]._31 = one_over_two_dx*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+
+    for i in r_gradu_r_z do
+      var idx_l = int3d { x = i.x - 1, y = i.y, z = i.z + n_ghosts + 0 }
+      var idx_r = int3d { x = i.x + 1, y = i.y, z = i.z + n_ghosts + 0 }
+
+      r_gradu_r_z[i]._11 = one_over_two_dx*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_r_z[i]._21 = one_over_two_dx*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_r_z[i]._31 = one_over_two_dx*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+  end
+
+  if (Ny < 8) then
+    for i in r_gradu_l_z do
+      r_gradu_l_z[i]._12 = 0.0
+      r_gradu_l_z[i]._22 = 0.0
+      r_gradu_l_z[i]._32 = 0.0
+    end
+
+    for i in r_gradu_r_z do
+      r_gradu_r_z[i]._12 = 0.0
+      r_gradu_r_z[i]._22 = 0.0
+      r_gradu_r_z[i]._32 = 0.0
+    end
+  else
+    var one_over_two_dy = 1.0/(2.0*problem.DY)
+
+    for i in r_gradu_l_z do
+      var idx_l = int3d { x = i.x, y = i.y - 1, z = i.z + n_ghosts - 1 }
+      var idx_r = int3d { x = i.x, y = i.y + 1, z = i.z + n_ghosts - 1 }
+
+      r_gradu_l_z[i]._12 = one_over_two_dy*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_l_z[i]._22 = one_over_two_dy*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_l_z[i]._32 = one_over_two_dy*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+
+    for i in r_gradu_r_z do
+      var idx_l = int3d { x = i.x, y = i.y - 1, z = i.z + n_ghosts + 0 }
+      var idx_r = int3d { x = i.x, y = i.y + 1, z = i.z + n_ghosts + 0 }
+
+      r_gradu_r_z[i]._12 = one_over_two_dy*(r_prim_c[idx_r].u - r_prim_c[idx_l].u)
+      r_gradu_r_z[i]._22 = one_over_two_dy*(r_prim_c[idx_r].v - r_prim_c[idx_l].v)
+      r_gradu_r_z[i]._32 = one_over_two_dy*(r_prim_c[idx_r].w - r_prim_c[idx_l].w)
+    end
+  end
+end
+
+
+
