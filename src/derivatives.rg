@@ -49,6 +49,8 @@ c06d2 = (  0.0/100.0)/6.0
 -- b06MND = (0.0/18.0)/2.0
 -- c06MND = (17.0/62.0)/3.0
 
+-- alpha06MND_LB = (40./31.0) * (9.0/80.0)
+-- beta06MND_LB  = (40./31.0) * 0.0
 -- a06MND_LB = (40./31.) * ( 1633./5376000.)
 -- b06MND_LB = (40./31.) * ( 9007./192000.)
 -- c06MND_LB = (40./31.) * ( -29567./48000.)
@@ -59,12 +61,20 @@ c06d2 = (  0.0/100.0)/6.0
 -- h06MND_LB = (40./31.) * ( -27233./768000.)
 
 -- Explicit MND finite difference
+-- alpha06MND = 0.0
+-- beta06MND  = 0.0
+-- a06MND = 3.0/2.0
+-- b06MND = (-3.0/10.0)
+-- c06MND = (1.0)/30.0
+
 alpha06MND = 0.0
 beta06MND  = 0.0
-a06MND = 3.0/2.0
-b06MND = (-3.0/10.0)
-c06MND = (1.0)/30.0
+a06MND = 1.0
+b06MND = 0.0
+c06MND = 0.0
 
+alpha06MND_LB = 0.0
+beta06MND_LB  = 0.0
 a06MND_LB = 0.
 b06MND_LB = 0.
 c06MND_LB = -1.
@@ -136,7 +146,11 @@ do
     if ((not periodic) and (i.x == 0)) then
       mat[i].e = 0.0
       mat[i].a = 0.0
+      mat[i].c = alpha06MND_LB
+      mat[i].f = beta06MND_LB
     elseif ((not periodic) and (i.x == N-1)) then
+      mat[i].e = beta06MND_LB
+      mat[i].a = alpha06MND_LB
       mat[i].c = 0.0
       mat[i].f = 0.0
     end
