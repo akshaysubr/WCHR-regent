@@ -65,6 +65,7 @@ problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
 problem.interpolation_scheme = "WCNS-LD"
+problem.Riemann_solver = "HLL"
 problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
 problem.dt_or_CFL_num        = 0.5
 problem.tstop                = 0.2

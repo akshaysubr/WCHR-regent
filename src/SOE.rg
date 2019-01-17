@@ -6,6 +6,8 @@ require("EOS")
 local c     = regentlib.c
 local cmath = terralib.includec("math.h")
 
+local epsilon   = 1.0e-40
+
 __demand(__inline)
 task get_primitive( rho  : double,
                     rhou : double,
@@ -547,6 +549,39 @@ terra sign(x : double)
 end
 
 __demand(__inline)
+task HLL_x( r_prim_l_x : region(ispace(int3d), primitive),
+            r_prim_r_x : region(ispace(int3d), primitive),
+            r_flux_e_x : region(ispace(int3d), conserved) )
+where
+  reads(r_prim_l_x, r_prim_r_x), writes(r_flux_e_x)
+do
+  for i in r_flux_e_x do
+    var u_avg   : double = 0.5*( r_prim_l_x[i].u + r_prim_r_x[i].u )
+    var sos_l   : double = get_sos(r_prim_l_x[i].rho, r_prim_l_x[i].p)
+    var sos_r   : double = get_sos(r_prim_r_x[i].rho, r_prim_r_x[i].p)
+    var sos_avg : double = 0.5*( sos_l + sos_r )
+
+    var s_L : double = cmath.fmin(u_avg - sos_avg, r_prim_l_x[i].u - sos_l)
+    var s_R : double = cmath.fmax(u_avg + sos_avg, r_prim_r_x[i].u + sos_r)
+
+    var Q_L : double[5] = get_conserved( r_prim_l_x[i].rho, r_prim_l_x[i].u, r_prim_l_x[i].v, r_prim_l_x[i].w, r_prim_l_x[i].p )
+    var F_L : double[5] = get_xfluxes( r_prim_l_x[i].rho, r_prim_l_x[i].u, r_prim_l_x[i].v, r_prim_l_x[i].w, r_prim_l_x[i].p )
+
+    var Q_R : double[5] = get_conserved( r_prim_r_x[i].rho, r_prim_r_x[i].u, r_prim_r_x[i].v, r_prim_r_x[i].w, r_prim_r_x[i].p )
+    var F_R : double[5] = get_xfluxes( r_prim_r_x[i].rho, r_prim_r_x[i].u, r_prim_r_x[i].v, r_prim_r_x[i].w, r_prim_r_x[i].p )
+
+    -- HLL Riemann Fluxes
+    var switch_L = 0.5*(1 + sign(s_L))
+    var switch_R = 0.5*(1 - sign(s_R))
+    r_flux_e_x[i].rho  = switch_L * F_L[0] + switch_R * F_R[0] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[0] - s_L*F_R[0] + s_R*s_L * ( Q_R[0] - Q_L[0] ) ) / (s_R - s_L)
+    r_flux_e_x[i].rhou = switch_L * F_L[1] + switch_R * F_R[1] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[1] - s_L*F_R[1] + s_R*s_L * ( Q_R[1] - Q_L[1] ) ) / (s_R - s_L)
+    r_flux_e_x[i].rhov = switch_L * F_L[2] + switch_R * F_R[2] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[2] - s_L*F_R[2] + s_R*s_L * ( Q_R[2] - Q_L[2] ) ) / (s_R - s_L)
+    r_flux_e_x[i].rhow = switch_L * F_L[3] + switch_R * F_R[3] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[3] - s_L*F_R[3] + s_R*s_L * ( Q_R[3] - Q_L[3] ) ) / (s_R - s_L)
+    r_flux_e_x[i].rhoE = switch_L * F_L[4] + switch_R * F_R[4] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[4] - s_L*F_R[4] + s_R*s_L * ( Q_R[4] - Q_L[4] ) ) / (s_R - s_L)
+  end
+end
+
+__demand(__inline)
 task HLLC_x( r_prim_l_x : region(ispace(int3d), primitive),
              r_prim_r_x : region(ispace(int3d), primitive),
              r_flux_e_x : region(ispace(int3d), conserved) )
@@ -601,15 +636,143 @@ do
     r_flux_e_x[i].rhov = switch * (F_L[2] + s_m*(Q_star_L[2] - Q_L[2])) + (1-switch) * (F_R[2] + s_p*(Q_star_R[2] - Q_R[2]))
     r_flux_e_x[i].rhow = switch * (F_L[3] + s_m*(Q_star_L[3] - Q_L[3])) + (1-switch) * (F_R[3] + s_p*(Q_star_R[3] - Q_R[3]))
     r_flux_e_x[i].rhoE = switch * (F_L[4] + s_m*(Q_star_L[4] - Q_L[4])) + (1-switch) * (F_R[4] + s_p*(Q_star_R[4] - Q_R[4]))
+  end
+end
 
-    -- -- HLL Riemann Fluxes
-    -- var switch_L = 0.5*(1 + sign(s_L))
-    -- var switch_R = 0.5*(1 - sign(s_R))
-    -- r_flux_e_x[i].rho  = switch_L * F_L[0] + switch_R * F_R[0] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[0] - s_L*F_R[0] + s_R*s_L * ( Q_R[0] - Q_L[0] ) ) / (s_R - s_L)
-    -- r_flux_e_x[i].rhou = switch_L * F_L[1] + switch_R * F_R[1] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[1] - s_L*F_R[1] + s_R*s_L * ( Q_R[1] - Q_L[1] ) ) / (s_R - s_L)
-    -- r_flux_e_x[i].rhov = switch_L * F_L[2] + switch_R * F_R[2] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[2] - s_L*F_R[2] + s_R*s_L * ( Q_R[2] - Q_L[2] ) ) / (s_R - s_L)
-    -- r_flux_e_x[i].rhow = switch_L * F_L[3] + switch_R * F_R[3] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[3] - s_L*F_R[3] + s_R*s_L * ( Q_R[3] - Q_L[3] ) ) / (s_R - s_L)
-    -- r_flux_e_x[i].rhoE = switch_L * F_L[4] + switch_R * F_R[4] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[4] - s_L*F_R[4] + s_R*s_L * ( Q_R[4] - Q_L[4] ) ) / (s_R - s_L)
+__demand(__inline)
+task HLLC_HLL_x( r_prim_l_x    : region(ispace(int3d), primitive),
+                 r_prim_r_x    : region(ispace(int3d), primitive),
+                 r_theta_x     : region(ispace(int3d), double),
+                 r_omega_mag_x : region(ispace(int3d), double),
+                 r_flux_e_x    : region(ispace(int3d), conserved) )
+where
+  reads(r_prim_l_x, r_prim_r_x, r_theta_x, r_omega_mag_x), writes(r_flux_e_x)
+do
+  for i in r_flux_e_x do
+    var u_avg   : double = 0.5*( r_prim_l_x[i].u + r_prim_r_x[i].u )
+    var sos_l   : double = get_sos(r_prim_l_x[i].rho, r_prim_l_x[i].p)
+    var sos_r   : double = get_sos(r_prim_r_x[i].rho, r_prim_r_x[i].p)
+    var sos_avg : double = 0.5*( sos_l + sos_r )
+
+    var s_L : double = cmath.fmin(u_avg - sos_avg, r_prim_l_x[i].u - sos_l)
+    var s_R : double = cmath.fmax(u_avg + sos_avg, r_prim_r_x[i].u + sos_r)
+
+    var s_m : double = cmath.fmin(0.0, s_L)
+    var s_p : double = cmath.fmax(0.0, s_R)
+
+    var s_star : double = ( r_prim_r_x[i].p - r_prim_l_x[i].p 
+                            + r_prim_l_x[i].rho * r_prim_l_x[i].u * (s_L - r_prim_l_x[i].u) 
+                            - r_prim_r_x[i].rho * r_prim_r_x[i].u * (s_R - r_prim_r_x[i].u) ) 
+                          / ( r_prim_l_x[i].rho * (s_L - r_prim_l_x[i].u) 
+                            - r_prim_r_x[i].rho * (s_R - r_prim_r_x[i].u))
+
+    var Q_L : double[5] = get_conserved( r_prim_l_x[i].rho, r_prim_l_x[i].u, r_prim_l_x[i].v, r_prim_l_x[i].w, r_prim_l_x[i].p )
+    var F_L : double[5] = get_xfluxes( r_prim_l_x[i].rho, r_prim_l_x[i].u, r_prim_l_x[i].v, r_prim_l_x[i].w, r_prim_l_x[i].p )
+
+    var Q_R : double[5] = get_conserved( r_prim_r_x[i].rho, r_prim_r_x[i].u, r_prim_r_x[i].v, r_prim_r_x[i].w, r_prim_r_x[i].p )
+    var F_R : double[5] = get_xfluxes( r_prim_r_x[i].rho, r_prim_r_x[i].u, r_prim_r_x[i].v, r_prim_r_x[i].w, r_prim_r_x[i].p )
+
+    var chi_star_L : double = ( s_L - r_prim_l_x[i].u ) / ( s_L - s_star )
+    var chi_star_R : double = ( s_R - r_prim_r_x[i].u ) / ( s_R - s_star )
+
+    var Q_star_L : double[5]
+    Q_star_L[0] = chi_star_L * ( r_prim_l_x[i].rho )
+    Q_star_L[1] = chi_star_L * ( r_prim_l_x[i].rho * s_star )
+    Q_star_L[2] = chi_star_L * ( Q_L[2] )
+    Q_star_L[3] = chi_star_L * ( Q_L[3] )
+    Q_star_L[4] = chi_star_L * ( Q_L[4] + (s_star - r_prim_l_x[i].u)*( r_prim_l_x[i].rho * s_star + r_prim_l_x[i].p/(s_L - r_prim_l_x[i].u) ) )
+
+    var Q_star_R : double[5]
+    Q_star_R[0] = chi_star_R * ( r_prim_r_x[i].rho )
+    Q_star_R[1] = chi_star_R * ( r_prim_r_x[i].rho * s_star )
+    Q_star_R[2] = chi_star_R * ( Q_R[2] )
+    Q_star_R[3] = chi_star_R * ( Q_R[3] )
+    Q_star_R[4] = chi_star_R * ( Q_R[4] + (s_star - r_prim_r_x[i].u)*( r_prim_r_x[i].rho * s_star + r_prim_r_x[i].p/(s_R - r_prim_r_x[i].u) ) )
+
+    -- HLLC Riemann Fluxes
+    var F_HLLC : double[5]
+    var switch = 0.5*(1 + sign(s_star))
+    F_HLLC[0] = switch * (F_L[0] + s_m*(Q_star_L[0] - Q_L[0])) + (1-switch) * (F_R[0] + s_p*(Q_star_R[0] - Q_R[0]))
+    F_HLLC[1] = switch * (F_L[1] + s_m*(Q_star_L[1] - Q_L[1])) + (1-switch) * (F_R[1] + s_p*(Q_star_R[1] - Q_R[1]))
+    F_HLLC[2] = switch * (F_L[2] + s_m*(Q_star_L[2] - Q_L[2])) + (1-switch) * (F_R[2] + s_p*(Q_star_R[2] - Q_R[2]))
+    F_HLLC[3] = switch * (F_L[3] + s_m*(Q_star_L[3] - Q_L[3])) + (1-switch) * (F_R[3] + s_p*(Q_star_R[3] - Q_R[3]))
+    F_HLLC[4] = switch * (F_L[4] + s_m*(Q_star_L[4] - Q_L[4])) + (1-switch) * (F_R[4] + s_p*(Q_star_R[4] - Q_R[4]))
+
+    -- HLL Riemann Fluxes
+    var F_HLL : double[5]
+    var switch_L = 0.5*(1 + sign(s_L))
+    var switch_R = 0.5*(1 - sign(s_R))
+    F_HLL[0] = switch_L * F_L[0] + switch_R * F_R[0] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[0] - s_L*F_R[0] + s_R*s_L * ( Q_R[0] - Q_L[0] ) ) / (s_R - s_L)
+    F_HLL[1] = switch_L * F_L[1] + switch_R * F_R[1] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[1] - s_L*F_R[1] + s_R*s_L * ( Q_R[1] - Q_L[1] ) ) / (s_R - s_L)
+    F_HLL[2] = switch_L * F_L[2] + switch_R * F_R[2] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[2] - s_L*F_R[2] + s_R*s_L * ( Q_R[2] - Q_L[2] ) ) / (s_R - s_L)
+    F_HLL[3] = switch_L * F_L[3] + switch_R * F_R[3] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[3] - s_L*F_R[3] + s_R*s_L * ( Q_R[3] - Q_L[3] ) ) / (s_R - s_L)
+    F_HLL[4] = switch_L * F_L[4] + switch_R * F_R[4] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[4] - s_L*F_R[4] + s_R*s_L * ( Q_R[4] - Q_L[4] ) ) / (s_R - s_L)
+
+    -- HLLC-HLL Riemann Fluxes
+    var s = -r_theta_x[i]/(cmath.fabs(r_theta_x[i]) + r_omega_mag_x[i] + epsilon)
+    if  (s > 0.65) then
+      var alpha_1 : double
+      var alpha_2 : double
+      var u_x_diff = r_prim_r_x[i].u - r_prim_l_x[i].u
+      var v_x_diff = r_prim_r_x[i].v - r_prim_l_x[i].v
+      var w_x_diff = r_prim_r_x[i].w - r_prim_l_x[i].w
+      var vel_mag = cmath.sqrt(u_x_diff*u_x_diff + v_x_diff*v_x_diff + w_x_diff*w_x_diff)
+      if (vel_mag < epsilon) then
+        alpha_1 = 1.0
+        alpha_2 = 0.0
+      else
+        alpha_1 = cmath.fabs(u_x_diff)/vel_mag
+        alpha_2 = cmath.sqrt(1.0 - alpha_1*alpha_1)
+      end
+
+      var beta_1 = 0.5*(1.0 + alpha_1/(alpha_1 + alpha_2))
+      var beta_2 = 1.0 - beta_1
+
+      r_flux_e_x[i].rho  = beta_1*F_HLLC[0] + beta_2*F_HLL[0]
+      r_flux_e_x[i].rhou = F_HLLC[1]
+      r_flux_e_x[i].rhov = beta_1*F_HLLC[2] + beta_2*F_HLL[2]
+      r_flux_e_x[i].rhow = beta_1*F_HLLC[3] + beta_2*F_HLL[3]
+      r_flux_e_x[i].rhoE = F_HLLC[4]
+    else
+      r_flux_e_x[i].rho  = F_HLLC[0]
+      r_flux_e_x[i].rhou = F_HLLC[1]
+      r_flux_e_x[i].rhov = F_HLLC[2]
+      r_flux_e_x[i].rhow = F_HLLC[3]
+      r_flux_e_x[i].rhoE = F_HLLC[4]
+    end
+  end
+end
+
+__demand(__inline)
+task HLL_y( r_prim_l_y : region(ispace(int3d), primitive),
+            r_prim_r_y : region(ispace(int3d), primitive),
+            r_flux_e_y : region(ispace(int3d), conserved) )
+where
+  reads(r_prim_l_y, r_prim_r_y), writes(r_flux_e_y)
+do
+  for i in r_flux_e_y do
+    var v_avg   : double = 0.5*( r_prim_l_y[i].v + r_prim_r_y[i].v )
+    var sos_l   : double = get_sos(r_prim_l_y[i].rho, r_prim_l_y[i].p)
+    var sos_r   : double = get_sos(r_prim_r_y[i].rho, r_prim_r_y[i].p)
+    var sos_avg : double = 0.5*( sos_l + sos_r )
+
+    var s_L : double = cmath.fmin(v_avg - sos_avg, r_prim_l_y[i].v - sos_l)
+    var s_R : double = cmath.fmax(v_avg + sos_avg, r_prim_r_y[i].v + sos_r)
+
+    var Q_L : double[5] = get_conserved( r_prim_l_y[i].rho, r_prim_l_y[i].u, r_prim_l_y[i].v, r_prim_l_y[i].w, r_prim_l_y[i].p )
+    var F_L : double[5] = get_yfluxes( r_prim_l_y[i].rho, r_prim_l_y[i].u, r_prim_l_y[i].v, r_prim_l_y[i].w, r_prim_l_y[i].p )
+
+    var Q_R : double[5] = get_conserved( r_prim_r_y[i].rho, r_prim_r_y[i].u, r_prim_r_y[i].v, r_prim_r_y[i].w, r_prim_r_y[i].p )
+    var F_R : double[5] = get_yfluxes( r_prim_r_y[i].rho, r_prim_r_y[i].u, r_prim_r_y[i].v, r_prim_r_y[i].w, r_prim_r_y[i].p )
+
+    -- HLL Riemann Fluxes
+    var switch_L = 0.5*(1 + sign(s_L))
+    var switch_R = 0.5*(1 - sign(s_R))
+    r_flux_e_y[i].rho  = switch_L * F_L[0] + switch_R * F_R[0] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[0] - s_L*F_R[0] + s_R*s_L * ( Q_R[0] - Q_L[0] ) ) / (s_R - s_L)
+    r_flux_e_y[i].rhou = switch_L * F_L[1] + switch_R * F_R[1] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[1] - s_L*F_R[1] + s_R*s_L * ( Q_R[1] - Q_L[1] ) ) / (s_R - s_L)
+    r_flux_e_y[i].rhov = switch_L * F_L[2] + switch_R * F_R[2] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[2] - s_L*F_R[2] + s_R*s_L * ( Q_R[2] - Q_L[2] ) ) / (s_R - s_L)
+    r_flux_e_y[i].rhow = switch_L * F_L[3] + switch_R * F_R[3] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[3] - s_L*F_R[3] + s_R*s_L * ( Q_R[3] - Q_L[3] ) ) / (s_R - s_L)
+    r_flux_e_y[i].rhoE = switch_L * F_L[4] + switch_R * F_R[4] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[4] - s_L*F_R[4] + s_R*s_L * ( Q_R[4] - Q_L[4] ) ) / (s_R - s_L)
   end
 end
 
@@ -668,15 +831,143 @@ do
     r_flux_e_y[i].rhov = switch * (F_L[2] + s_m*(Q_star_L[2] - Q_L[2])) + (1-switch) * (F_R[2] + s_p*(Q_star_R[2] - Q_R[2]))
     r_flux_e_y[i].rhow = switch * (F_L[3] + s_m*(Q_star_L[3] - Q_L[3])) + (1-switch) * (F_R[3] + s_p*(Q_star_R[3] - Q_R[3]))
     r_flux_e_y[i].rhoE = switch * (F_L[4] + s_m*(Q_star_L[4] - Q_L[4])) + (1-switch) * (F_R[4] + s_p*(Q_star_R[4] - Q_R[4]))
+  end
+end
 
-    -- -- HLL Riemann Fluxes
-    -- var switch_L = 0.5*(1 + sign(s_L))
-    -- var switch_R = 0.5*(1 - sign(s_R))
-    -- r_flux_e_y[i].rho  = switch_L * F_L[0] + switch_R * F_R[0] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[0] - s_L*F_R[0] + s_R*s_L * ( Q_R[0] - Q_L[0] ) ) / (s_R - s_L)
-    -- r_flux_e_y[i].rhou = switch_L * F_L[1] + switch_R * F_R[1] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[1] - s_L*F_R[1] + s_R*s_L * ( Q_R[1] - Q_L[1] ) ) / (s_R - s_L)
-    -- r_flux_e_y[i].rhov = switch_L * F_L[2] + switch_R * F_R[2] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[2] - s_L*F_R[2] + s_R*s_L * ( Q_R[2] - Q_L[2] ) ) / (s_R - s_L)
-    -- r_flux_e_y[i].rhow = switch_L * F_L[3] + switch_R * F_R[3] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[3] - s_L*F_R[3] + s_R*s_L * ( Q_R[3] - Q_L[3] ) ) / (s_R - s_L)
-    -- r_flux_e_y[i].rhoE = switch_L * F_L[4] + switch_R * F_R[4] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[4] - s_L*F_R[4] + s_R*s_L * ( Q_R[4] - Q_L[4] ) ) / (s_R - s_L)
+__demand(__inline)
+task HLLC_HLL_y( r_prim_l_y    : region(ispace(int3d), primitive),
+                 r_prim_r_y    : region(ispace(int3d), primitive),
+                 r_theta_y     : region(ispace(int3d), double),
+                 r_omega_mag_y : region(ispace(int3d), double),
+                 r_flux_e_y    : region(ispace(int3d), conserved) )
+where
+  reads(r_prim_l_y, r_prim_r_y, r_theta_y, r_omega_mag_y), writes(r_flux_e_y)
+do
+  for i in r_flux_e_y do
+    var v_avg   : double = 0.5*( r_prim_l_y[i].v + r_prim_r_y[i].v )
+    var sos_l   : double = get_sos(r_prim_l_y[i].rho, r_prim_l_y[i].p)
+    var sos_r   : double = get_sos(r_prim_r_y[i].rho, r_prim_r_y[i].p)
+    var sos_avg : double = 0.5*( sos_l + sos_r )
+
+    var s_L : double = cmath.fmin(v_avg - sos_avg, r_prim_l_y[i].v - sos_l)
+    var s_R : double = cmath.fmax(v_avg + sos_avg, r_prim_r_y[i].v + sos_r)
+
+    var s_m : double = cmath.fmin(0.0, s_L)
+    var s_p : double = cmath.fmax(0.0, s_R)
+
+    var s_star : double = ( r_prim_r_y[i].p - r_prim_l_y[i].p 
+                            + r_prim_l_y[i].rho * r_prim_l_y[i].v * (s_L - r_prim_l_y[i].v) 
+                            - r_prim_r_y[i].rho * r_prim_r_y[i].v * (s_R - r_prim_r_y[i].v) ) 
+                          / ( r_prim_l_y[i].rho * (s_L - r_prim_l_y[i].v) 
+                            - r_prim_r_y[i].rho * (s_R - r_prim_r_y[i].v))
+
+    var Q_L : double[5] = get_conserved( r_prim_l_y[i].rho, r_prim_l_y[i].u, r_prim_l_y[i].v, r_prim_l_y[i].w, r_prim_l_y[i].p )
+    var F_L : double[5] = get_yfluxes( r_prim_l_y[i].rho, r_prim_l_y[i].u, r_prim_l_y[i].v, r_prim_l_y[i].w, r_prim_l_y[i].p )
+
+    var Q_R : double[5] = get_conserved( r_prim_r_y[i].rho, r_prim_r_y[i].u, r_prim_r_y[i].v, r_prim_r_y[i].w, r_prim_r_y[i].p )
+    var F_R : double[5] = get_yfluxes( r_prim_r_y[i].rho, r_prim_r_y[i].u, r_prim_r_y[i].v, r_prim_r_y[i].w, r_prim_r_y[i].p )
+
+    var chi_star_L : double = ( s_L - r_prim_l_y[i].v ) / ( s_L - s_star )
+    var chi_star_R : double = ( s_R - r_prim_r_y[i].v ) / ( s_R - s_star )
+
+    var Q_star_L : double[5]
+    Q_star_L[0] = chi_star_L * ( r_prim_l_y[i].rho )
+    Q_star_L[1] = chi_star_L * ( Q_L[1] )
+    Q_star_L[2] = chi_star_L * ( r_prim_l_y[i].rho * s_star ) 
+    Q_star_L[3] = chi_star_L * ( Q_L[3] )
+    Q_star_L[4] = chi_star_L * ( Q_L[4] + (s_star - r_prim_l_y[i].v)*( r_prim_l_y[i].rho * s_star + r_prim_l_y[i].p/(s_L - r_prim_l_y[i].v) ) )
+
+    var Q_star_R : double[5]
+    Q_star_R[0] = chi_star_R * ( r_prim_r_y[i].rho )
+    Q_star_R[1] = chi_star_R * ( Q_R[1] )
+    Q_star_R[2] = chi_star_R * ( r_prim_r_y[i].rho * s_star )
+    Q_star_R[3] = chi_star_R * ( Q_R[3] )
+    Q_star_R[4] = chi_star_R * ( Q_R[4] + (s_star - r_prim_r_y[i].v)*( r_prim_r_y[i].rho * s_star + r_prim_r_y[i].p/(s_R - r_prim_r_y[i].v) ) )
+
+    -- HLLC Riemann Fluxes
+    var F_HLLC : double[5]
+    var switch = 0.5*(1 + sign(s_star))
+    F_HLLC[0] = switch * (F_L[0] + s_m*(Q_star_L[0] - Q_L[0])) + (1-switch) * (F_R[0] + s_p*(Q_star_R[0] - Q_R[0]))
+    F_HLLC[1] = switch * (F_L[1] + s_m*(Q_star_L[1] - Q_L[1])) + (1-switch) * (F_R[1] + s_p*(Q_star_R[1] - Q_R[1]))
+    F_HLLC[2] = switch * (F_L[2] + s_m*(Q_star_L[2] - Q_L[2])) + (1-switch) * (F_R[2] + s_p*(Q_star_R[2] - Q_R[2]))
+    F_HLLC[3] = switch * (F_L[3] + s_m*(Q_star_L[3] - Q_L[3])) + (1-switch) * (F_R[3] + s_p*(Q_star_R[3] - Q_R[3]))
+    F_HLLC[4] = switch * (F_L[4] + s_m*(Q_star_L[4] - Q_L[4])) + (1-switch) * (F_R[4] + s_p*(Q_star_R[4] - Q_R[4]))
+
+    -- HLL Riemann Fluxes
+    var F_HLL : double[5]
+    var switch_L = 0.5*(1 + sign(s_L))
+    var switch_R = 0.5*(1 - sign(s_R))
+    F_HLLC[0] = switch_L * F_L[0] + switch_R * F_R[0] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[0] - s_L*F_R[0] + s_R*s_L * ( Q_R[0] - Q_L[0] ) ) / (s_R - s_L)
+    F_HLLC[1] = switch_L * F_L[1] + switch_R * F_R[1] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[1] - s_L*F_R[1] + s_R*s_L * ( Q_R[1] - Q_L[1] ) ) / (s_R - s_L)
+    F_HLLC[2] = switch_L * F_L[2] + switch_R * F_R[2] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[2] - s_L*F_R[2] + s_R*s_L * ( Q_R[2] - Q_L[2] ) ) / (s_R - s_L)
+    F_HLLC[3] = switch_L * F_L[3] + switch_R * F_R[3] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[3] - s_L*F_R[3] + s_R*s_L * ( Q_R[3] - Q_L[3] ) ) / (s_R - s_L)
+    F_HLLC[4] = switch_L * F_L[4] + switch_R * F_R[4] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[4] - s_L*F_R[4] + s_R*s_L * ( Q_R[4] - Q_L[4] ) ) / (s_R - s_L)
+
+    -- HLLC-HLL Riemann Fluxes
+    var s = -r_theta_y[i]/(cmath.fabs(r_theta_y[i]) + r_omega_mag_y[i] + epsilon)
+    if  (s > 0.65) then
+      var alpha_1 : double
+      var alpha_2 : double
+      var u_y_diff = r_prim_r_y[i].u - r_prim_l_y[i].u
+      var v_y_diff = r_prim_r_y[i].v - r_prim_l_y[i].v
+      var w_y_diff = r_prim_r_y[i].w - r_prim_l_y[i].w
+      var vel_mag = cmath.sqrt(u_y_diff*u_y_diff + v_y_diff*v_y_diff + w_y_diff*w_y_diff)
+      if (vel_mag < epsilon) then
+        alpha_1 = 1.0
+        alpha_2 = 0.0
+      else
+        alpha_1 = cmath.fabs(v_y_diff)/vel_mag
+        alpha_2 = cmath.sqrt(1.0 - alpha_1*alpha_1)
+      end
+
+      var beta_1 = 0.5*(1.0 + alpha_1/(alpha_1 + alpha_2))
+      var beta_2 = 1.0 - beta_1
+
+      r_flux_e_y[i].rho  = beta_1*F_HLLC[0] + beta_2*F_HLL[0]
+      r_flux_e_y[i].rhou = beta_1*F_HLLC[1] + beta_2*F_HLL[1]
+      r_flux_e_y[i].rhov = F_HLLC[2]
+      r_flux_e_y[i].rhow = beta_1*F_HLLC[3] + beta_2*F_HLL[3]
+      r_flux_e_y[i].rhoE = F_HLLC[4]
+    else
+      r_flux_e_y[i].rho  = F_HLLC[0]
+      r_flux_e_y[i].rhou = F_HLLC[1]
+      r_flux_e_y[i].rhov = F_HLLC[2]
+      r_flux_e_y[i].rhow = F_HLLC[3]
+      r_flux_e_y[i].rhoE = F_HLLC[4]
+    end
+  end
+end
+
+__demand(__inline)
+task HLL_z( r_prim_l_z : region(ispace(int3d), primitive),
+            r_prim_r_z : region(ispace(int3d), primitive),
+            r_flux_e_z : region(ispace(int3d), conserved) )
+where
+  reads(r_prim_l_z, r_prim_r_z), writes(r_flux_e_z)
+do
+  for i in r_flux_e_z do
+    var w_avg   : double = 0.5*( r_prim_l_z[i].w + r_prim_r_z[i].w )
+    var sos_l   : double = get_sos(r_prim_l_z[i].rho, r_prim_l_z[i].p)
+    var sos_r   : double = get_sos(r_prim_r_z[i].rho, r_prim_r_z[i].p)
+    var sos_avg : double = 0.5*( sos_l + sos_r )
+
+    var s_L : double = cmath.fmin(w_avg - sos_avg, r_prim_l_z[i].w - sos_l)
+    var s_R : double = cmath.fmax(w_avg + sos_avg, r_prim_r_z[i].w + sos_r)
+
+    var Q_L : double[5] = get_conserved( r_prim_l_z[i].rho, r_prim_l_z[i].u, r_prim_l_z[i].v, r_prim_l_z[i].w, r_prim_l_z[i].p )
+    var F_L : double[5] = get_zfluxes( r_prim_l_z[i].rho, r_prim_l_z[i].u, r_prim_l_z[i].v, r_prim_l_z[i].w, r_prim_l_z[i].p )
+
+    var Q_R : double[5] = get_conserved( r_prim_r_z[i].rho, r_prim_r_z[i].u, r_prim_r_z[i].v, r_prim_r_z[i].w, r_prim_r_z[i].p )
+    var F_R : double[5] = get_zfluxes( r_prim_r_z[i].rho, r_prim_r_z[i].u, r_prim_r_z[i].v, r_prim_r_z[i].w, r_prim_r_z[i].p )
+
+    -- HLL Riemann Fluxes
+    var switch_L = 0.5*(1 + sign(s_L))
+    var switch_R = 0.5*(1 - sign(s_R))
+    r_flux_e_z[i].rho  = switch_L * F_L[0] + switch_R * F_R[0] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[0] - s_L*F_R[0] + s_R*s_L * ( Q_R[0] - Q_L[0] ) ) / (s_R - s_L)
+    r_flux_e_z[i].rhou = switch_L * F_L[1] + switch_R * F_R[1] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[1] - s_L*F_R[1] + s_R*s_L * ( Q_R[1] - Q_L[1] ) ) / (s_R - s_L)
+    r_flux_e_z[i].rhov = switch_L * F_L[2] + switch_R * F_R[2] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[2] - s_L*F_R[2] + s_R*s_L * ( Q_R[2] - Q_L[2] ) ) / (s_R - s_L)
+    r_flux_e_z[i].rhow = switch_L * F_L[3] + switch_R * F_R[3] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[3] - s_L*F_R[3] + s_R*s_L * ( Q_R[3] - Q_L[3] ) ) / (s_R - s_L)
+    r_flux_e_z[i].rhoE = switch_L * F_L[4] + switch_R * F_R[4] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[4] - s_L*F_R[4] + s_R*s_L * ( Q_R[4] - Q_L[4] ) ) / (s_R - s_L)
   end
 end
 
@@ -735,17 +1026,139 @@ do
     r_flux_e_z[i].rhov = switch * (F_L[2] + s_m*(Q_star_L[2] - Q_L[2])) + (1-switch) * (F_R[2] + s_p*(Q_star_R[2] - Q_R[2]))
     r_flux_e_z[i].rhow = switch * (F_L[3] + s_m*(Q_star_L[3] - Q_L[3])) + (1-switch) * (F_R[3] + s_p*(Q_star_R[3] - Q_R[3]))
     r_flux_e_z[i].rhoE = switch * (F_L[4] + s_m*(Q_star_L[4] - Q_L[4])) + (1-switch) * (F_R[4] + s_p*(Q_star_R[4] - Q_R[4]))
-
-    -- -- HLL Riemann Fluxes
-    -- var switch_L = 0.5*(1 + sign(s_L))
-    -- var switch_R = 0.5*(1 - sign(s_R))
-    -- r_flux_e_z[i].rho  = switch_L * F_L[0] + switch_R * F_R[0] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[0] - s_L*F_R[0] + s_R*s_L * ( Q_R[0] - Q_L[0] ) ) / (s_R - s_L)
-    -- r_flux_e_z[i].rhou = switch_L * F_L[1] + switch_R * F_R[1] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[1] - s_L*F_R[1] + s_R*s_L * ( Q_R[1] - Q_L[1] ) ) / (s_R - s_L)
-    -- r_flux_e_z[i].rhov = switch_L * F_L[2] + switch_R * F_R[2] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[2] - s_L*F_R[2] + s_R*s_L * ( Q_R[2] - Q_L[2] ) ) / (s_R - s_L)
-    -- r_flux_e_z[i].rhow = switch_L * F_L[3] + switch_R * F_R[3] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[3] - s_L*F_R[3] + s_R*s_L * ( Q_R[3] - Q_L[3] ) ) / (s_R - s_L)
-    -- r_flux_e_z[i].rhoE = switch_L * F_L[4] + switch_R * F_R[4] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[4] - s_L*F_R[4] + s_R*s_L * ( Q_R[4] - Q_L[4] ) ) / (s_R - s_L)
   end
 end
+
+__demand(__inline)
+task HLLC_HLL_z( r_prim_l_z    : region(ispace(int3d), primitive),
+                 r_prim_r_z    : region(ispace(int3d), primitive),
+                 r_theta_z     : region(ispace(int3d), double),
+                 r_omega_mag_z : region(ispace(int3d), double),
+                 r_flux_e_z    : region(ispace(int3d), conserved) )
+where
+  reads(r_prim_l_z, r_prim_r_z, r_theta_z, r_omega_mag_z), writes(r_flux_e_z)
+do
+  for i in r_flux_e_z do
+    var w_avg   : double = 0.5*( r_prim_l_z[i].w + r_prim_r_z[i].w )
+    var sos_l   : double = get_sos(r_prim_l_z[i].rho, r_prim_l_z[i].p)
+    var sos_r   : double = get_sos(r_prim_r_z[i].rho, r_prim_r_z[i].p)
+    var sos_avg : double = 0.5*( sos_l + sos_r )
+
+    var s_L : double = cmath.fmin(w_avg - sos_avg, r_prim_l_z[i].w - sos_l)
+    var s_R : double = cmath.fmax(w_avg + sos_avg, r_prim_r_z[i].w + sos_r)
+
+    var s_m : double = cmath.fmin(0.0, s_L)
+    var s_p : double = cmath.fmax(0.0, s_R)
+
+    var s_star : double = ( r_prim_r_z[i].p - r_prim_l_z[i].p 
+                            + r_prim_l_z[i].rho * r_prim_l_z[i].w * (s_L - r_prim_l_z[i].w) 
+                            - r_prim_r_z[i].rho * r_prim_r_z[i].w * (s_R - r_prim_r_z[i].w) ) 
+                          / ( r_prim_l_z[i].rho * (s_L - r_prim_l_z[i].w) 
+                            - r_prim_r_z[i].rho * (s_R - r_prim_r_z[i].w))
+
+    var Q_L : double[5] = get_conserved( r_prim_l_z[i].rho, r_prim_l_z[i].u, r_prim_l_z[i].v, r_prim_l_z[i].w, r_prim_l_z[i].p )
+    var F_L : double[5] = get_zfluxes( r_prim_l_z[i].rho, r_prim_l_z[i].u, r_prim_l_z[i].v, r_prim_l_z[i].w, r_prim_l_z[i].p )
+
+    var Q_R : double[5] = get_conserved( r_prim_r_z[i].rho, r_prim_r_z[i].u, r_prim_r_z[i].v, r_prim_r_z[i].w, r_prim_r_z[i].p )
+    var F_R : double[5] = get_zfluxes( r_prim_r_z[i].rho, r_prim_r_z[i].u, r_prim_r_z[i].v, r_prim_r_z[i].w, r_prim_r_z[i].p )
+
+    var chi_star_L : double = ( s_L - r_prim_l_z[i].w ) / ( s_L - s_star )
+    var chi_star_R : double = ( s_R - r_prim_r_z[i].w ) / ( s_R - s_star )
+
+    var Q_star_L : double[5]
+    Q_star_L[0] = chi_star_L * ( r_prim_l_z[i].rho )
+    Q_star_L[1] = chi_star_L * ( Q_L[1] )
+    Q_star_L[2] = chi_star_L * ( Q_L[2] ) 
+    Q_star_L[3] = chi_star_L * ( r_prim_l_z[i].rho * s_star )
+    Q_star_L[4] = chi_star_L * ( Q_L[4] + (s_star - r_prim_l_z[i].w)*( r_prim_l_z[i].rho * s_star + r_prim_l_z[i].p/(s_L - r_prim_l_z[i].w) ) )
+
+    var Q_star_R : double[5]
+    Q_star_R[0] = chi_star_R * ( r_prim_r_z[i].rho )
+    Q_star_R[1] = chi_star_R * ( Q_R[1] )
+    Q_star_R[2] = chi_star_R * ( Q_R[2] )
+    Q_star_R[3] = chi_star_R * ( r_prim_r_z[i].rho * s_star ) 
+    Q_star_R[4] = chi_star_R * ( Q_R[4] + (s_star - r_prim_r_z[i].w)*( r_prim_r_z[i].rho * s_star + r_prim_r_z[i].p/(s_R - r_prim_r_z[i].w) ) )
+
+    -- HLLC Riemann Fluxes
+    var F_HLLC : double[5]
+    var switch = 0.5*(1 + sign(s_star))
+    F_HLLC[0] = switch * (F_L[0] + s_m*(Q_star_L[0] - Q_L[0])) + (1-switch) * (F_R[0] + s_p*(Q_star_R[0] - Q_R[0]))
+    F_HLLC[1] = switch * (F_L[1] + s_m*(Q_star_L[1] - Q_L[1])) + (1-switch) * (F_R[1] + s_p*(Q_star_R[1] - Q_R[1]))
+    F_HLLC[2] = switch * (F_L[2] + s_m*(Q_star_L[2] - Q_L[2])) + (1-switch) * (F_R[2] + s_p*(Q_star_R[2] - Q_R[2]))
+    F_HLLC[3] = switch * (F_L[3] + s_m*(Q_star_L[3] - Q_L[3])) + (1-switch) * (F_R[3] + s_p*(Q_star_R[3] - Q_R[3]))
+    F_HLLC[4] = switch * (F_L[4] + s_m*(Q_star_L[4] - Q_L[4])) + (1-switch) * (F_R[4] + s_p*(Q_star_R[4] - Q_R[4]))
+
+    -- HLL Riemann Fluxes
+    var F_HLL : double[5]
+    var switch_L = 0.5*(1 + sign(s_L))
+    var switch_R = 0.5*(1 - sign(s_R))
+    F_HLL[0] = switch_L * F_L[0] + switch_R * F_R[0] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[0] - s_L*F_R[0] + s_R*s_L * ( Q_R[0] - Q_L[0] ) ) / (s_R - s_L)
+    F_HLL[1] = switch_L * F_L[1] + switch_R * F_R[1] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[1] - s_L*F_R[1] + s_R*s_L * ( Q_R[1] - Q_L[1] ) ) / (s_R - s_L)
+    F_HLL[2] = switch_L * F_L[2] + switch_R * F_R[2] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[2] - s_L*F_R[2] + s_R*s_L * ( Q_R[2] - Q_L[2] ) ) / (s_R - s_L)
+    F_HLL[3] = switch_L * F_L[3] + switch_R * F_R[3] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[3] - s_L*F_R[3] + s_R*s_L * ( Q_R[3] - Q_L[3] ) ) / (s_R - s_L)
+    F_HLL[4] = switch_L * F_L[4] + switch_R * F_R[4] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[4] - s_L*F_R[4] + s_R*s_L * ( Q_R[4] - Q_L[4] ) ) / (s_R - s_L)
+
+    -- HLLC-HLL Riemann Fluxes
+    var s = -r_theta_z[i]/(cmath.fabs(r_theta_z[i]) + r_omega_mag_z[i] + epsilon)
+    if  (s > 0.65) then
+      var alpha_1 : double
+      var alpha_2 : double
+      var u_z_diff = r_prim_r_z[i].u - r_prim_l_z[i].u
+      var v_z_diff = r_prim_r_z[i].v - r_prim_l_z[i].v
+      var w_z_diff = r_prim_r_z[i].w - r_prim_l_z[i].w
+      var vel_mag = cmath.sqrt(u_z_diff*u_z_diff + v_z_diff*v_z_diff + w_z_diff*w_z_diff)
+      if (vel_mag < epsilon) then
+        alpha_1 = 1.0
+        alpha_2 = 0.0
+      else
+        alpha_1 = cmath.fabs(w_z_diff)/vel_mag
+        alpha_2 = cmath.sqrt(1.0 - alpha_1*alpha_1)
+      end
+
+      var beta_1 = 0.5*(1.0 + alpha_1/(alpha_1 + alpha_2))
+      var beta_2 = 1.0 - beta_1
+
+      r_flux_e_z[i].rho  = beta_1*F_HLLC[0] + beta_2*F_HLL[0]
+      r_flux_e_z[i].rhou = beta_1*F_HLLC[1] + beta_2*F_HLL[1]
+      r_flux_e_z[i].rhov = beta_1*F_HLLC[2] + beta_2*F_HLL[2]
+      r_flux_e_z[i].rhow = F_HLLC[3]
+      r_flux_e_z[i].rhoE = F_HLLC[4]
+    else
+      r_flux_e_z[i].rho  = F_HLLC[0]
+      r_flux_e_z[i].rhou = F_HLLC[1]
+      r_flux_e_z[i].rhov = F_HLLC[2]
+      r_flux_e_z[i].rhow = F_HLLC[3]
+      r_flux_e_z[i].rhoE = F_HLLC[4]
+    end
+  end
+end
+
+-- __demand(__inline)
+-- task compute_theta_x( r_prim_c  : region(ispace(int3d), primitive),
+--                       r_theta_x : region(ispace(int3d), double),
+--                       dx        : double,
+--                       dy        : double,
+--                       dz        : double,
+--                       n_ghosts  : int64 )
+-- where
+--   reads(r_prim_c), reads writes(r_theta_x)
+-- do
+--   one_over_two_dx = 1.0/(2.0*dx)
+--   one_over_two_dy = 1.0/(2.0*dy)
+--   one_over_two_dz = 1.0/(2.0*dz)
+-- 
+--   for i in r_theta_x do
+--     var idxm2 = int3d { x = i.x + n_ghosts - 2, y = i.y, z = i.z}
+--     var idxm1 = int3d { x = i.x + n_ghosts - 1, y = i.y, z = i.z}
+--     var idxp1 = int3d { x = i.x + n_ghosts + 0, y = i.y, z = i.z}
+--     var idxp2 = int3d { x = i.x + n_ghosts + 1, y = i.y, z = i.z}
+-- 
+--     var dudx_l = one_over_two_dx*(r_prim_c[idxp1] - r_prim_c[idxm2])
+--     var dudx_r = one_over_two_dx*(r_prim_c[idxp2] - r_prim_c[idxm1])
+-- 
+--     r_theta_x[i] = 0.5*(dudx_l + dudx_r)
+--   end
+-- end
 
 __demand(__inline)
 task positivity_enforcer_x( r_prim_c   : region(ispace(int3d), primitive),
