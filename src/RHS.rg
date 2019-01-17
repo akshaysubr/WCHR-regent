@@ -614,9 +614,9 @@ do
     WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x )
     positivity_enforcer_x( r_prim_c, r_prim_l_x, r_prim_r_x, interpolation.n_ghosts )
 
-    if (problem.Riemann_solver = "HLL") then
+    if (problem.Riemann_solver == "HLL") then
       HLL_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
-    elseif (problem.Riemann_solver = "HLLC") then
+    elseif (problem.Riemann_solver == "HLLC") then
       HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
     else
       HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
@@ -809,9 +809,9 @@ do
     WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y )
     positivity_enforcer_y( r_prim_c, r_prim_l_y, r_prim_r_y, interpolation.n_ghosts )
 
-    if (problem.Riemann_solver = "HLL") then
+    if (problem.Riemann_solver == "HLL") then
       HLL_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
-    elseif (problem.Riemann_solver = "HLLC") then
+    elseif (problem.Riemann_solver == "HLLC") then
       HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
     else
       HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
@@ -1004,9 +1004,9 @@ do
     WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z )
     positivity_enforcer_z( r_prim_c, r_prim_l_z, r_prim_r_z, interpolation.n_ghosts )
 
-    if (problem.Riemann_solver = "HLL") then
+    if (problem.Riemann_solver == "HLL") then
       HLL_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
-    elseif (problem.Riemann_solver = "HLLC") then
+    elseif (problem.Riemann_solver == "HLLC") then
       HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
     else
       HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
