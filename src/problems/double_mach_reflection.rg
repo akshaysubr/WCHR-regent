@@ -65,11 +65,11 @@ problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
 problem.interpolation_scheme = "WCNS-LD"
-problem.Riemann_solver = "HLLC_HLL"
+problem.Riemann_solver = "HLLC-HLL"
 problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
 problem.dt_or_CFL_num        = 0.5
-problem.tstop                = 0.00005
-problem.tviz                 = 0.00005
+problem.tstop                = 0.2
+problem.tviz                 = problem.tstop/100.0
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),

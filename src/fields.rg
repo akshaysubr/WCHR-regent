@@ -113,17 +113,23 @@ fspace LU_coeffs {
   f  : double,
 }
 
+
+
 function poff(i, x, y, z, Nx, Ny, Nz)
   return rexpr int3d { x = (i.x + x + Nx)%Nx, y = (i.y + y + Ny)%Ny, z = (i.z + z + Nz)%Nz } end
 end
+
+
 
 function off(i, x, y, z)
   return rexpr int3d { x = i.x + x, y = i.y + y, z = i.z + z } end
 end
 
+
+
 task set_zero_cnsr( r_cnsr : region(ispace(int3d), conserved) )
 where
-  writes(r_cnsr)
+  writes( r_cnsr )
 do
   for i in r_cnsr do
     r_cnsr[i].{rho, rhou, rhov, rhow, rhoE} = 0.0
@@ -132,9 +138,11 @@ do
   return 1
 end
 
+
+
 task set_zero_prim( r_prim : region(ispace(int3d), primitive) )
 where
-  writes(r_prim)
+  writes( r_prim )
 do
   for i in r_prim do
     r_prim[i].{rho, u, v, w, p} = 0.0
@@ -143,9 +151,11 @@ do
   return 1
 end
 
+
+
 task check_nan_cnsr( r_cnsr : region(ispace(int3d), conserved) )
 where
-  reads(r_cnsr)
+  reads( r_cnsr )
 do
   var found_nan : int = 0
   for i in r_cnsr do
@@ -158,9 +168,11 @@ do
   return found_nan
 end
 
+
+
 task check_nan_prim( r_prim : region(ispace(int3d), primitive) )
 where
-  reads(r_prim)
+  reads( r_prim )
 do
   var found_nan : int = 0
   for i in r_prim do
@@ -172,6 +184,8 @@ do
 
   return found_nan
 end
+
+
 
 -- task add_value_cnsr( r_cnsr : region(ispace(int3d), conserved),
 --                      r_rhs  : region(ispace(int3d), conserved),

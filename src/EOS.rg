@@ -13,20 +13,28 @@ local Rgas     = problem.Rgas
 local Cv       = Rgas * onebygm1
 local Cp       = gamma * Cv
 
+
+
 __demand(__inline)
 task get_pressure( rho : double, rhoe : double )
   return gamma_m1 * rhoe
 end
+
+
 
 __demand(__inline)
 task get_internal_energy( rho : double, p : double)
   return onebygm1 * p
 end
 
+
+
 __demand(__inline)
 task get_temperature( rho : double, p : double )
   return p / (rho * Rgas)
 end
+
+
 
 __demand(__inline)
 task get_sos( rho : double, p : double )

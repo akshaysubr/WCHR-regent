@@ -20,10 +20,13 @@ task partition_LU( LU     : region(ispace(int3d), LU_struct),
     var rect = rect3d { lo = lo, hi = hi }
     c.legion_domain_point_coloring_color_domain(coloring, i, rect)
   end
+
   var p = partition(disjoint, LU, coloring, pencil)
   c.legion_domain_point_coloring_destroy(coloring)
   return p
 end
+
+
 
 task partition_mat( mat    : region(ispace(int3d), LU_coeffs),
                     pencil : ispace(int2d) )
@@ -41,10 +44,13 @@ task partition_mat( mat    : region(ispace(int3d), LU_coeffs),
     var rect = rect3d { lo = lo, hi = hi }
     c.legion_domain_point_coloring_color_domain(coloring, i, rect)
   end
+
   var p = partition(disjoint, mat, coloring, pencil)
   c.legion_domain_point_coloring_destroy(coloring)
   return p
 end
+
+
 
 local function make_partition2D(r)
   local task partition2D( [r],
@@ -60,12 +66,16 @@ local function make_partition2D(r)
       var rect = rect2d { lo = lo, hi = hi }
       c.legion_domain_point_coloring_color_domain(coloring, i, rect)
     end
+
     var p = partition(disjoint, [r], coloring, pencil)
     c.legion_domain_point_coloring_destroy(coloring)
     return p
   end
+
   return partition2D
 end
+
+
 
 local function make_partition_xpencil(r)
   local task partition_xpencil( [r],
@@ -74,7 +84,7 @@ local function make_partition_xpencil(r)
                                 xpencil     : ispace(int2d) )
     var coloring = c.legion_domain_point_coloring_create()
   
-    -- xpencil is of size (prow+2)(pcol+2)
+    -- xpencil is of size (prow+2)*(pcol+2)
     var prow = xpencil.bounds.hi.x - 1
     var pcol = xpencil.bounds.hi.y - 1
   
@@ -134,12 +144,16 @@ local function make_partition_xpencil(r)
       var rect = rect3d { lo = lo, hi = hi }
       c.legion_domain_point_coloring_color_domain(coloring, i, rect)
     end
+
     var p = partition(disjoint, [r], coloring, xpencil)
     c.legion_domain_point_coloring_destroy(coloring)
     return p
   end
+
   return partition_xpencil
 end
+
+
 
 local function make_partition_ypencil(r)
   local task partition_ypencil( [r],
@@ -148,7 +162,7 @@ local function make_partition_ypencil(r)
                                 ypencil     : ispace(int2d) )
     var coloring = c.legion_domain_point_coloring_create()
   
-    -- xpencil is of size (prow+2)(pcol+2)
+    -- ypencil is of size (prow+2)*(pcol+2)
     var prow = ypencil.bounds.hi.x - 1
     var pcol = ypencil.bounds.hi.y - 1
  
@@ -208,12 +222,16 @@ local function make_partition_ypencil(r)
       var rect = rect3d { lo = lo, hi = hi }
       c.legion_domain_point_coloring_color_domain(coloring, i, rect)
     end
+
     var p = partition(disjoint, [r], coloring, ypencil)
     c.legion_domain_point_coloring_destroy(coloring)
     return p
   end
+
   return partition_ypencil
 end
+
+
 
 local function make_partition_zpencil(r)
   local task partition_zpencil( [r],
@@ -222,7 +240,7 @@ local function make_partition_zpencil(r)
                                 zpencil     : ispace(int2d) )
     var coloring = c.legion_domain_point_coloring_create()
   
-    -- zpencil is of size (prow+2)(pcol+2)
+    -- zpencil is of size (prow+2)*(pcol+2)
     var prow = zpencil.bounds.hi.x - 1
     var pcol = zpencil.bounds.hi.y - 1
   
@@ -282,14 +300,18 @@ local function make_partition_zpencil(r)
       var rect = rect3d { lo = lo, hi = hi }
       c.legion_domain_point_coloring_color_domain(coloring, i, rect)
     end
+
     var p = partition(disjoint, [r], coloring, zpencil)
     c.legion_domain_point_coloring_destroy(coloring)
     return p
   end
+
   return partition_zpencil
 end
 
-local function make_partition_xpencil_with_overlap(r)
+
+
+local function make_partition_with_overlap_xpencil(r)
   local task partition_xpencil_with_overlap( [r],
                                              n_overlap   : int64,
                                              n_ghosts    : int64,
@@ -297,7 +319,7 @@ local function make_partition_xpencil_with_overlap(r)
                                              xpencil     : ispace(int2d) )
     var coloring = c.legion_domain_point_coloring_create()
   
-    -- xpencil is of size (prow+2)(pcol+2)
+    -- xpencil is of size (prow+2)*(pcol+2)
     var prow = xpencil.bounds.hi.x - 1
     var pcol = xpencil.bounds.hi.y - 1
   
@@ -357,14 +379,18 @@ local function make_partition_xpencil_with_overlap(r)
       var rect = rect3d { lo = lo, hi = hi }
       c.legion_domain_point_coloring_color_domain(coloring, i, rect)
     end
+
     var p = partition(aliased, [r], coloring, xpencil)
     c.legion_domain_point_coloring_destroy(coloring)
     return p
   end
+
   return partition_xpencil_with_overlap
 end
 
-local function make_partition_ypencil_with_overlap(r)
+
+
+local function make_partition_with_overlap_ypencil(r)
   local task partition_ypencil_with_overlap( [r],
                                              n_overlap   : int64,
                                              n_ghosts    : int64,
@@ -372,7 +398,7 @@ local function make_partition_ypencil_with_overlap(r)
                                              ypencil     : ispace(int2d) )
     var coloring = c.legion_domain_point_coloring_create()
   
-    -- xpencil is of size (prow+2)(pcol+2)
+    -- ypencil is of size (prow+2)*(pcol+2)
     var prow = ypencil.bounds.hi.x - 1
     var pcol = ypencil.bounds.hi.y - 1
  
@@ -432,14 +458,18 @@ local function make_partition_ypencil_with_overlap(r)
       var rect = rect3d { lo = lo, hi = hi }
       c.legion_domain_point_coloring_color_domain(coloring, i, rect)
     end
+
     var p = partition(aliased, [r], coloring, ypencil)
     c.legion_domain_point_coloring_destroy(coloring)
     return p
   end
+
   return partition_ypencil_with_overlap
 end
 
-local function make_partition_zpencil_with_overlap(r)
+
+
+local function make_partition_with_overlap_zpencil(r)
   local task partition_zpencil_with_overlap( [r],
                                              n_overlap   : int64,
                                              n_ghosts    : int64,
@@ -447,7 +477,7 @@ local function make_partition_zpencil_with_overlap(r)
                                              zpencil     : ispace(int2d) )
     var coloring = c.legion_domain_point_coloring_create()
   
-    -- zpencil is of size (prow+2)(pcol+2)
+    -- zpencil is of size (prow+2)*(pcol+2)
     var prow = zpencil.bounds.hi.x - 1
     var pcol = zpencil.bounds.hi.y - 1
   
@@ -507,12 +537,16 @@ local function make_partition_zpencil_with_overlap(r)
       var rect = rect3d { lo = lo, hi = hi }
       c.legion_domain_point_coloring_color_domain(coloring, i, rect)
     end
+
     var p = partition(aliased, [r], coloring, zpencil)
     c.legion_domain_point_coloring_destroy(coloring)
     return p
   end
+
   return partition_zpencil_with_overlap
 end
+
+
 
 local coords   = regentlib.newsymbol(region(ispace(int3d), coordinates), "coords")
 partition_xpencil_coords = make_partition_xpencil(coords)
@@ -524,9 +558,9 @@ partition_xpencil_prim = make_partition_xpencil(r_prim)
 partition_ypencil_prim = make_partition_ypencil(r_prim)
 partition_zpencil_prim = make_partition_zpencil(r_prim)
 
-partition_xpencil_with_overlap_prim = make_partition_xpencil_with_overlap(r_prim)
-partition_ypencil_with_overlap_prim = make_partition_ypencil_with_overlap(r_prim)
-partition_zpencil_with_overlap_prim = make_partition_zpencil_with_overlap(r_prim)
+partition_with_overlap_xpencil_prim = make_partition_with_overlap_xpencil(r_prim)
+partition_with_overlap_ypencil_prim = make_partition_with_overlap_ypencil(r_prim)
+partition_with_overlap_zpencil_prim = make_partition_with_overlap_zpencil(r_prim)
 
 local r_cnsr   = regentlib.newsymbol(region(ispace(int3d), conserved), "r_cnsr")
 partition_xpencil_cnsr = make_partition_xpencil(r_cnsr)

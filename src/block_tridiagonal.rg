@@ -11,6 +11,8 @@ local periodic_x = problem.periodic_x
 local periodic_y = problem.periodic_y
 local periodic_z = problem.periodic_z
 
+
+
 -- All matrices here are in Fortran order
 
 -- terra get_Rinv( rho : double, sos : double, Rinv : &double )
@@ -18,6 +20,8 @@ local periodic_z = problem.periodic_z
 --   Rinv[1 + 3*0] = 1.; Rinv[1 + 3*1] = 0.;           Rinv[1 + 3*2] = -1./(sos*sos);
 --   Rinv[2 + 3*0] = 0.; Rinv[2 + 3*1] =  0.5*rho*sos; Rinv[2 + 3*2] = 0.5;
 -- end
+
+
 
 local terra multiply_diagonal_l( matrix : &double, d0 : double, d1 : double, d2 : double )
   matrix[0 + 3*0] = d0*matrix[0 + 3*0]; matrix[0 + 3*1] = d0*matrix[0 + 3*1]; matrix[0 + 3*2] = d0*matrix[0 + 3*2];
@@ -27,14 +31,17 @@ end
 multiply_diagonal_l:setinlined(true)
 
 
+
 local __demand(__inline) task multiply_diagonal_l_r( r : region(ispace(int3d), double[9]), i : int3d(double[9], r), d0 : double, d1 : double, d2 : double )
 where
-  reads writes (r)
+  reads writes( r )
 do
   (@i)[0 + 3*0] = d0*((@i)[0 + 3*0]); (@i)[0 + 3*1] = d0*((@i)[0 + 3*1]); (@i)[0 + 3*2] = d0*((@i)[0 + 3*2]);
   (@i)[1 + 3*0] = d1*((@i)[1 + 3*0]); (@i)[1 + 3*1] = d1*((@i)[1 + 3*1]); (@i)[1 + 3*2] = d1*((@i)[1 + 3*2]);
   (@i)[2 + 3*0] = d2*((@i)[2 + 3*0]); (@i)[2 + 3*1] = d2*((@i)[2 + 3*1]); (@i)[2 + 3*2] = d2*((@i)[2 + 3*2]);
 end
+
+
 
 local terra multiply_diagonal_r( matrix : &double, d0 : double, d1 : double, d2 : double )
   matrix[0 + 3*0] = d0*matrix[0 + 3*0]; matrix[0 + 3*1] = d1*matrix[0 + 3*1]; matrix[0 + 3*2] = d2*matrix[0 + 3*2];
@@ -42,6 +49,8 @@ local terra multiply_diagonal_r( matrix : &double, d0 : double, d1 : double, d2 
   matrix[2 + 3*0] = d0*matrix[2 + 3*0]; matrix[2 + 3*1] = d1*matrix[2 + 3*1]; matrix[2 + 3*2] = d2*matrix[2 + 3*2];
 end
 multiply_diagonal_r:setinlined(true)
+
+
 
 local terra mult_matrix_vector( matrix : &double, vector : &double )
   var output : double[3]
@@ -54,9 +63,9 @@ local terra mult_matrix_vector( matrix : &double, vector : &double )
 end
 mult_matrix_vector:setinlined(true)
 
-local terra mult_matrix_matrix( matrix1 : &double, matrix2 : &double, output : &double )
-  -- var output : double[9]
 
+
+local terra mult_matrix_matrix( matrix1 : &double, matrix2 : &double, output : &double )
   for i = 0,3 do
     for j = 0,3 do
       output[i+3*j] = 0.
@@ -65,18 +74,15 @@ local terra mult_matrix_matrix( matrix1 : &double, matrix2 : &double, output : &
       end
     end
   end 
-
-  -- return output
 end
 mult_matrix_matrix:setinlined(true)
 
 
+
 local __demand(__inline) task mult_matrix_matrix_r( matrix1 : &double, matrix2 : &double, r : region(ispace(int3d), double[9]), ii : int3d(double[9], r) )
 where
-  reads writes (r)
+  reads writes( r )
 do
-  -- var output : double[9]
-
   for i = 0,3 do
     for j = 0,3 do
       (r[ii])[i+3*j] = 0.
@@ -85,12 +91,11 @@ do
       end
     end
   end 
-
-  -- return output
 end
 
-local terra print_matrix( matrix : &double )
 
+
+local terra print_matrix( matrix : &double )
   for i = 0,3 do
     for j = 0,3 do
 	  c.printf(" %11.8f ", i, j, matrix[i + 3*j])
@@ -100,6 +105,8 @@ local terra print_matrix( matrix : &double )
   c.printf("\n")
 end
 print_matrix:setinlined(true)
+
+
 
 local terra invert_matrix( matrix : &double )
   -- var ipiv  : int[3]
@@ -142,16 +149,15 @@ local terra invert_matrix( matrix : &double )
   for ii = 0,9 do
     matrix[ii] = inv[ii] * inv_det
   end
-
 end
 invert_matrix:setinlined(true)
 
 
+
 local __demand(__inline) task invert_matrix_r( r : region(ispace(int3d), double[9]), i : int3d(double[9], r) )
 where
-  reads writes(r)
+  reads writes( r )
 do
-
   var inv_det = ((@i)[0 + 3*0]) * ( ((@i)[1 + 3*1]) * ((@i)[2 + 3*2]) - ((@i)[1 + 3*2]) * ((@i)[2 + 3*1]) ) 
               - ((@i)[0 + 3*1]) * ( ((@i)[1 + 3*0]) * ((@i)[2 + 3*2]) - ((@i)[2 + 3*0]) * ((@i)[1 + 3*2]) ) 
               + ((@i)[0 + 3*2]) * ( ((@i)[1 + 3*0]) * ((@i)[2 + 3*1]) - ((@i)[2 + 3*0]) * ((@i)[1 + 3*1]) )
@@ -174,8 +180,9 @@ do
   for ii = 0,9 do
     (@i)[ii] = inv[ii] * inv_det
   end
-
 end
+
+
 
 local terra axpby( x : &double, y : &double, a : double, b : double, N : int )
   for i = 0,N do
@@ -184,26 +191,33 @@ local terra axpby( x : &double, y : &double, a : double, b : double, N : int )
 end
 axpby:setinlined(true)
 
+
+
 local __demand(__inline) task axpby_r( r : region(ispace(int3d), double[9]), ii : int3d(double[9], r), y : &double, a : double, b : double, N : int )
 where
-  reads writes (r)
+  reads writes( r )
 do
   for i = 0,N do
     (@ii)[i] = a*(@ii)[i] + b*y[i]
   end
 end
 
-local terra print_vector( vector : &double )
 
+
+local terra print_vector( vector : &double )
   for i = 0,3 do
     c.printf(" %11.8f ", vector[i])
     c.printf("\n")
   end
 end
 
+
+
 local terra random_number()
   return ( [double](cstdlib.rand()) / [double](cstdlib.RAND_MAX + 1.) )
 end
+
+
 
 __demand(__inline)
 task solve_block_tridiagonal_x( alpha   : region( ispace(int3d), coeffs ),
@@ -214,13 +228,10 @@ task solve_block_tridiagonal_x( alpha   : region( ispace(int3d), coeffs ),
                                 sol     : region( ispace(int3d), primitive ),
                                 d       : region( ispace(int3d), double[9] ),
                                 Uinv    : region( ispace(int3d), double[9] ) )
-                                -- d       : region( ispace(int3d), &double ),
-                                -- Uinv    : region( ispace(int3d), &double ) )
 where
-  reads(alpha.{_0,_1,_4}, beta.{_0,_1,_4}, gamma.{_0,_1,_4}, rho_avg, sos_avg, sol.{rho,u,p}, d, Uinv),
-  writes(sol.{rho,u,p}, d, Uinv, beta.{_0,_1,_4})
+  reads( alpha.{_0,_1,_4}, beta.{_0,_1,_4}, gamma.{_0,_1,_4}, rho_avg, sos_avg, sol.{rho,u,p}, d, Uinv ),
+  writes( sol.{rho,u,p}, d, Uinv, beta.{_0,_1,_4} )
 do
-
   var bounds = sol.ispace.bounds
   var N : int = bounds.hi.x + 1
   if periodic_x then
@@ -352,10 +363,8 @@ do
         sol[{N,j,k}].u   = sol[{0,j,k}].u
         sol[{N,j,k}].p   = sol[{0,j,k}].p
       end
-
     end
   end
-
 end
 
 
@@ -369,9 +378,8 @@ function make_solve_tridiagonal_x( fi, fn )
                                                                          sol     : region( ispace(int3d), primitive ),
                                                                          Uinv    : region( ispace(int3d), double) )
   where
-    reads (alpha.[fi], gamma.[fi]), reads writes ( beta.[fi], sol.[fn], Uinv )
+    reads( alpha.[fi], gamma.[fi] ), reads writes( beta.[fi], sol.[fn], Uinv )
   do
-  
     var bounds = sol.ispace.bounds
     var N : int = bounds.hi.x + 1
     if periodic_x then
@@ -429,13 +437,14 @@ function make_solve_tridiagonal_x( fi, fn )
           -- Copy last edge if periodic
           sol[{N,j,k}].[fn] = sol[{0,j,k}].[fn]
         end
-
       end
     end
-  
   end
+
   return solve_tridiagonal_x
 end
+
+
 
 __demand(__inline)
 task solve_block_tridiagonal_y( alpha   : region( ispace(int3d), coeffs ),
@@ -446,13 +455,10 @@ task solve_block_tridiagonal_y( alpha   : region( ispace(int3d), coeffs ),
                                 sol     : region( ispace(int3d), primitive ),
                                 d       : region( ispace(int3d), double[9] ),
                                 Uinv    : region( ispace(int3d), double[9] ) )
-                                -- d       : region( ispace(int3d), &double ),
-                                -- Uinv    : region( ispace(int3d), &double ) )
 where
-  reads(alpha.{_0,_2,_4}, beta.{_0,_2,_4}, gamma.{_0,_2,_4}, rho_avg, sos_avg, sol.{rho,v,p}, d, Uinv),
-  writes(sol.{rho,v,p}, d, Uinv, beta.{_0,_2,_4})
+  reads( alpha.{_0,_2,_4}, beta.{_0,_2,_4}, gamma.{_0,_2,_4}, rho_avg, sos_avg, sol.{rho,v,p}, d, Uinv ),
+  writes( sol.{rho,v,p}, d, Uinv, beta.{_0,_2,_4} )
 do
-
   var bounds = sol.ispace.bounds
   var N : int = bounds.hi.y + 1
   if periodic_y then
@@ -603,10 +609,10 @@ do
         sol[{i,N,k}].p   = sol[{i,0,k}].p
       end
     end
-
   end
-
 end
+
+
 
 function make_solve_tridiagonal_y( fi, fn )
   -- fi: field index in coeff region (_1, _2, _3 ...)
@@ -618,9 +624,8 @@ function make_solve_tridiagonal_y( fi, fn )
                                                                          sol     : region( ispace(int3d), primitive ),
                                                                          Uinv    : region( ispace(int3d), double) )
   where
-    reads (alpha.[fi], gamma.[fi]), reads writes ( beta.[fi], sol.[fn], Uinv )
+    reads( alpha.[fi], gamma.[fi] ), reads writes( beta.[fi], sol.[fn], Uinv )
   do
-  
     var bounds = sol.ispace.bounds
     var N : int = bounds.hi.y + 1
     if periodic_y then
@@ -687,12 +692,12 @@ function make_solve_tridiagonal_y( fi, fn )
           sol[{i,N,k}].[fn] = sol[{i,0,k}].[fn]
         end
       end
-
     end
-  
   end
+
   return solve_tridiagonal_y
 end
+
 
 
 __demand(__inline)
@@ -704,13 +709,10 @@ task solve_block_tridiagonal_z( alpha   : region( ispace(int3d), coeffs ),
                                 sol     : region( ispace(int3d), primitive ),
                                 d       : region( ispace(int3d), double[9] ),
                                 Uinv    : region( ispace(int3d), double[9] ) )
-                                -- d       : region( ispace(int3d), &double ),
-                                -- Uinv    : region( ispace(int3d), &double ) )
 where
-  reads(alpha.{_0,_3,_4}, beta.{_0,_3,_4}, gamma.{_0,_3,_4}, rho_avg, sos_avg, sol.{rho,w,p}, d, Uinv),
-  writes(sol.{rho,w,p}, d, Uinv, beta.{_0,_3,_4})
+  reads( alpha.{_0,_3,_4}, beta.{_0,_3,_4}, gamma.{_0,_3,_4}, rho_avg, sos_avg, sol.{rho,w,p}, d, Uinv ),
+  writes( sol.{rho,w,p}, d, Uinv, beta.{_0,_3,_4} )
 do
-
   var bounds = sol.ispace.bounds
   var N : int = bounds.hi.z + 1
   if periodic_z then
@@ -881,8 +883,9 @@ do
       end
     end
   end
-
 end
+
+
 
 function make_solve_tridiagonal_z( fi, fn )
   -- fi: field index in coeff region (_1, _2, _3 ...)
@@ -894,9 +897,8 @@ function make_solve_tridiagonal_z( fi, fn )
                                                                          sol     : region( ispace(int3d), primitive ),
                                                                          Uinv    : region( ispace(int3d), double) )
   where
-    reads (alpha.[fi], gamma.[fi]), reads writes ( beta.[fi], sol.[fn], Uinv )
+    reads( alpha.[fi], gamma.[fi] ), reads writes( beta.[fi], sol.[fn], Uinv )
   do
-  
     var bounds = sol.ispace.bounds
     var N : int = bounds.hi.z + 1
     if periodic_z then
@@ -973,9 +975,7 @@ function make_solve_tridiagonal_z( fi, fn )
         end
       end
     end
-
-  
   end
+
   return solve_tridiagonal_z
 end
-

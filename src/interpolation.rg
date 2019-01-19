@@ -50,6 +50,8 @@ gamma06CI = - 45.*( xi - 1. ) / ( 16.*(xi + 5) )
 local ip = {}
 ip.n_ghosts = 3
 
+
+
 local function v_index(i,is_left)
   if is_left then
     return i
@@ -580,9 +582,8 @@ task WCHR_interpolation_x( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l   : region(ispace(int3d), primitive),
                            r_prim_r   : region(ispace(int3d), primitive) )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r)
+  reads( r_prim_c ), reads writes( r_prim_l, r_prim_r )
 do
-
   -- var t_start = c.legion_get_current_time_in_micros()
 
   var bounds_c = r_prim_c.ispace.bounds
@@ -981,9 +982,8 @@ task WCHR_interpolation_y( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l   : region(ispace(int3d), primitive),
                            r_prim_r   : region(ispace(int3d), primitive) )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r)
+  reads( r_prim_c ), reads writes( r_prim_l, r_prim_r )
 do
-
   -- var t_start = c.legion_get_current_time_in_micros()
 
   var bounds_c = r_prim_c.ispace.bounds
@@ -1382,9 +1382,8 @@ task WCHR_interpolation_z( r_prim_c   : region(ispace(int3d), primitive),
                            r_prim_l   : region(ispace(int3d), primitive),
                            r_prim_r   : region(ispace(int3d), primitive) )
 where
-  reads(r_prim_c), reads writes(r_prim_l, r_prim_r)
+  reads( r_prim_c ), reads writes( r_prim_l, r_prim_r )
 do
-
   -- var t_start = c.legion_get_current_time_in_micros()
 
   var bounds_c = r_prim_c.ispace.bounds

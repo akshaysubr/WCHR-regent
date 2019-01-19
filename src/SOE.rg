@@ -3,8 +3,6 @@ import "regent"
 require("fields")
 require("EOS")
 
-local problem = require("problem")
-
 local c     = regentlib.c
 local cmath = terralib.includec("math.h")
 
@@ -32,6 +30,8 @@ task get_primitive( rho  : double,
   return prim
 end
 
+
+
 __demand(__inline)
 task get_conserved( rho : double,
                     u   : double,
@@ -52,6 +52,8 @@ task get_conserved( rho : double,
   return cnsr
 end
 
+
+
 terra get_Rinv( rho : double, sos : double, Rinv : &double )
   Rinv[0 + 3*0] = 0.; Rinv[0 + 3*1] = -0.5*rho*sos; Rinv[0 + 3*2] = 0.5;
   Rinv[1 + 3*0] = 1.; Rinv[1 + 3*1] = 0.;           Rinv[1 + 3*2] = -1./(sos*sos);
@@ -59,15 +61,19 @@ terra get_Rinv( rho : double, sos : double, Rinv : &double )
 end
 get_Rinv:setinlined(true)
 
+
+
 __demand(__inline)
 task get_Rinv_r( rho : double, sos : double, r : region(ispace(int3d), double[9]), i : int3d(double[9], r) )
 where
-  reads writes (r)
+  reads writes(r)
 do
   (@i)[0 + 3*0] = 0.; (@i)[0 + 3*1] = -0.5*rho*sos; (@i)[0 + 3*2] = 0.5;
   (@i)[1 + 3*0] = 1.; (@i)[1 + 3*1] = 0.;           (@i)[1 + 3*2] = -1./(sos*sos);
   (@i)[2 + 3*0] = 0.; (@i)[2 + 3*1] =  0.5*rho*sos; (@i)[2 + 3*2] = 0.5;
 end
+
+
 
 __demand(__inline)
 task get_xfluxes( rho  : double,
@@ -90,6 +96,8 @@ task get_xfluxes( rho  : double,
   return flux
 end
 
+
+
 __demand(__inline)
 task get_yfluxes( rho  : double,
                   u    : double,
@@ -110,6 +118,8 @@ task get_yfluxes( rho  : double,
 
   return flux
 end
+
+
 
 __demand(__inline)
 task get_zfluxes( rho  : double,
@@ -132,9 +142,11 @@ task get_zfluxes( rho  : double,
   return flux
 end
 
+
+
 __demand(__inline)
 task get_rho_sos_avg_x( r_prim_c : region(ispace(int3d), primitive),
-                        idx      : int3d)
+                        idx      : int3d )
 where
   reads(r_prim_c)
 do
@@ -147,9 +159,11 @@ do
   return rhosos
 end
 
+
+
 __demand(__inline)
 task get_rho_sos_avg_y( r_prim_c : region(ispace(int3d), primitive),
-                        idx      : int3d)
+                        idx      : int3d )
 where
   reads(r_prim_c)
 do
@@ -162,9 +176,11 @@ do
   return rhosos
 end
 
+
+
 __demand(__inline)
 task get_rho_sos_avg_z( r_prim_c : region(ispace(int3d), primitive),
-                        idx      : int3d)
+                        idx      : int3d )
 where
   reads(r_prim_c)
 do
@@ -177,8 +193,10 @@ do
   return rhosos
 end
 
+
+
 task get_max_stable_dt_1d( r_prim_c : region(ispace(int3d), primitive),
-                           dx       : double)
+                           dx       : double )
 where
   reads(r_prim_c)
 do
@@ -194,9 +212,11 @@ do
   return 1.0/max_spectral_radius
 end
 
+
+
 task get_max_stable_dt_2d( r_prim_c : region(ispace(int3d), primitive),
                            dx       : double,
-                           dy       : double)
+                           dy       : double )
 where
   reads(r_prim_c)
 do
@@ -215,10 +235,12 @@ do
   return 1.0/max_spectral_radius
 end
 
+
+
 task get_max_stable_dt_3d( r_prim_c : region(ispace(int3d), primitive),
                            dx       : double,
                            dy       : double,
-                           dz       : double)
+                           dz       : double )
 where
   reads(r_prim_c)
 do
@@ -238,12 +260,13 @@ do
   return 1.0/max_spectral_radius
 end
 
+
+
 task get_primitive_r( r_cnsr : region(ispace(int3d), conserved),
                       r_prim : region(ispace(int3d), primitive) )
 where
   reads(r_cnsr), writes(r_prim)
 do
-
   for i in r_prim do
     var prim : double[5] = get_primitive( r_cnsr[i].rho, r_cnsr[i].rhou, r_cnsr[i].rhov, r_cnsr[i].rhow, r_cnsr[i].rhoE )
 
@@ -257,8 +280,10 @@ do
   return 1
 end
 
+
+
 task get_temperature_r( r_prim : region(ispace(int3d), primitive),
-                       r_aux  : region(ispace(int3d), auxiliary) )
+                        r_aux  : region(ispace(int3d), auxiliary) )
 where
   reads(r_prim.{rho, p}), writes(r_aux.T)
 do
@@ -269,12 +294,13 @@ do
   return 1
 end
 
+
+
 task get_conserved_r( r_prim : region(ispace(int3d), primitive),
                       r_cnsr : region(ispace(int3d), conserved) )
 where
   reads(r_prim), writes(r_cnsr)
 do
-
   for i in r_cnsr do
     var cnsr : double[5] = get_conserved( r_prim[i].rho, r_prim[i].u, r_prim[i].v, r_prim[i].w, r_prim[i].p )
     r_cnsr[i].rho  = cnsr[0]
@@ -286,6 +312,8 @@ do
 
   return 1
 end
+
+
 
 __demand(__inline)
 task get_char_values_x( r_prim_c : region(ispace(int3d), primitive),
@@ -309,11 +337,13 @@ do
   return char_values
 end
 
+
+
 __demand(__inline)
 task get_char_values_LB_x( r_prim_c : region(ispace(int3d), primitive),
                            rho_avg  : double,
                            sos_avg  : double,
-                           idx      : int3d)
+                           idx      : int3d )
 where
   reads(r_prim_c)
 do
@@ -331,11 +361,13 @@ do
   return char_values
 end
 
+
+
 __demand(__inline)
 task get_char_values_RB_x( r_prim_c : region(ispace(int3d), primitive),
                            rho_avg  : double,
                            sos_avg  : double,
-                           idx      : int3d)
+                           idx      : int3d )
 where
   reads(r_prim_c)
 do
@@ -352,6 +384,8 @@ do
 
   return char_values
 end
+
+
 
 __demand(__inline)
 task get_char_values_y( r_prim_c : region(ispace(int3d), primitive),
@@ -375,11 +409,13 @@ do
   return char_values
 end
 
+
+
 __demand(__inline)
 task get_char_values_LB_y( r_prim_c : region(ispace(int3d), primitive),
                            rho_avg  : double,
                            sos_avg  : double,
-                           idx      : int3d)
+                           idx      : int3d )
 where
   reads(r_prim_c)
 do
@@ -397,11 +433,13 @@ do
   return char_values
 end
 
+
+
 __demand(__inline)
 task get_char_values_RB_y( r_prim_c : region(ispace(int3d), primitive),
                            rho_avg  : double,
                            sos_avg  : double,
-                           idx      : int3d)
+                           idx      : int3d )
 where
   reads(r_prim_c)
 do
@@ -419,11 +457,13 @@ do
   return char_values
 end
 
+
+
 __demand(__inline)
 task get_char_values_z( r_prim_c : region(ispace(int3d), primitive),
                         rho_avg  : double,
                         sos_avg  : double,
-                        idx      : int3d)
+                        idx      : int3d )
 where
   reads(r_prim_c)
 do
@@ -441,11 +481,13 @@ do
   return char_values
 end
 
+
+
 __demand(__inline)
 task get_char_values_LB_z( r_prim_c : region(ispace(int3d), primitive),
                            rho_avg  : double,
                            sos_avg  : double,
-                           idx      : int3d)
+                           idx      : int3d )
 where
   reads(r_prim_c)
 do
@@ -463,11 +505,13 @@ do
   return char_values
 end
 
+
+
 __demand(__inline)
 task get_char_values_RB_z( r_prim_c : region(ispace(int3d), primitive),
                            rho_avg  : double,
                            sos_avg  : double,
-                           idx      : int3d)
+                           idx      : int3d )
 where
   reads(r_prim_c)
 do
@@ -485,11 +529,13 @@ do
   return char_values
 end
 
+
+
 __demand(__inline)
 task get_xfluxes_r( r_prim : region(ispace(int3d), primitive),
                     r_flux : region(ispace(int3d), conserved) )
 where
-  reads (r_prim), writes (r_flux)
+  reads(r_prim), writes(r_flux)
 do
   for i in r_prim do
     var flux : double[5] =  get_xfluxes( r_prim[i].rho ,
@@ -505,11 +551,13 @@ do
   end
 end
 
+
+
 __demand(__inline)
 task get_yfluxes_r( r_prim : region(ispace(int3d), primitive),
                     r_flux : region(ispace(int3d), conserved) )
 where
-  reads (r_prim), writes (r_flux)
+  reads(r_prim), writes(r_flux)
 do
   for i in r_prim do
     var flux : double[5] = get_yfluxes( r_prim[i].rho ,
@@ -526,11 +574,13 @@ do
   end
 end
 
+
+
 __demand(__inline)
 task get_zfluxes_r( r_prim : region(ispace(int3d), primitive),
                     r_flux : region(ispace(int3d), conserved) )
 where
-  reads (r_prim), writes (r_flux)
+  reads(r_prim), writes(r_flux)
 do
   for i in r_prim do
     var flux : double[5] = get_zfluxes( r_prim[i].rho ,
@@ -549,6 +599,8 @@ end
 terra sign(x : double)
   return 2*([int](x >= 0)) - 1
 end
+
+
 
 __demand(__inline)
 task HLL_x( r_prim_l_x : region(ispace(int3d), primitive),
@@ -582,6 +634,8 @@ do
     r_flux_e_x[i].rhoE = switch_L * F_L[4] + switch_R * F_R[4] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[4] - s_L*F_R[4] + s_R*s_L * ( Q_R[4] - Q_L[4] ) ) / (s_R - s_L)
   end
 end
+
+
 
 __demand(__inline)
 task HLLC_x( r_prim_l_x : region(ispace(int3d), primitive),
@@ -640,6 +694,8 @@ do
     r_flux_e_x[i].rhoE = switch * (F_L[4] + s_m*(Q_star_L[4] - Q_L[4])) + (1-switch) * (F_R[4] + s_p*(Q_star_R[4] - Q_R[4]))
   end
 end
+
+
 
 __demand(__inline)
 task HLLC_HLL_x( r_prim_l_x    : region(ispace(int3d), primitive),
@@ -745,6 +801,8 @@ do
   end
 end
 
+
+
 __demand(__inline)
 task HLL_y( r_prim_l_y : region(ispace(int3d), primitive),
             r_prim_r_y : region(ispace(int3d), primitive),
@@ -777,6 +835,8 @@ do
     r_flux_e_y[i].rhoE = switch_L * F_L[4] + switch_R * F_R[4] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[4] - s_L*F_R[4] + s_R*s_L * ( Q_R[4] - Q_L[4] ) ) / (s_R - s_L)
   end
 end
+
+
 
 __demand(__inline)
 task HLLC_y( r_prim_l_y : region(ispace(int3d), primitive),
@@ -835,6 +895,8 @@ do
     r_flux_e_y[i].rhoE = switch * (F_L[4] + s_m*(Q_star_L[4] - Q_L[4])) + (1-switch) * (F_R[4] + s_p*(Q_star_R[4] - Q_R[4]))
   end
 end
+
+
 
 __demand(__inline)
 task HLLC_HLL_y( r_prim_l_y    : region(ispace(int3d), primitive),
@@ -940,6 +1002,8 @@ do
   end
 end
 
+
+
 __demand(__inline)
 task HLL_z( r_prim_l_z : region(ispace(int3d), primitive),
             r_prim_r_z : region(ispace(int3d), primitive),
@@ -972,6 +1036,8 @@ do
     r_flux_e_z[i].rhoE = switch_L * F_L[4] + switch_R * F_R[4] + (1 - switch_L)*(1 - switch_R) * ( s_R*F_L[4] - s_L*F_R[4] + s_R*s_L * ( Q_R[4] - Q_L[4] ) ) / (s_R - s_L)
   end
 end
+
+
 
 __demand(__inline)
 task HLLC_z( r_prim_l_z : region(ispace(int3d), primitive),
@@ -1030,6 +1096,8 @@ do
     r_flux_e_z[i].rhoE = switch * (F_L[4] + s_m*(Q_star_L[4] - Q_L[4])) + (1-switch) * (F_R[4] + s_p*(Q_star_R[4] - Q_R[4]))
   end
 end
+
+
 
 __demand(__inline)
 task HLLC_HLL_z( r_prim_l_z    : region(ispace(int3d), primitive),
@@ -1135,6 +1203,8 @@ do
   end
 end
 
+
+
 __demand(__inline)
 task compute_theta_avg( r_gradu_l   : region(ispace(int3d), tensor2),
                         r_gradu_r   : region(ispace(int3d), tensor2), 
@@ -1150,6 +1220,8 @@ do
     r_theta_avg[i] = 0.5*(theta_l + theta_r)
   end
 end
+
+
 
 __demand(__inline)
 task compute_omega_mag_avg( r_gradu_l   : region(ispace(int3d), tensor2),
@@ -1173,6 +1245,8 @@ do
     r_omega_mag_avg[i] = 0.5*(omega_mag_l + omega_mag_r)
   end
 end
+
+
 
 __demand(__inline)
 task positivity_enforcer_x( r_prim_c   : region(ispace(int3d), primitive),
@@ -1211,6 +1285,8 @@ do
   end
 end
 
+
+
 __demand(__inline)
 task positivity_enforcer_y( r_prim_c   : region(ispace(int3d), primitive),
                             r_prim_l_y : region(ispace(int3d), primitive),
@@ -1247,6 +1323,8 @@ do
     c.printf("WARNING: Positivity enforcer was used in Y %d times!\n", counter)
   end
 end
+
+
 
 __demand(__inline)
 task positivity_enforcer_z( r_prim_c   : region(ispace(int3d), primitive),
@@ -1287,17 +1365,20 @@ end
 
 
 
-task get_velocity_derivatives_x( r_prim_c    : region(ispace(int3d), primitive),
-                                 r_gradu_l_x : region(ispace(int3d), tensor2),
-                                 r_gradu_r_x : region(ispace(int3d), tensor2),
-                                 n_ghosts    : int64 )
+__demand(__inline)
+task get_velocity_gradient_x( r_prim_c    : region(ispace(int3d), primitive),
+                              r_gradu_l_x : region(ispace(int3d), tensor2),
+                              r_gradu_r_x : region(ispace(int3d), tensor2),
+                              Nx          : int64,
+                              Ny          : int64,
+                              Nz          : int64,
+                              dx          : int64,
+                              dy          : int64,
+                              dz          : int64,
+                              n_ghosts    : int64 )
 where
-  reads (r_prim_c.{u, v, w}), reads writes (r_gradu_l_x, r_gradu_r_x)
+  reads(r_prim_c.{u, v, w}), reads writes(r_gradu_l_x, r_gradu_r_x)
 do
-  var Nx = problem.NX
-  var Ny = problem.NY
-  var Nz = problem.NZ
-
   if (Nx < 8) then
     for i in r_gradu_l_x do
       r_gradu_l_x[i]._11 = 0.0
@@ -1311,7 +1392,7 @@ do
       r_gradu_r_x[i]._31 = 0.0
     end
   else
-    var one_over_two_dx = 1.0/(2.0*problem.DX)
+    var one_over_two_dx = 1.0/(2.0*dx)
 
     for i in r_gradu_l_x do
       var idx_l = int3d { x = i.x + n_ghosts - 2, y = i.y, z = i.z }
@@ -1345,7 +1426,7 @@ do
       r_gradu_r_x[i]._32 = 0.0
     end
   else
-    var one_over_two_dy = 1.0/(2.0*problem.DY)
+    var one_over_two_dy = 1.0/(2.0*dy)
 
     for i in r_gradu_l_x do
       var idx_l = int3d { x = i.x + n_ghosts - 1, y = i.y - 1, z = i.z }
@@ -1379,7 +1460,7 @@ do
       r_gradu_r_x[i]._33 = 0.0
     end
   else
-    var one_over_two_dz = 1.0/(2.0*problem.DZ)
+    var one_over_two_dz = 1.0/(2.0*dz)
 
     for i in r_gradu_l_x do
       var idx_l = int3d { x = i.x + n_ghosts - 1, y = i.y, z = i.z - 1 }
@@ -1403,17 +1484,20 @@ end
 
 
 
-task get_velocity_derivatives_y( r_prim_c    : region(ispace(int3d), primitive),
-                                 r_gradu_l_y : region(ispace(int3d), tensor2),
-                                 r_gradu_r_y : region(ispace(int3d), tensor2),
-                                 n_ghosts    : int64 )
+__demand(__inline)
+task get_velocity_gradient_y( r_prim_c    : region(ispace(int3d), primitive),
+                              r_gradu_l_y : region(ispace(int3d), tensor2),
+                              r_gradu_r_y : region(ispace(int3d), tensor2),
+                              Nx          : int64,
+                              Ny          : int64,
+                              Nz          : int64,
+                              dx          : int64,
+                              dy          : int64,
+                              dz          : int64,
+                              n_ghosts    : int64 )
 where
-  reads (r_prim_c.{u, v, w}), reads writes (r_gradu_l_y, r_gradu_r_y)
+  reads(r_prim_c.{u, v, w}), reads writes(r_gradu_l_y, r_gradu_r_y)
 do
-  var Nx = problem.NX
-  var Ny = problem.NY
-  var Nz = problem.NZ
-
   if (Ny < 8) then
     for i in r_gradu_l_y do
       r_gradu_l_y[i]._12 = 0.0
@@ -1427,7 +1511,7 @@ do
       r_gradu_r_y[i]._32 = 0.0
     end
   else
-    var one_over_two_dy = 1.0/(2.0*problem.DY)
+    var one_over_two_dy = 1.0/(2.0*dy)
 
     for i in r_gradu_l_y do
       var idx_l = int3d { x = i.x, y = i.y + n_ghosts - 2, z = i.z }
@@ -1461,7 +1545,7 @@ do
       r_gradu_r_y[i]._31 = 0.0
     end
   else
-    var one_over_two_dx = 1.0/(2.0*problem.DX)
+    var one_over_two_dx = 1.0/(2.0*dx)
 
     for i in r_gradu_l_y do
       var idx_l = int3d { x = i.x - 1, y = i.y + n_ghosts - 1, z = i.z }
@@ -1495,7 +1579,7 @@ do
       r_gradu_r_y[i]._33 = 0.0
     end
   else
-    var one_over_two_dz = 1.0/(2.0*problem.DZ)
+    var one_over_two_dz = 1.0/(2.0*dz)
 
     for i in r_gradu_l_y do
       var idx_l = int3d { x = i.x, y = i.y + n_ghosts - 1, z = i.z - 1 }
@@ -1519,17 +1603,20 @@ end
 
 
 
-task get_velocity_derivatives_z( r_prim_c    : region(ispace(int3d), primitive),
-                                 r_gradu_l_z : region(ispace(int3d), tensor2),
-                                 r_gradu_r_z : region(ispace(int3d), tensor2),
-                                 n_ghosts    : int64 )
+__demand(__inline)
+task get_velocity_gradient_z( r_prim_c    : region(ispace(int3d), primitive),
+                              r_gradu_l_z : region(ispace(int3d), tensor2),
+                              r_gradu_r_z : region(ispace(int3d), tensor2),
+                              Nx          : int64,
+                              Ny          : int64,
+                              Nz          : int64,
+                              dx          : int64,
+                              dy          : int64,
+                              dz          : int64,
+                              n_ghosts    : int64 )
 where
-  reads (r_prim_c.{u, v, w}), reads writes (r_gradu_l_z, r_gradu_r_z)
+  reads(r_prim_c.{u, v, w}), reads writes(r_gradu_l_z, r_gradu_r_z)
 do
-  var Nx = problem.NX
-  var Ny = problem.NY
-  var Nz = problem.NZ
-
   if (Nz < 8) then
     for i in r_gradu_l_z do
       r_gradu_l_z[i]._13 = 0.0
@@ -1543,7 +1630,7 @@ do
       r_gradu_r_z[i]._33 = 0.0
     end
   else
-    var one_over_two_dz = 1.0/(2.0*problem.DZ)
+    var one_over_two_dz = 1.0/(2.0*dz)
 
     for i in r_gradu_l_z do
       var idx_l = int3d { x = i.x, y = i.y, z = i.z + n_ghosts - 2 }
@@ -1577,7 +1664,7 @@ do
       r_gradu_r_z[i]._31 = 0.0
     end
   else
-    var one_over_two_dx = 1.0/(2.0*problem.DX)
+    var one_over_two_dx = 1.0/(2.0*dx)
 
     for i in r_gradu_l_z do
       var idx_l = int3d { x = i.x - 1, y = i.y, z = i.z + n_ghosts - 1 }
@@ -1611,7 +1698,7 @@ do
       r_gradu_r_z[i]._32 = 0.0
     end
   else
-    var one_over_two_dy = 1.0/(2.0*problem.DY)
+    var one_over_two_dy = 1.0/(2.0*dy)
 
     for i in r_gradu_l_z do
       var idx_l = int3d { x = i.x, y = i.y - 1, z = i.z + n_ghosts - 1 }
@@ -1632,6 +1719,3 @@ do
     end
   end
 end
-
-
-
