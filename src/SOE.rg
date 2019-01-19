@@ -1372,9 +1372,9 @@ task get_velocity_gradient_x( r_prim_c    : region(ispace(int3d), primitive),
                               Nx          : int64,
                               Ny          : int64,
                               Nz          : int64,
-                              dx          : int64,
-                              dy          : int64,
-                              dz          : int64,
+                              dx          : double,
+                              dy          : double,
+                              dz          : double,
                               n_ghosts    : int64 )
 where
   reads(r_prim_c.{u, v, w}), reads writes(r_gradu_l_x, r_gradu_r_x)
@@ -1491,9 +1491,9 @@ task get_velocity_gradient_y( r_prim_c    : region(ispace(int3d), primitive),
                               Nx          : int64,
                               Ny          : int64,
                               Nz          : int64,
-                              dx          : int64,
-                              dy          : int64,
-                              dz          : int64,
+                              dx          : double,
+                              dy          : double,
+                              dz          : double,
                               n_ghosts    : int64 )
 where
   reads(r_prim_c.{u, v, w}), reads writes(r_gradu_l_y, r_gradu_r_y)
@@ -1610,9 +1610,9 @@ task get_velocity_gradient_z( r_prim_c    : region(ispace(int3d), primitive),
                               Nx          : int64,
                               Ny          : int64,
                               Nz          : int64,
-                              dx          : int64,
-                              dy          : int64,
-                              dz          : int64,
+                              dx          : double,
+                              dy          : double,
+                              dz          : double,
                               n_ghosts    : int64 )
 where
   reads(r_prim_c.{u, v, w}), reads writes(r_gradu_l_z, r_gradu_r_z)
