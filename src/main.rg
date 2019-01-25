@@ -633,21 +633,12 @@ task main()
         end
       end
 
-      var diff_x : double = 0.0
-
       -- Add x-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        -- add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_rhs_x[i], p_LU_x[i] )
-        diff_x max= add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_c_x_wo_wg[i], p_rhs_x[i], p_LU_x[i], p_LU_e_x[i] )
+        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_c_x_wo_wg[i], p_rhs_x[i], p_LU_x[i], p_LU_e_x[i] )
       end
       
-      do
-        var diff_x = wait_for_double(diff_x)
-        c.printf("\n")
-        c.printf("Difference in derivative in x: = %g\n", diff_x) 
-      end
-
       -- Add x-direction viscous flux derivative to RHS.
       if problem.viscous then
         if problem.conservative_viscous_terms then
@@ -664,19 +655,10 @@ task main()
         end
       end
 
-      var diff_y : double = 0.0
-
       -- Add y-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        -- add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_rhs_y[i], p_LU_y[i] )
-        diff_y max= add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_c_y_wo_wg[i], p_rhs_y[i], p_LU_y[i], p_LU_e_y[i] )
-      end
-
-      do
-        var diff_y = wait_for_double(diff_y)
-        c.printf("\n")
-        c.printf("Difference in derivative in y: = %g\n", diff_y) 
+        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_c_y_wo_wg[i], p_rhs_y[i], p_LU_y[i], p_LU_e_y[i] )
       end
 
       -- Add y-direction viscous flux derivative to RHS.
@@ -695,19 +677,10 @@ task main()
         end
       end
 
-      var diff_z : double = 0.0
-
       -- Add z-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        -- add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_rhs_z[i], p_LU_z[i] )
-        diff_z max= add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_c_z_wo_wg[i], p_rhs_z[i], p_LU_z[i], p_LU_e_z[i] )
-      end
-
-      do
-        var diff_z = wait_for_double(diff_z)
-        c.printf("\n")
-        c.printf("Difference in derivative in z: = %g\n", diff_z) 
+        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_c_z_wo_wg[i], p_rhs_z[i], p_LU_z[i], p_LU_e_z[i] )
       end
 
       -- Add z-direction viscous flux derivative to RHS.

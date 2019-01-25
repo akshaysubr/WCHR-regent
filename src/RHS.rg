@@ -40,23 +40,23 @@ local ddz_MND_rhov = make_ddz_MND(r_flux, r_flux_e, "rhov", r_der, "rhov", probl
 local ddz_MND_rhow = make_ddz_MND(r_flux, r_flux_e, "rhow", r_der, "rhow", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, problem.periodic_z)
 local ddz_MND_rhoE = make_ddz_MND(r_flux, r_flux_e, "rhoE", r_der, "rhoE", problem.NX, problem.NY, problem.NZ, problem.ONEBYDZ, problem.periodic_z)
 
-local ddx_MND_fd_rho  = make_ddx_MND_fd(r_flux, r_flux_e, r_flux_ee, "rho",  problem.NX, problem.NY, problem.NZ, problem.periodic_x)
-local ddx_MND_fd_rhou = make_ddx_MND_fd(r_flux, r_flux_e, r_flux_ee, "rhou", problem.NX, problem.NY, problem.NZ, problem.periodic_x)
-local ddx_MND_fd_rhov = make_ddx_MND_fd(r_flux, r_flux_e, r_flux_ee, "rhov", problem.NX, problem.NY, problem.NZ, problem.periodic_x)
-local ddx_MND_fd_rhow = make_ddx_MND_fd(r_flux, r_flux_e, r_flux_ee, "rhow", problem.NX, problem.NY, problem.NZ, problem.periodic_x)
-local ddx_MND_fd_rhoE = make_ddx_MND_fd(r_flux, r_flux_e, r_flux_ee, "rhoE", problem.NX, problem.NY, problem.NZ, problem.periodic_x)
+local get_xflux_MND_rho  = make_get_xflux_MND(r_flux, r_flux_e, r_flux_ee, "rho",  problem.NX, problem.NY, problem.NZ, problem.periodic_x)
+local get_xflux_MND_rhou = make_get_xflux_MND(r_flux, r_flux_e, r_flux_ee, "rhou", problem.NX, problem.NY, problem.NZ, problem.periodic_x)
+local get_xflux_MND_rhov = make_get_xflux_MND(r_flux, r_flux_e, r_flux_ee, "rhov", problem.NX, problem.NY, problem.NZ, problem.periodic_x)
+local get_xflux_MND_rhow = make_get_xflux_MND(r_flux, r_flux_e, r_flux_ee, "rhow", problem.NX, problem.NY, problem.NZ, problem.periodic_x)
+local get_xflux_MND_rhoE = make_get_xflux_MND(r_flux, r_flux_e, r_flux_ee, "rhoE", problem.NX, problem.NY, problem.NZ, problem.periodic_x)
 
-local ddy_MND_fd_rho  = make_ddy_MND_fd(r_flux, r_flux_e, r_flux_ee, "rho",  problem.NX, problem.NY, problem.NZ, problem.periodic_y)
-local ddy_MND_fd_rhou = make_ddy_MND_fd(r_flux, r_flux_e, r_flux_ee, "rhou", problem.NX, problem.NY, problem.NZ, problem.periodic_y)
-local ddy_MND_fd_rhov = make_ddy_MND_fd(r_flux, r_flux_e, r_flux_ee, "rhov", problem.NX, problem.NY, problem.NZ, problem.periodic_y)
-local ddy_MND_fd_rhow = make_ddy_MND_fd(r_flux, r_flux_e, r_flux_ee, "rhow", problem.NX, problem.NY, problem.NZ, problem.periodic_y)
-local ddy_MND_fd_rhoE = make_ddy_MND_fd(r_flux, r_flux_e, r_flux_ee, "rhoE", problem.NX, problem.NY, problem.NZ, problem.periodic_y)
+local get_yflux_MND_rho  = make_get_yflux_MND(r_flux, r_flux_e, r_flux_ee, "rho",  problem.NX, problem.NY, problem.NZ, problem.periodic_y)
+local get_yflux_MND_rhou = make_get_yflux_MND(r_flux, r_flux_e, r_flux_ee, "rhou", problem.NX, problem.NY, problem.NZ, problem.periodic_y)
+local get_yflux_MND_rhov = make_get_yflux_MND(r_flux, r_flux_e, r_flux_ee, "rhov", problem.NX, problem.NY, problem.NZ, problem.periodic_y)
+local get_yflux_MND_rhow = make_get_yflux_MND(r_flux, r_flux_e, r_flux_ee, "rhow", problem.NX, problem.NY, problem.NZ, problem.periodic_y)
+local get_yflux_MND_rhoE = make_get_yflux_MND(r_flux, r_flux_e, r_flux_ee, "rhoE", problem.NX, problem.NY, problem.NZ, problem.periodic_y)
 
-local ddz_MND_fd_rho  = make_ddz_MND_fd(r_flux, r_flux_e, r_flux_ee, "rho",  problem.NX, problem.NY, problem.NZ, problem.periodic_z)
-local ddz_MND_fd_rhou = make_ddz_MND_fd(r_flux, r_flux_e, r_flux_ee, "rhou", problem.NX, problem.NY, problem.NZ, problem.periodic_z)
-local ddz_MND_fd_rhov = make_ddz_MND_fd(r_flux, r_flux_e, r_flux_ee, "rhov", problem.NX, problem.NY, problem.NZ, problem.periodic_z)
-local ddz_MND_fd_rhow = make_ddz_MND_fd(r_flux, r_flux_e, r_flux_ee, "rhow", problem.NX, problem.NY, problem.NZ, problem.periodic_z)
-local ddz_MND_fd_rhoE = make_ddz_MND_fd(r_flux, r_flux_e, r_flux_ee, "rhoE", problem.NX, problem.NY, problem.NZ, problem.periodic_z)
+local get_zflux_MND_rho  = make_get_zflux_MND(r_flux, r_flux_e, r_flux_ee, "rho",  problem.NX, problem.NY, problem.NZ, problem.periodic_z)
+local get_zflux_MND_rhou = make_get_zflux_MND(r_flux, r_flux_e, r_flux_ee, "rhou", problem.NX, problem.NY, problem.NZ, problem.periodic_z)
+local get_zflux_MND_rhov = make_get_zflux_MND(r_flux, r_flux_e, r_flux_ee, "rhov", problem.NX, problem.NY, problem.NZ, problem.periodic_z)
+local get_zflux_MND_rhow = make_get_zflux_MND(r_flux, r_flux_e, r_flux_ee, "rhow", problem.NX, problem.NY, problem.NZ, problem.periodic_z)
+local get_zflux_MND_rhoE = make_get_zflux_MND(r_flux, r_flux_e, r_flux_ee, "rhoE", problem.NX, problem.NY, problem.NZ, problem.periodic_z)
 
 -- Node differencing tasks to compute flux derivatives
 local ddx_rho  = make_ddx(r_flux, "rho",  r_der, "rho",  problem.NX, problem.NY, problem.NZ, problem.ONEBYDX)
@@ -614,8 +614,6 @@ do
   regentlib.assert(bounds_c.lo.x == 0,      "Can only add X flux derivative in the X pencil")
   regentlib.assert(bounds_c.hi.x == Nx_g-1, "Can only add X flux derivative in the X pencil")
 
-  var diff_rho : double = 0.0
-
   if (Nx >= 8) then
     var bounds_der_lo = {bounds_c.lo.x + interpolation.n_ghosts, bounds_c.lo.y, bounds_c.lo.z}
 
@@ -631,15 +629,13 @@ do
     var r_flux_e_x = region( ispace(int3d, {Nx_e, ny, nz}, bounds_c.lo),   conserved )
     var r_fder_c_x = region( ispace(int3d, {Nx,   ny, nz}, bounds_der_lo), conserved )
 
-    var r_flux_ee_x  = region( ispace(int3d, {Nx_e, ny, nz}, bounds_c.lo),   conserved )
-    var r_fder_c_x_2 = region( ispace(int3d, {Nx,   ny, nz}, bounds_der_lo), conserved )
-
     WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x )
     positivity_enforcer_x( r_prim_c, r_prim_l_x, r_prim_r_x, interpolation.n_ghosts )
 
-    if (problem.Riemann_solver == "HLL") then
+    -- Get the Riemann flux
+    if problem.Riemann_solver == "HLL" then
       HLL_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
-    elseif (problem.Riemann_solver == "HLLC") then
+    elseif problem.Riemann_solver == "HLLC" then
       HLLC_x( r_prim_l_x, r_prim_r_x, r_flux_e_x )
     else
       var r_gradu_l_x       = region( ispace(int3d, {Nx_e, ny, nz}, bounds_c.lo), tensor2 )
@@ -672,26 +668,40 @@ do
     end
 
     get_xfluxes_r( r_prim_c, r_flux_c )
-   
-    ddx_MND_rho ( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
-    ddx_MND_rhou( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
-    ddx_MND_rhov( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
-    ddx_MND_rhow( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
-    ddx_MND_rhoE( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
 
-    ddx_MND_fd_rho( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
+    -- Compute the derivative of flux
+    if problem.use_flux_difference_form == true then
+      var r_flux_ee_x  = region( ispace(int3d, {Nx_e, ny, nz}, bounds_c.lo), conserved )
 
-    for i in r_fder_c_x_2 do
-      var idx_l = int3d { x = i.x - interpolation.n_ghosts, y = i.y, z = i.z }
-      var idx_r = int3d { x = i.x - interpolation.n_ghosts + 1, y = i.y, z = i.z }
+      get_xflux_MND_rho ( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
+      get_xflux_MND_rhou( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
+      get_xflux_MND_rhov( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
+      get_xflux_MND_rhow( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
+      get_xflux_MND_rhoE( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
 
-      r_fder_c_x_2[i].rho = problem.ONEBYDX * ( r_flux_ee_x[idx_r].rho - r_flux_ee_x[idx_l].rho )
+      for i in r_fder_c_x do
+        var idx_l = int3d { x = i.x - interpolation.n_ghosts, y = i.y, z = i.z }
+        var idx_r = int3d { x = i.x - interpolation.n_ghosts + 1, y = i.y, z = i.z }
+
+        r_fder_c_x[i].rho  = problem.ONEBYDX * ( r_flux_ee_x[idx_r].rho  - r_flux_ee_x[idx_l].rho  )
+        r_fder_c_x[i].rhou = problem.ONEBYDX * ( r_flux_ee_x[idx_r].rhou - r_flux_ee_x[idx_l].rhou )
+        r_fder_c_x[i].rhov = problem.ONEBYDX * ( r_flux_ee_x[idx_r].rhov - r_flux_ee_x[idx_l].rhov )
+        r_fder_c_x[i].rhow = problem.ONEBYDX * ( r_flux_ee_x[idx_r].rhow - r_flux_ee_x[idx_l].rhow )
+        r_fder_c_x[i].rhoE = problem.ONEBYDX * ( r_flux_ee_x[idx_r].rhoE - r_flux_ee_x[idx_l].rhoE )
+      end
+
+      regentlib.c.legion_physical_region_destroy(__physical(r_flux_ee_x)[0])
+
+      __delete(r_flux_ee_x)
+    else
+      ddx_MND_rho ( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
+      ddx_MND_rhou( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
+      ddx_MND_rhov( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
+      ddx_MND_rhow( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
+      ddx_MND_rhoE( r_flux_c, r_flux_e_x, r_fder_c_x, LU_x )
     end
 
-    for i in r_fder_c_x_2 do
-      diff_rho = cmath.fmax(diff_rho, cmath.fabs(r_fder_c_x[i].rho - r_fder_c_x_2[i].rho))
-    end
-
+    -- Update the RHS
     for i in r_rhs do
       r_rhs[i].rho  -= r_fder_c_x[i].rho
       r_rhs[i].rhou -= r_fder_c_x[i].rhou
@@ -707,20 +717,13 @@ do
     regentlib.c.legion_physical_region_destroy(__physical(r_flux_e_x)[0])
     regentlib.c.legion_physical_region_destroy(__physical(r_fder_c_x)[0])
 
-    regentlib.c.legion_physical_region_destroy(__physical(r_flux_ee_x)[0])
-    regentlib.c.legion_physical_region_destroy(__physical(r_fder_c_x_2)[0])
-
     __delete(r_prim_l_x)
     __delete(r_prim_r_x)
 
     __delete(r_flux_c)
     __delete(r_flux_e_x)
     __delete(r_fder_c_x)
-
-    __delete(r_flux_ee_x)
-    __delete(r_fder_c_x_2)
   end
-  return diff_rho
 end
 
 
@@ -859,8 +862,6 @@ do
   regentlib.assert(bounds_c.lo.y == 0,      "Can only add Y flux derivative in the Y pencil")
   regentlib.assert(bounds_c.hi.y == Ny_g-1, "Can only add Y flux derivative in the Y pencil")
 
-  var diff_rho : double = 0.0
-
   if (Ny >= 8) then
     var bounds_der_lo = {bounds_c.lo.x, bounds_c.lo.y + interpolation.n_ghosts, bounds_c.lo.z}
 
@@ -876,15 +877,13 @@ do
     var r_flux_e_y = region( ispace(int3d, {nx, Ny_e, nz}, bounds_c.lo),   conserved )
     var r_fder_c_y = region( ispace(int3d, {nx, Ny,   nz}, bounds_der_lo), conserved )
 
-    var r_flux_ee_y  = region( ispace(int3d, {nx, Ny_e, nz}, bounds_c.lo),   conserved )
-    var r_fder_c_y_2 = region( ispace(int3d, {nx, Ny,   nz}, bounds_der_lo), conserved )
-
     WCHR_interpolation_y( r_prim_c, r_prim_l_y, r_prim_r_y )
     positivity_enforcer_y( r_prim_c, r_prim_l_y, r_prim_r_y, interpolation.n_ghosts )
 
-    if (problem.Riemann_solver == "HLL") then
+    -- Get the Riemann flux
+    if problem.Riemann_solver == "HLL" then
       HLL_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
-    elseif (problem.Riemann_solver == "HLLC") then
+    elseif problem.Riemann_solver == "HLLC" then
       HLLC_y( r_prim_l_y, r_prim_r_y, r_flux_e_y )
     else
       var r_gradu_l_y       = region( ispace(int3d, {nx, Ny_e, nz}, bounds_c.lo), tensor2 )
@@ -917,26 +916,40 @@ do
     end
 
     get_yfluxes_r( r_prim_c, r_flux_c )
-    
-    ddy_MND_rho ( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
-    ddy_MND_rhou( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
-    ddy_MND_rhov( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
-    ddy_MND_rhow( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
-    ddy_MND_rhoE( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
 
-    ddy_MND_fd_rho( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
+    -- Compute the derivative of flux
+    if problem.use_flux_difference_form == true then
+      var r_flux_ee_y  = region( ispace(int3d, {nx, Ny_e, nz}, bounds_c.lo), conserved )
 
-    for i in r_fder_c_y_2 do
-      var idx_l = int3d { x = i.x, y = i.y - interpolation.n_ghosts, z = i.z }
-      var idx_r = int3d { x = i.x, y = i.y - interpolation.n_ghosts + 1, z = i.z }
+      get_yflux_MND_rho ( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
+      get_yflux_MND_rhou( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
+      get_yflux_MND_rhov( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
+      get_yflux_MND_rhow( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
+      get_yflux_MND_rhoE( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
 
-      r_fder_c_y_2[i].rho = problem.ONEBYDY * ( r_flux_ee_y[idx_r].rho - r_flux_ee_y[idx_l].rho )
+      for i in r_fder_c_y do
+        var idx_l = int3d { x = i.x, y = i.y - interpolation.n_ghosts, z = i.z }
+        var idx_r = int3d { x = i.x, y = i.y - interpolation.n_ghosts + 1, z = i.z }
+
+        r_fder_c_y[i].rho  = problem.ONEBYDY * ( r_flux_ee_y[idx_r].rho  - r_flux_ee_y[idx_l].rho  )
+        r_fder_c_y[i].rhou = problem.ONEBYDY * ( r_flux_ee_y[idx_r].rhou - r_flux_ee_y[idx_l].rhou )
+        r_fder_c_y[i].rhov = problem.ONEBYDY * ( r_flux_ee_y[idx_r].rhov - r_flux_ee_y[idx_l].rhov )
+        r_fder_c_y[i].rhow = problem.ONEBYDY * ( r_flux_ee_y[idx_r].rhow - r_flux_ee_y[idx_l].rhow )
+        r_fder_c_y[i].rhoE = problem.ONEBYDY * ( r_flux_ee_y[idx_r].rhoE - r_flux_ee_y[idx_l].rhoE )
+      end
+
+      regentlib.c.legion_physical_region_destroy(__physical(r_flux_ee_y)[0])
+
+      __delete(r_flux_ee_y)
+    else
+      ddy_MND_rho ( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
+      ddy_MND_rhou( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
+      ddy_MND_rhov( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
+      ddy_MND_rhow( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
+      ddy_MND_rhoE( r_flux_c, r_flux_e_y, r_fder_c_y, LU_y )
     end
 
-    for i in r_fder_c_y_2 do
-      diff_rho = cmath.fmax(diff_rho, cmath.fabs(r_fder_c_y[i].rho - r_fder_c_y_2[i].rho))
-    end
-
+    -- Update the RHS
     for i in r_rhs do
       r_rhs[i].rho  -= r_fder_c_y[i].rho
       r_rhs[i].rhou -= r_fder_c_y[i].rhou
@@ -952,20 +965,13 @@ do
     regentlib.c.legion_physical_region_destroy(__physical(r_flux_e_y)[0])
     regentlib.c.legion_physical_region_destroy(__physical(r_fder_c_y)[0])
 
-    regentlib.c.legion_physical_region_destroy(__physical(r_flux_ee_y)[0])
-    regentlib.c.legion_physical_region_destroy(__physical(r_fder_c_y_2)[0])
-
     __delete(r_prim_l_y)
     __delete(r_prim_r_y)
 
     __delete(r_flux_c)
     __delete(r_flux_e_y)
     __delete(r_fder_c_y)
-
-    __delete(r_flux_ee_y)
-    __delete(r_fder_c_y_2)
   end
-  return diff_rho
 end
 
 
@@ -1104,8 +1110,6 @@ do
   regentlib.assert(bounds_c.lo.z == 0,      "Can only add Z flux derivative in the Z pencil")
   regentlib.assert(bounds_c.hi.z == Nz_g-1, "Can only add Z flux derivative in the Z pencil")
 
-  var diff_rho : double = 0.0
-
   if (Nz >= 8) then
     var bounds_der_lo = {bounds_c.lo.x, bounds_c.lo.y, bounds_c.lo.z + interpolation.n_ghosts}
 
@@ -1121,15 +1125,13 @@ do
     var r_flux_e_z = region( ispace(int3d, {nx, ny, Nz_e}, bounds_c.lo),   conserved )
     var r_fder_c_z = region( ispace(int3d, {nx, ny, Nz},   bounds_der_lo), conserved )
 
-    var r_flux_ee_z  = region( ispace(int3d, {nx, ny, Nz_e}, bounds_c.lo),   conserved )
-    var r_fder_c_z_2 = region( ispace(int3d, {nx, ny, Nz},   bounds_der_lo), conserved )
-
     WCHR_interpolation_z( r_prim_c, r_prim_l_z, r_prim_r_z )
     positivity_enforcer_z( r_prim_c, r_prim_l_z, r_prim_r_z, interpolation.n_ghosts )
 
-    if (problem.Riemann_solver == "HLL") then
+    -- Get the Riemann flux
+    if problem.Riemann_solver == "HLL" then
       HLL_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
-    elseif (problem.Riemann_solver == "HLLC") then
+    elseif problem.Riemann_solver == "HLLC" then
       HLLC_z( r_prim_l_z, r_prim_r_z, r_flux_e_z )
     else
       var r_gradu_l_z       = region( ispace(int3d, {nx, ny, Nz_e}, bounds_c.lo), tensor2 )
@@ -1163,25 +1165,39 @@ do
 
     get_zfluxes_r( r_prim_c, r_flux_c )
 
-    ddz_MND_rho ( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
-    ddz_MND_rhou( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
-    ddz_MND_rhov( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
-    ddz_MND_rhow( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
-    ddz_MND_rhoE( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
+    -- Compute the derivative of flux
+    if problem.use_flux_difference_form == true then
+      var r_flux_ee_z  = region( ispace(int3d, {nx, ny, Nz_e}, bounds_c.lo), conserved )
 
-    ddz_MND_fd_rho( r_flux_c, r_flux_e_z, r_flux_ee_z, LU_e_z )
+      get_zflux_MND_rho ( r_flux_c, r_flux_e_z, r_flux_ee_z, LU_e_z )
+      get_zflux_MND_rhou( r_flux_c, r_flux_e_z, r_flux_ee_z, LU_e_z )
+      get_zflux_MND_rhov( r_flux_c, r_flux_e_z, r_flux_ee_z, LU_e_z )
+      get_zflux_MND_rhow( r_flux_c, r_flux_e_z, r_flux_ee_z, LU_e_z )
+      get_zflux_MND_rhoE( r_flux_c, r_flux_e_z, r_flux_ee_z, LU_e_z )
 
-    for i in r_fder_c_z_2 do
-      var idx_l = int3d { x = i.x, y = i.y, z = i.z - interpolation.n_ghosts }
-      var idx_r = int3d { x = i.x, y = i.y, z = i.z - interpolation.n_ghosts + 1 }
+      for i in r_fder_c_z do
+        var idx_l = int3d { x = i.x, y = i.y, z = i.z - interpolation.n_ghosts }
+        var idx_r = int3d { x = i.x, y = i.y, z = i.z - interpolation.n_ghosts + 1 }
 
-      r_fder_c_z_2[i].rho = problem.ONEBYDZ * ( r_flux_ee_z[idx_r].rho - r_flux_ee_z[idx_l].rho )
+        r_fder_c_z[i].rho  = problem.ONEBYDZ * ( r_flux_ee_z[idx_r].rho  - r_flux_ee_z[idx_l].rho  )
+        r_fder_c_z[i].rhou = problem.ONEBYDZ * ( r_flux_ee_z[idx_r].rhou - r_flux_ee_z[idx_l].rhou )
+        r_fder_c_z[i].rhov = problem.ONEBYDZ * ( r_flux_ee_z[idx_r].rhov - r_flux_ee_z[idx_l].rhov )
+        r_fder_c_z[i].rhow = problem.ONEBYDZ * ( r_flux_ee_z[idx_r].rhow - r_flux_ee_z[idx_l].rhow )
+        r_fder_c_z[i].rhoE = problem.ONEBYDZ * ( r_flux_ee_z[idx_r].rhoE - r_flux_ee_z[idx_l].rhoE )
+      end
+
+      regentlib.c.legion_physical_region_destroy(__physical(r_flux_ee_z)[0])
+
+      __delete(r_flux_ee_z)
+    else
+      ddz_MND_rho ( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
+      ddz_MND_rhou( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
+      ddz_MND_rhov( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
+      ddz_MND_rhow( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
+      ddz_MND_rhoE( r_flux_c, r_flux_e_z, r_fder_c_z, LU_z )
     end
 
-    for i in r_fder_c_z_2 do
-      diff_rho = cmath.fmax(diff_rho, cmath.fabs(r_fder_c_z[i].rho - r_fder_c_z_2[i].rho))
-    end
-
+    -- Update the RHS
     for i in r_rhs do
       r_rhs[i].rho  -= r_fder_c_z[i].rho
       r_rhs[i].rhou -= r_fder_c_z[i].rhou
@@ -1197,20 +1213,13 @@ do
     regentlib.c.legion_physical_region_destroy(__physical(r_flux_e_z)[0])
     regentlib.c.legion_physical_region_destroy(__physical(r_fder_c_z)[0])
 
-    regentlib.c.legion_physical_region_destroy(__physical(r_flux_ee_z)[0])
-    regentlib.c.legion_physical_region_destroy(__physical(r_fder_c_z_2)[0])
-
     __delete(r_prim_l_z)
     __delete(r_prim_r_z)
 
     __delete(r_flux_c)
     __delete(r_flux_e_z)
     __delete(r_fder_c_z)
-
-    __delete(r_flux_ee_z)
-    __delete(r_fder_c_z_2)
   end
-  return diff_rho
 end
 
 

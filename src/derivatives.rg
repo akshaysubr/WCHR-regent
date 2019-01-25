@@ -1232,7 +1232,7 @@ end
 
 
 
-function make_ddx_MND_fd( r_func, r_func_e, r_func_ee, f_func, NX, NY, NZ, periodic )
+function make_get_xflux_MND( r_func, r_func_e, r_func_ee, f_func, NX, NY, NZ, periodic )
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func,   f_func)
   local privileges_r_func_e = regentlib.privilege(regentlib.reads, r_func_e, f_func)
   
@@ -1250,7 +1250,7 @@ function make_ddx_MND_fd( r_func, r_func_e, r_func_ee, f_func, NX, NY, NZ, perio
 
   local SolveXLU = make_SolveXLU(r_func_ee, privileges_r_func_ee, f_func, explicit)
 
-  local ddx_MND_fd __demand(__inline) task ddx_MND_fd( [r_func],
+  local get_xflux_MND __demand(__inline) task get_xflux_MND( [r_func],
                                                        [r_func_e],
                                                        [r_func_ee],
                                                        LU : region(ispace(int3d), LU_struct) )
@@ -1262,12 +1262,12 @@ function make_ddx_MND_fd( r_func, r_func_e, r_func_ee, f_func, NX, NY, NZ, perio
     token = r_func_ee[ [r_func_ee].ispace.bounds.lo ].[f_func]
     return token
   end
-  return ddx_MND_fd
+  return get_xflux_MND
 end
 
 
 
-function make_ddy_MND_fd( r_func, r_func_e, r_func_ee, f_func, NX, NY, NZ, periodic )
+function make_get_yflux_MND( r_func, r_func_e, r_func_ee, f_func, NX, NY, NZ, periodic )
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func,   f_func)
   local privileges_r_func_e = regentlib.privilege(regentlib.reads, r_func_e, f_func)
 
@@ -1285,7 +1285,7 @@ function make_ddy_MND_fd( r_func, r_func_e, r_func_ee, f_func, NX, NY, NZ, perio
 
   local SolveYLU = make_SolveYLU(r_func_ee, privileges_r_func_ee, f_func, explicit)
 
-  local ddy_MND_fd __demand(__inline) task ddy_MND_fd( [r_func],
+  local get_yflux_MND __demand(__inline) task get_yflux_MND( [r_func],
                                                        [r_func_e],
                                                        [r_func_ee],
                                                        LU : region(ispace(int3d), LU_struct) )
@@ -1297,12 +1297,12 @@ function make_ddy_MND_fd( r_func, r_func_e, r_func_ee, f_func, NX, NY, NZ, perio
     token = r_func_ee[ [r_func_ee].ispace.bounds.lo ].[f_func]
     return token
   end
-  return ddy_MND_fd
+  return get_yflux_MND
 end
 
 
 
-function make_ddz_MND_fd( r_func, r_func_e, r_func_ee, f_func, NX, NY, NZ, periodic )
+function make_get_zflux_MND( r_func, r_func_e, r_func_ee, f_func, NX, NY, NZ, periodic )
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func,   f_func)
   local privileges_r_func_e = regentlib.privilege(regentlib.reads, r_func_e, f_func)
 
@@ -1319,7 +1319,7 @@ function make_ddz_MND_fd( r_func, r_func_e, r_func_ee, f_func, NX, NY, NZ, perio
   end
   local SolveZLU = make_SolveZLU(r_func_ee, privileges_r_func_ee, f_func, explicit)
 
-  local ddz_MND_fd __demand(__inline) task ddz_MND_fd( [r_func],
+  local get_zflux_MND __demand(__inline) task get_zflux_MND( [r_func],
                                                        [r_func_e],
                                                        [r_func_ee],
                                                        LU : region(ispace(int3d), LU_struct) )
@@ -1331,5 +1331,5 @@ function make_ddz_MND_fd( r_func, r_func_e, r_func_ee, f_func, NX, NY, NZ, perio
     token = r_func_ee[ [r_func_ee].ispace.bounds.lo ].[f_func]
     return token
   end
-  return ddz_MND_fd
+  return get_zflux_MND
 end
