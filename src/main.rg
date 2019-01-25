@@ -115,51 +115,63 @@ task main()
 
   var coords     = region(grid_c, coordinates)  -- coordinates of cell center
 
-  var r_cnsr     = region(grid_c,   conserved)  -- conserved variables at cell center
+  var r_cnsr     = region(grid_c, conserved)  -- conserved variables at cell center
 
-  var r_prim_c   = region(grid_c,   primitive)  -- primitive variables at cell center
+  var r_prim_c   = region(grid_c, primitive)  -- primitive variables at cell center
 
-  var r_aux_c    = region(grid_c,   auxiliary)         -- auxiliary variables at cell center
-  var r_visc     = region(grid_c,   transport_coeffs)  -- Transport coefficients at cell center
+  var r_aux_c    = region(grid_c, auxiliary)         -- auxiliary variables at cell center
+  var r_visc     = region(grid_c, transport_coeffs)  -- Transport coefficients at cell center
 
-  var r_gradu    = region(grid_c,   tensor2)      -- Velocity gradient tensor at the cell center
-  var r_grad2u   = region(grid_c,   tensor2)      -- Velocity second-derivative tensor at the cell center (d^2 u_i / d x_j^2)
-  var r_tauij    = region(grid_c,   tensor2symm)  -- Viscous stress tensor at the cell center
+  var r_gradu    = region(grid_c, tensor2)      -- Velocity gradient tensor at the cell center
+  var r_grad2u   = region(grid_c, tensor2)      -- Velocity second-derivative tensor at the cell center (d^2 u_i / d x_j^2)
+  var r_tauij    = region(grid_c, tensor2symm)  -- Viscous stress tensor at the cell center
 
-  var r_gradrho  = region(grid_c,   vect)       -- Density gradient
-  var r_gradp    = region(grid_c,   vect)       -- Pressure gradient
+  var r_gradrho  = region(grid_c, vect)       -- Density gradient
+  var r_gradp    = region(grid_c, vect)       -- Pressure gradient
 
-  var r_rhs      = region(grid_c,   conserved)  -- RHS for time stepping at cell center
-  var r_qrhs     = region(grid_c,   conserved)  -- buffer for RK45 time stepping
+  var r_rhs      = region(grid_c, conserved)  -- RHS for time stepping at cell center
+  var r_qrhs     = region(grid_c, conserved)  -- buffer for RK45 time stepping
 
   -- data structure to hold x derivative LU decomposition
   var mat_x      = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For staggered finite difference
   var mat_N_x    = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal 1st order finite difference
   var mat2_N_x   = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal 2nd order finite difference
-  
+
+  var mat_e_x    = region(ispace(int3d, {x = Nx+1, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For staggered finite difference in flux difference form
+
   var LU_x       = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For staggered finite difference
   var LU_N_x     = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal 1st order finite difference
   var LU2_N_x    = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal 2nd order finite difference
-  
+
+  var LU_e_x     = region(ispace(int3d, {x = Nx+1, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For staggered finite difference in flux difference form
+
   -- data structure to hold y derivative LU decomposition
   var mat_y      = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For staggered finite difference
   var mat_N_y    = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal 1st order finite difference
   var mat2_N_y   = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal 2nd order finite difference
-  
+
+  var mat_e_y    = region(ispace(int3d, {x = Ny+1, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For staggered finite difference in flux difference form
+
   var LU_y       = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For staggered finite difference
   var LU_N_y     = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal 1st order finite difference
   var LU2_N_y    = region(ispace(int3d, {x = Ny, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal 2nd order finite difference
+
+  var LU_e_y     = region(ispace(int3d, {x = Ny+1, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For staggered finite difference in flux difference form
 
   -- data structure to hold z derivative LU decomposition
   var mat_z      = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For staggered finite difference
   var mat_N_z    = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal 1st order finite difference
   var mat2_N_z   = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For nodal 2nd order finite difference
-  
+
+  var mat_e_z    = region(ispace(int3d, {x = Nz+1, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For staggered finite difference in flux difference form
+
   var LU_z       = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For staggered finite difference
   var LU_N_z     = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal 1st order finite difference
   var LU2_N_z    = region(ispace(int3d, {x = Nz, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For nodal 2nd order finite difference
 
-  var pencil = ispace(int2d, int2d {config.prow+2, config.pcol+2}) -- All pencil partitions including the ghost pencils
+  var LU_e_z     = region(ispace(int3d, {x = Nz+1, y = config.prow+2, z = config.pcol+2}), LU_struct) -- For staggered finite difference in flux difference form
+
+  var pencil          = ispace(int2d, int2d {config.prow+2, config.pcol+2}) -- All pencil partitions including the ghost pencils
   var pencil_interior = ispace(int2d, int2d {config.prow, config.pcol}, int2d {1, 1}) -- Only the interior pencil partitions
 
   --------------------------------------------------------------------------------------------
@@ -229,6 +241,10 @@ task main()
   var p_mat_y          = partition_mat(mat_y, pencil)
   var p_mat_z          = partition_mat(mat_z, pencil)
 
+  var p_mat_e_x        = partition_mat(mat_e_x, pencil)
+  var p_mat_e_y        = partition_mat(mat_e_y, pencil)
+  var p_mat_e_z        = partition_mat(mat_e_z, pencil)
+
   var p_LU_x           = partition_LU(LU_x, pencil)
   var p_LU_y           = partition_LU(LU_y, pencil)
   var p_LU_z           = partition_LU(LU_z, pencil)
@@ -248,6 +264,10 @@ task main()
   var p_LU2_N_x        = partition_LU(LU2_N_x, pencil)
   var p_LU2_N_y        = partition_LU(LU2_N_y, pencil)
   var p_LU2_N_z        = partition_LU(LU2_N_z, pencil)
+
+  var p_LU_e_x         = partition_LU(LU_e_x, pencil)
+  var p_LU_e_y         = partition_LU(LU_e_y, pencil)
+  var p_LU_e_z         = partition_LU(LU_e_z, pencil)
 
   --------------------------------------------------------------------------------------------
   --------------------------------------------------------------------------------------------
@@ -279,6 +299,33 @@ task main()
   __demand(__parallel)
   for i in pencil_interior do
     token += get_LU_decomposition(p_LU_z[i], p_mat_z[i])
+  end
+
+  -- Initialize MND derivatives stuff.
+  __demand(__parallel)
+  for i in pencil_interior do
+    get_MND_matrix_fd(p_mat_e_x[i], problem.periodic_x)
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    get_MND_matrix_fd(p_mat_e_y[i], problem.periodic_y)
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    get_MND_matrix_fd(p_mat_e_z[i], problem.periodic_z)
+  end
+
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_LU_decomposition(p_LU_e_x[i], p_mat_e_x[i])
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_LU_decomposition(p_LU_e_y[i], p_mat_e_y[i])
+  end
+  __demand(__parallel)
+  for i in pencil_interior do
+    token += get_LU_decomposition(p_LU_e_z[i], p_mat_e_z[i])
   end
 
   -- Initialize nodal first derivative stuff
@@ -586,11 +633,19 @@ task main()
         end
       end
 
+      var diff_x : double = 0.0
+
       -- Add x-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
         -- add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_rhs_x[i], p_LU_x[i] )
-        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_c_x_wo_wg[i], p_rhs_x[i], p_LU_x[i] )
+        diff_x max= add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_c_x_wo_wg[i], p_rhs_x[i], p_LU_x[i], p_LU_e_x[i] )
+      end
+      
+      do
+        var diff_x = wait_for_double(diff_x)
+        c.printf("\n")
+        c.printf("Difference in derivative in x: = %g\n", diff_x) 
       end
 
       -- Add x-direction viscous flux derivative to RHS.
@@ -609,11 +664,19 @@ task main()
         end
       end
 
+      var diff_y : double = 0.0
+
       -- Add y-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
         -- add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_rhs_y[i], p_LU_y[i] )
-        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_c_y_wo_wg[i], p_rhs_y[i], p_LU_y[i] )
+        diff_y max= add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_c_y_wo_wg[i], p_rhs_y[i], p_LU_y[i], p_LU_e_y[i] )
+      end
+
+      do
+        var diff_y = wait_for_double(diff_y)
+        c.printf("\n")
+        c.printf("Difference in derivative in y: = %g\n", diff_y) 
       end
 
       -- Add y-direction viscous flux derivative to RHS.
@@ -632,11 +695,19 @@ task main()
         end
       end
 
+      var diff_z : double = 0.0
+
       -- Add z-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
         -- add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_rhs_z[i], p_LU_z[i] )
-        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_c_z_wo_wg[i], p_rhs_z[i], p_LU_z[i] )
+        diff_z max= add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_c_z_wo_wg[i], p_rhs_z[i], p_LU_z[i], p_LU_e_z[i] )
+      end
+
+      do
+        var diff_z = wait_for_double(diff_z)
+        c.printf("\n")
+        c.printf("Difference in derivative in z: = %g\n", diff_z) 
       end
 
       -- Add z-direction viscous flux derivative to RHS.
