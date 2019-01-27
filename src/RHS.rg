@@ -601,7 +601,8 @@ task add_xflux_der_to_rhs( r_prim_c    : region(ispace(int3d), primitive),
                            r_prim_c_wo : region(ispace(int3d), primitive),
                            r_rhs       : region(ispace(int3d), conserved),
                            LU_x        : region(ispace(int3d), LU_struct),
-                           LU_e_x      : region(ispace(int3d), LU_struct) )
+                           LU_e_x      : region(ispace(int3d), LU_struct),
+                           dt          : double )
 where
   reads( r_prim_c, r_prim_c_wo, LU_x, LU_e_x ),
   reads writes( r_rhs )
@@ -678,6 +679,8 @@ do
       get_xflux_MND_rhov( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
       get_xflux_MND_rhow( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
       get_xflux_MND_rhoE( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
+
+      positivity_limiter_x( r_prim_c, r_flux_c, r_flux_ee_x, dt/problem.DX, problem.positivity.epsilon_rho, problem.positivity.epsilon_p, interpolation.n_ghosts )
 
       for i in r_fder_c_x do
         var idx_l = int3d { x = i.x - interpolation.n_ghosts, y = i.y, z = i.z }
@@ -849,7 +852,8 @@ task add_yflux_der_to_rhs( r_prim_c    : region(ispace(int3d), primitive),
                            r_prim_c_wo : region(ispace(int3d), primitive),
                            r_rhs       : region(ispace(int3d), conserved),
                            LU_y        : region(ispace(int3d), LU_struct),
-                           LU_e_y      : region(ispace(int3d), LU_struct) )
+                           LU_e_y      : region(ispace(int3d), LU_struct),
+                           dt          : double )
 where
   reads( r_prim_c, r_prim_c_wo, LU_y, LU_e_y ),
   reads writes( r_rhs )
@@ -926,6 +930,8 @@ do
       get_yflux_MND_rhov( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
       get_yflux_MND_rhow( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
       get_yflux_MND_rhoE( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
+
+      positivity_limiter_y( r_prim_c, r_flux_c, r_flux_ee_y, dt/problem.DY, problem.positivity.epsilon_rho, problem.positivity.epsilon_p, interpolation.n_ghosts )
 
       for i in r_fder_c_y do
         var idx_l = int3d { x = i.x, y = i.y - interpolation.n_ghosts, z = i.z }
@@ -1097,7 +1103,8 @@ task add_zflux_der_to_rhs( r_prim_c    : region(ispace(int3d), primitive),
                            r_prim_c_wo : region(ispace(int3d), primitive),
                            r_rhs       : region(ispace(int3d), conserved),
                            LU_z        : region(ispace(int3d), LU_struct),
-                           LU_e_z      : region(ispace(int3d), LU_struct) )
+                           LU_e_z      : region(ispace(int3d), LU_struct),
+                           dt          : double )
 where
   reads( r_prim_c, r_prim_c_wo, LU_z, LU_e_z ),
   reads writes( r_rhs )
@@ -1174,6 +1181,8 @@ do
       get_zflux_MND_rhov( r_flux_c, r_flux_e_z, r_flux_ee_z, LU_e_z )
       get_zflux_MND_rhow( r_flux_c, r_flux_e_z, r_flux_ee_z, LU_e_z )
       get_zflux_MND_rhoE( r_flux_c, r_flux_e_z, r_flux_ee_z, LU_e_z )
+
+      positivity_limiter_z( r_prim_c, r_flux_c, r_flux_ee_z, dt/problem.DZ, problem.positivity.epsilon_rho, problem.positivity.epsilon_p, interpolation.n_ghosts )
 
       for i in r_fder_c_z do
         var idx_l = int3d { x = i.x, y = i.y, z = i.z - interpolation.n_ghosts }

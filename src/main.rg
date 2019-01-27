@@ -636,7 +636,7 @@ task main()
       -- Add x-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_c_x_wo_wg[i], p_rhs_x[i], p_LU_x[i], p_LU_e_x[i] )
+        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_c_x_wo_wg[i], p_rhs_x[i], p_LU_x[i], p_LU_e_x[i], dt )
       end
       
       -- Add x-direction viscous flux derivative to RHS.
@@ -658,7 +658,7 @@ task main()
       -- Add y-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_c_y_wo_wg[i], p_rhs_y[i], p_LU_y[i], p_LU_e_y[i] )
+        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_c_y_wo_wg[i], p_rhs_y[i], p_LU_y[i], p_LU_e_y[i], dt )
       end
 
       -- Add y-direction viscous flux derivative to RHS.
@@ -680,7 +680,7 @@ task main()
       -- Add z-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_c_z_wo_wg[i], p_rhs_z[i], p_LU_z[i], p_LU_e_z[i] )
+        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_c_z_wo_wg[i], p_rhs_z[i], p_LU_z[i], p_LU_e_z[i], dt )
       end
 
       -- Add z-direction viscous flux derivative to RHS.

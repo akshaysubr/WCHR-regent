@@ -64,15 +64,13 @@ problem.ONEBYDX = 1.0 / problem.DX
 problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
-problem.interpolation_scheme = "WCNS-LD"
-problem.Riemann_solver = "HLLC-HLL"
+problem.interpolation_scheme = "WCHR"
+problem.Riemann_solver = "HLLC"
 problem.use_flux_difference_form = true
 problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
 problem.dt_or_CFL_num        = 0.5
-problem.tstop                = 0.00005
-problem.tviz                 = 0.00005
--- problem.tstop                = 0.2
--- problem.tviz                 = problem.tstop/100.0
+problem.tstop                = 0.2
+problem.tviz                 = problem.tstop/100.0
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
@@ -243,6 +241,11 @@ end
 
 -- DEFAULT SCHEME TO USE --
 if problem.interpolation_scheme == nil then problem.interpolation_scheme = "WCHR" end
+
+-- DEFAULT POSITIVITY LIMITER LIMITS --
+if problem.positivity == nil then
+  problem.positivity = { epsilon_rho = 1.e-13, epsilon_p = 1.e-13 }
+end
 
 -- DEFAULT VISCOUS TERM FORMULATION TO USE --
 if problem.conservative_viscous_terms == nil then problem.conservative_viscous_terms = false end

@@ -1249,6 +1249,480 @@ end
 
 
 __demand(__inline)
+task lax_friedrichs_flux( cnsr_l : double[5],
+                          cnsr_r : double[5],
+                          flux_l : double[5],
+                          flux_r : double[5],
+                          s_max  : double )
+  var flux_LF : double[5]
+  for i = 0, 5 do
+    flux_LF[i] = 0.5*( flux_l[i] + flux_r[i] + s_max*(cnsr_l[i] - cnsr_r[i]) )
+  end
+  return flux_LF
+end
+
+
+
+__demand(__inline)
+task positivity_limiter_x( r_prim_c    : region(ispace(int3d), primitive),
+                           r_flux_c    : region(ispace(int3d), conserved),
+                           r_flux_e    : region(ispace(int3d), conserved),
+                           lambda      : double,
+                           epsilon_rho : double,
+                           epsilon_p   : double,
+                           n_ghosts    : int64 )
+where
+  reads(r_prim_c, r_flux_c), reads writes(r_flux_e)
+do
+
+  for i in r_flux_e do
+    var idx_l = int3d { x = i.x + n_ghosts - 1, y = i.y, z = i.z }
+    var idx_r = int3d { x = i.x + n_ghosts + 0, y = i.y, z = i.z }
+
+    var sos_l   : double = get_sos(r_prim_c[idx_l].rho, r_prim_c[idx_l].p)
+    var sos_r   : double = get_sos(r_prim_c[idx_r].rho, r_prim_c[idx_r].p)
+
+    var s_max : double = cmath.fmax( cmath.fabs(r_prim_c[idx_l].u) + sos_l,
+                                     cmath.fabs(r_prim_c[idx_r].u) + sos_r )
+
+    var cnsr_l = get_conserved( r_prim_c[idx_l].rho,
+                                r_prim_c[idx_l].u,
+                                r_prim_c[idx_l].v,
+                                r_prim_c[idx_l].w,
+                                r_prim_c[idx_l].p )
+
+    var cnsr_r = get_conserved( r_prim_c[idx_r].rho,
+                                r_prim_c[idx_r].u,
+                                r_prim_c[idx_r].v,
+                                r_prim_c[idx_r].w,
+                                r_prim_c[idx_r].p )
+
+    var flux_l : double[5]
+    flux_l[0] = r_flux_c[idx_l].rho
+    flux_l[1] = r_flux_c[idx_l].rhou
+    flux_l[2] = r_flux_c[idx_l].rhov
+    flux_l[3] = r_flux_c[idx_l].rhow
+    flux_l[4] = r_flux_c[idx_l].rhoE
+
+    var flux_r : double[5]
+    flux_r[0] = r_flux_c[idx_r].rho
+    flux_r[1] = r_flux_c[idx_r].rhou
+    flux_r[2] = r_flux_c[idx_r].rhov
+    flux_r[3] = r_flux_c[idx_r].rhow
+    flux_r[4] = r_flux_c[idx_r].rhoE
+
+    var flux_LF = lax_friedrichs_flux( cnsr_l, cnsr_r, flux_l, flux_r, s_max )
+
+    var theta_p : double = 1.0
+    var theta_m : double = 1.0
+
+    var cnsr_check : double[5]
+    var cnsr_check_LF_l : double[5]
+    var cnsr_check_LF_r : double[5]
+    var rho_check : double
+    var rho_check_LF : double
+
+    -- Limiter for density positivity
+    theta_p = 1.0
+    theta_m = 1.0
+
+    cnsr_check[0] = cnsr_l[0] - 2*lambda*r_flux_e[i].rho
+    cnsr_check[1] = cnsr_l[1] - 2*lambda*r_flux_e[i].rhou
+    cnsr_check[2] = cnsr_l[2] - 2*lambda*r_flux_e[i].rhov
+    cnsr_check[3] = cnsr_l[3] - 2*lambda*r_flux_e[i].rhow
+    cnsr_check[4] = cnsr_l[4] - 2*lambda*r_flux_e[i].rhoE
+
+    cnsr_check_LF_l[0] = cnsr_l[0] - 2*lambda*flux_LF[0]
+    cnsr_check_LF_l[1] = cnsr_l[1] - 2*lambda*flux_LF[1]
+    cnsr_check_LF_l[2] = cnsr_l[2] - 2*lambda*flux_LF[2]
+    cnsr_check_LF_l[3] = cnsr_l[3] - 2*lambda*flux_LF[3]
+    cnsr_check_LF_l[4] = cnsr_l[4] - 2*lambda*flux_LF[4]
+
+    rho_check = cnsr_check[0]
+    rho_check_LF = cnsr_check_LF_l[0]
+
+    if (rho_check < epsilon_rho) then
+      theta_p = (epsilon_rho - rho_check_LF) / (rho_check - rho_check_LF)
+    end
+
+    cnsr_check[0] = cnsr_r[0] + 2*lambda*r_flux_e[i].rho
+    cnsr_check[1] = cnsr_r[1] + 2*lambda*r_flux_e[i].rhou
+    cnsr_check[2] = cnsr_r[2] + 2*lambda*r_flux_e[i].rhov
+    cnsr_check[3] = cnsr_r[3] + 2*lambda*r_flux_e[i].rhow
+    cnsr_check[4] = cnsr_r[4] + 2*lambda*r_flux_e[i].rhoE
+
+    cnsr_check_LF_r[0] = cnsr_r[0] + 2*lambda*flux_LF[0]
+    cnsr_check_LF_r[1] = cnsr_r[1] + 2*lambda*flux_LF[1]
+    cnsr_check_LF_r[2] = cnsr_r[2] + 2*lambda*flux_LF[2]
+    cnsr_check_LF_r[3] = cnsr_r[3] + 2*lambda*flux_LF[3]
+    cnsr_check_LF_r[4] = cnsr_r[4] + 2*lambda*flux_LF[4]
+    
+    rho_check = cnsr_check[0]
+    rho_check_LF = cnsr_check_LF_r[0]
+
+    if (rho_check < epsilon_rho) then
+      theta_m = (epsilon_rho - rho_check_LF) / (rho_check - rho_check_LF)
+    end
+    
+    var theta_rho = cmath.fmin( theta_p, theta_m )
+    r_flux_e[i].rho  = (1.0 - theta_rho)*flux_LF[0] + theta_rho*r_flux_e[i].rho
+    r_flux_e[i].rhou = (1.0 - theta_rho)*flux_LF[1] + theta_rho*r_flux_e[i].rhou
+    r_flux_e[i].rhov = (1.0 - theta_rho)*flux_LF[2] + theta_rho*r_flux_e[i].rhov
+    r_flux_e[i].rhow = (1.0 - theta_rho)*flux_LF[3] + theta_rho*r_flux_e[i].rhow
+    r_flux_e[i].rhoE = (1.0 - theta_rho)*flux_LF[4] + theta_rho*r_flux_e[i].rhoE
+
+    -- Limiter for pressure positivity
+    var prim_check : double[5]
+    var prim_check_LF : double[5]
+    theta_p = 1.0
+    theta_m = 1.0
+
+    cnsr_check[0] = cnsr_l[0] - 2*lambda*r_flux_e[i].rho
+    cnsr_check[1] = cnsr_l[1] - 2*lambda*r_flux_e[i].rhou
+    cnsr_check[2] = cnsr_l[2] - 2*lambda*r_flux_e[i].rhov
+    cnsr_check[3] = cnsr_l[3] - 2*lambda*r_flux_e[i].rhow
+    cnsr_check[4] = cnsr_l[4] - 2*lambda*r_flux_e[i].rhoE
+
+    prim_check = get_primitive( cnsr_check[0], cnsr_check[1], cnsr_check[2], cnsr_check[3], cnsr_check[4] )
+    prim_check_LF = get_primitive( cnsr_check_LF_l[0], cnsr_check_LF_l[1], cnsr_check_LF_l[2], cnsr_check_LF_l[3], cnsr_check_LF_l[4] )
+
+    if (prim_check[4] < epsilon_p) then
+      theta_p = (epsilon_p - prim_check_LF[4]) / (prim_check[4] - prim_check_LF[4])
+    end
+
+    cnsr_check[0] = cnsr_r[0] + 2*lambda*r_flux_e[i].rho
+    cnsr_check[1] = cnsr_r[1] + 2*lambda*r_flux_e[i].rhou
+    cnsr_check[2] = cnsr_r[2] + 2*lambda*r_flux_e[i].rhov
+    cnsr_check[3] = cnsr_r[3] + 2*lambda*r_flux_e[i].rhow
+    cnsr_check[4] = cnsr_r[4] + 2*lambda*r_flux_e[i].rhoE
+
+    prim_check = get_primitive( cnsr_check[0], cnsr_check[1], cnsr_check[2], cnsr_check[3], cnsr_check[4] )
+    prim_check_LF = get_primitive( cnsr_check_LF_r[0], cnsr_check_LF_r[1], cnsr_check_LF_r[2], cnsr_check_LF_r[3], cnsr_check_LF_r[4] )
+
+    if (prim_check[4] < epsilon_p) then
+      theta_m = (epsilon_p - prim_check_LF[4]) / (prim_check[4] - prim_check_LF[4])
+    end
+    
+    theta_p = cmath.fmin( theta_p, theta_m )
+    r_flux_e[i].rho  = (1.0 - theta_p)*flux_LF[0] + theta_p*r_flux_e[i].rho
+    r_flux_e[i].rhou = (1.0 - theta_p)*flux_LF[1] + theta_p*r_flux_e[i].rhou
+    r_flux_e[i].rhov = (1.0 - theta_p)*flux_LF[2] + theta_p*r_flux_e[i].rhov
+    r_flux_e[i].rhow = (1.0 - theta_p)*flux_LF[3] + theta_p*r_flux_e[i].rhow
+    r_flux_e[i].rhoE = (1.0 - theta_p)*flux_LF[4] + theta_p*r_flux_e[i].rhoE
+
+  end
+
+end
+
+
+
+__demand(__inline)
+task positivity_limiter_y( r_prim_c    : region(ispace(int3d), primitive),
+                           r_flux_c    : region(ispace(int3d), conserved),
+                           r_flux_e    : region(ispace(int3d), conserved),
+                           lambda      : double,
+                           epsilon_rho : double,
+                           epsilon_p   : double,
+                           n_ghosts    : int64 )
+where
+  reads(r_prim_c, r_flux_c), reads writes(r_flux_e)
+do
+
+  for i in r_flux_e do
+    var idx_l = int3d { x = i.x, y = i.y + n_ghosts - 1, z = i.z }
+    var idx_r = int3d { x = i.x, y = i.y + n_ghosts + 0, z = i.z }
+
+    var sos_l   : double = get_sos(r_prim_c[idx_l].rho, r_prim_c[idx_l].p)
+    var sos_r   : double = get_sos(r_prim_c[idx_r].rho, r_prim_c[idx_r].p)
+
+    var s_max : double = cmath.fmax( cmath.fabs(r_prim_c[idx_l].v) + sos_l,
+                                     cmath.fabs(r_prim_c[idx_r].v) + sos_r )
+
+    var cnsr_l = get_conserved( r_prim_c[idx_l].rho,
+                                r_prim_c[idx_l].u,
+                                r_prim_c[idx_l].v,
+                                r_prim_c[idx_l].w,
+                                r_prim_c[idx_l].p )
+
+    var cnsr_r = get_conserved( r_prim_c[idx_r].rho,
+                                r_prim_c[idx_r].u,
+                                r_prim_c[idx_r].v,
+                                r_prim_c[idx_r].w,
+                                r_prim_c[idx_r].p )
+
+    var flux_l : double[5]
+    flux_l[0] = r_flux_c[idx_l].rho
+    flux_l[1] = r_flux_c[idx_l].rhou
+    flux_l[2] = r_flux_c[idx_l].rhov
+    flux_l[3] = r_flux_c[idx_l].rhow
+    flux_l[4] = r_flux_c[idx_l].rhoE
+
+    var flux_r : double[5]
+    flux_r[0] = r_flux_c[idx_r].rho
+    flux_r[1] = r_flux_c[idx_r].rhou
+    flux_r[2] = r_flux_c[idx_r].rhov
+    flux_r[3] = r_flux_c[idx_r].rhow
+    flux_r[4] = r_flux_c[idx_r].rhoE
+
+    var flux_LF = lax_friedrichs_flux( cnsr_l, cnsr_r, flux_l, flux_r, s_max )
+
+    var theta_p : double = 1.0
+    var theta_m : double = 1.0
+
+    var cnsr_check : double[5]
+    var cnsr_check_LF_l : double[5]
+    var cnsr_check_LF_r : double[5]
+    var rho_check : double
+    var rho_check_LF : double
+
+    -- Limiter for density positivity
+    theta_p = 1.0
+    theta_m = 1.0
+
+    cnsr_check[0] = cnsr_l[0] - 2*lambda*r_flux_e[i].rho
+    cnsr_check[1] = cnsr_l[1] - 2*lambda*r_flux_e[i].rhou
+    cnsr_check[2] = cnsr_l[2] - 2*lambda*r_flux_e[i].rhov
+    cnsr_check[3] = cnsr_l[3] - 2*lambda*r_flux_e[i].rhow
+    cnsr_check[4] = cnsr_l[4] - 2*lambda*r_flux_e[i].rhoE
+
+    cnsr_check_LF_l[0] = cnsr_l[0] - 2*lambda*flux_LF[0]
+    cnsr_check_LF_l[1] = cnsr_l[1] - 2*lambda*flux_LF[1]
+    cnsr_check_LF_l[2] = cnsr_l[2] - 2*lambda*flux_LF[2]
+    cnsr_check_LF_l[3] = cnsr_l[3] - 2*lambda*flux_LF[3]
+    cnsr_check_LF_l[4] = cnsr_l[4] - 2*lambda*flux_LF[4]
+
+    rho_check = cnsr_check[0]
+    rho_check_LF = cnsr_check_LF_l[0]
+
+    if (rho_check < epsilon_rho) then
+      theta_p = (epsilon_rho - rho_check_LF) / (rho_check - rho_check_LF)
+    end
+
+    cnsr_check[0] = cnsr_r[0] + 2*lambda*r_flux_e[i].rho
+    cnsr_check[1] = cnsr_r[1] + 2*lambda*r_flux_e[i].rhou
+    cnsr_check[2] = cnsr_r[2] + 2*lambda*r_flux_e[i].rhov
+    cnsr_check[3] = cnsr_r[3] + 2*lambda*r_flux_e[i].rhow
+    cnsr_check[4] = cnsr_r[4] + 2*lambda*r_flux_e[i].rhoE
+
+    cnsr_check_LF_r[0] = cnsr_r[0] + 2*lambda*flux_LF[0]
+    cnsr_check_LF_r[1] = cnsr_r[1] + 2*lambda*flux_LF[1]
+    cnsr_check_LF_r[2] = cnsr_r[2] + 2*lambda*flux_LF[2]
+    cnsr_check_LF_r[3] = cnsr_r[3] + 2*lambda*flux_LF[3]
+    cnsr_check_LF_r[4] = cnsr_r[4] + 2*lambda*flux_LF[4]
+    
+    rho_check = cnsr_check[0]
+    rho_check_LF = cnsr_check_LF_r[0]
+
+    if (rho_check < epsilon_rho) then
+      theta_m = (epsilon_rho - rho_check_LF) / (rho_check - rho_check_LF)
+    end
+    
+    var theta_rho = cmath.fmin( theta_p, theta_m )
+    r_flux_e[i].rho  = (1.0 - theta_rho)*flux_LF[0] + theta_rho*r_flux_e[i].rho
+    r_flux_e[i].rhou = (1.0 - theta_rho)*flux_LF[1] + theta_rho*r_flux_e[i].rhou
+    r_flux_e[i].rhov = (1.0 - theta_rho)*flux_LF[2] + theta_rho*r_flux_e[i].rhov
+    r_flux_e[i].rhow = (1.0 - theta_rho)*flux_LF[3] + theta_rho*r_flux_e[i].rhow
+    r_flux_e[i].rhoE = (1.0 - theta_rho)*flux_LF[4] + theta_rho*r_flux_e[i].rhoE
+
+    -- Limiter for pressure positivity
+    var prim_check : double[5]
+    var prim_check_LF : double[5]
+    theta_p = 1.0
+    theta_m = 1.0
+
+    cnsr_check[0] = cnsr_l[0] - 2*lambda*r_flux_e[i].rho
+    cnsr_check[1] = cnsr_l[1] - 2*lambda*r_flux_e[i].rhou
+    cnsr_check[2] = cnsr_l[2] - 2*lambda*r_flux_e[i].rhov
+    cnsr_check[3] = cnsr_l[3] - 2*lambda*r_flux_e[i].rhow
+    cnsr_check[4] = cnsr_l[4] - 2*lambda*r_flux_e[i].rhoE
+
+    prim_check = get_primitive( cnsr_check[0], cnsr_check[1], cnsr_check[2], cnsr_check[3], cnsr_check[4] )
+    prim_check_LF = get_primitive( cnsr_check_LF_l[0], cnsr_check_LF_l[1], cnsr_check_LF_l[2], cnsr_check_LF_l[3], cnsr_check_LF_l[4] )
+
+    if (prim_check[4] < epsilon_p) then
+      theta_p = (epsilon_p - prim_check_LF[4]) / (prim_check[4] - prim_check_LF[4])
+    end
+
+    cnsr_check[0] = cnsr_r[0] + 2*lambda*r_flux_e[i].rho
+    cnsr_check[1] = cnsr_r[1] + 2*lambda*r_flux_e[i].rhou
+    cnsr_check[2] = cnsr_r[2] + 2*lambda*r_flux_e[i].rhov
+    cnsr_check[3] = cnsr_r[3] + 2*lambda*r_flux_e[i].rhow
+    cnsr_check[4] = cnsr_r[4] + 2*lambda*r_flux_e[i].rhoE
+
+    prim_check = get_primitive( cnsr_check[0], cnsr_check[1], cnsr_check[2], cnsr_check[3], cnsr_check[4] )
+    prim_check_LF = get_primitive( cnsr_check_LF_r[0], cnsr_check_LF_r[1], cnsr_check_LF_r[2], cnsr_check_LF_r[3], cnsr_check_LF_r[4] )
+
+    if (prim_check[4] < epsilon_p) then
+      theta_m = (epsilon_p - prim_check_LF[4]) / (prim_check[4] - prim_check_LF[4])
+    end
+    
+    theta_p = cmath.fmin( theta_p, theta_m )
+    r_flux_e[i].rho  = (1.0 - theta_p)*flux_LF[0] + theta_p*r_flux_e[i].rho
+    r_flux_e[i].rhou = (1.0 - theta_p)*flux_LF[1] + theta_p*r_flux_e[i].rhou
+    r_flux_e[i].rhov = (1.0 - theta_p)*flux_LF[2] + theta_p*r_flux_e[i].rhov
+    r_flux_e[i].rhow = (1.0 - theta_p)*flux_LF[3] + theta_p*r_flux_e[i].rhow
+    r_flux_e[i].rhoE = (1.0 - theta_p)*flux_LF[4] + theta_p*r_flux_e[i].rhoE
+
+  end
+
+end
+
+
+
+__demand(__inline)
+task positivity_limiter_z( r_prim_c    : region(ispace(int3d), primitive),
+                           r_flux_c    : region(ispace(int3d), conserved),
+                           r_flux_e    : region(ispace(int3d), conserved),
+                           lambda      : double,
+                           epsilon_rho : double,
+                           epsilon_p   : double,
+                           n_ghosts    : int64 )
+where
+  reads(r_prim_c, r_flux_c), reads writes(r_flux_e)
+do
+
+  for i in r_flux_e do
+    var idx_l = int3d { x = i.x, y = i.y, z = i.z + n_ghosts - 1 }
+    var idx_r = int3d { x = i.x, y = i.y, z = i.z + n_ghosts + 0 }
+
+    var sos_l   : double = get_sos(r_prim_c[idx_l].rho, r_prim_c[idx_l].p)
+    var sos_r   : double = get_sos(r_prim_c[idx_r].rho, r_prim_c[idx_r].p)
+
+    var s_max : double = cmath.fmax( cmath.fabs(r_prim_c[idx_l].w) + sos_l,
+                                     cmath.fabs(r_prim_c[idx_r].w) + sos_r )
+
+    var cnsr_l = get_conserved( r_prim_c[idx_l].rho,
+                                r_prim_c[idx_l].u,
+                                r_prim_c[idx_l].v,
+                                r_prim_c[idx_l].w,
+                                r_prim_c[idx_l].p )
+
+    var cnsr_r = get_conserved( r_prim_c[idx_r].rho,
+                                r_prim_c[idx_r].u,
+                                r_prim_c[idx_r].v,
+                                r_prim_c[idx_r].w,
+                                r_prim_c[idx_r].p )
+
+    var flux_l : double[5]
+    flux_l[0] = r_flux_c[idx_l].rho
+    flux_l[1] = r_flux_c[idx_l].rhou
+    flux_l[2] = r_flux_c[idx_l].rhov
+    flux_l[3] = r_flux_c[idx_l].rhow
+    flux_l[4] = r_flux_c[idx_l].rhoE
+
+    var flux_r : double[5]
+    flux_r[0] = r_flux_c[idx_r].rho
+    flux_r[1] = r_flux_c[idx_r].rhou
+    flux_r[2] = r_flux_c[idx_r].rhov
+    flux_r[3] = r_flux_c[idx_r].rhow
+    flux_r[4] = r_flux_c[idx_r].rhoE
+
+    var flux_LF = lax_friedrichs_flux( cnsr_l, cnsr_r, flux_l, flux_r, s_max )
+
+    var theta_p : double = 1.0
+    var theta_m : double = 1.0
+
+    var cnsr_check : double[5]
+    var cnsr_check_LF_l : double[5]
+    var cnsr_check_LF_r : double[5]
+    var rho_check : double
+    var rho_check_LF : double
+
+    -- Limiter for density positivity
+    theta_p = 1.0
+    theta_m = 1.0
+
+    cnsr_check[0] = cnsr_l[0] - 2*lambda*r_flux_e[i].rho
+    cnsr_check[1] = cnsr_l[1] - 2*lambda*r_flux_e[i].rhou
+    cnsr_check[2] = cnsr_l[2] - 2*lambda*r_flux_e[i].rhov
+    cnsr_check[3] = cnsr_l[3] - 2*lambda*r_flux_e[i].rhow
+    cnsr_check[4] = cnsr_l[4] - 2*lambda*r_flux_e[i].rhoE
+
+    cnsr_check_LF_l[0] = cnsr_l[0] - 2*lambda*flux_LF[0]
+    cnsr_check_LF_l[1] = cnsr_l[1] - 2*lambda*flux_LF[1]
+    cnsr_check_LF_l[2] = cnsr_l[2] - 2*lambda*flux_LF[2]
+    cnsr_check_LF_l[3] = cnsr_l[3] - 2*lambda*flux_LF[3]
+    cnsr_check_LF_l[4] = cnsr_l[4] - 2*lambda*flux_LF[4]
+
+    rho_check = cnsr_check[0]
+    rho_check_LF = cnsr_check_LF_l[0]
+
+    if (rho_check < epsilon_rho) then
+      theta_p = (epsilon_rho - rho_check_LF) / (rho_check - rho_check_LF)
+    end
+
+    cnsr_check[0] = cnsr_r[0] + 2*lambda*r_flux_e[i].rho
+    cnsr_check[1] = cnsr_r[1] + 2*lambda*r_flux_e[i].rhou
+    cnsr_check[2] = cnsr_r[2] + 2*lambda*r_flux_e[i].rhov
+    cnsr_check[3] = cnsr_r[3] + 2*lambda*r_flux_e[i].rhow
+    cnsr_check[4] = cnsr_r[4] + 2*lambda*r_flux_e[i].rhoE
+
+    cnsr_check_LF_r[0] = cnsr_r[0] + 2*lambda*flux_LF[0]
+    cnsr_check_LF_r[1] = cnsr_r[1] + 2*lambda*flux_LF[1]
+    cnsr_check_LF_r[2] = cnsr_r[2] + 2*lambda*flux_LF[2]
+    cnsr_check_LF_r[3] = cnsr_r[3] + 2*lambda*flux_LF[3]
+    cnsr_check_LF_r[4] = cnsr_r[4] + 2*lambda*flux_LF[4]
+    
+    rho_check = cnsr_check[0]
+    rho_check_LF = cnsr_check_LF_r[0]
+
+    if (rho_check < epsilon_rho) then
+      theta_m = (epsilon_rho - rho_check_LF) / (rho_check - rho_check_LF)
+    end
+    
+    var theta_rho = cmath.fmin( theta_p, theta_m )
+    r_flux_e[i].rho  = (1.0 - theta_rho)*flux_LF[0] + theta_rho*r_flux_e[i].rho
+    r_flux_e[i].rhou = (1.0 - theta_rho)*flux_LF[1] + theta_rho*r_flux_e[i].rhou
+    r_flux_e[i].rhov = (1.0 - theta_rho)*flux_LF[2] + theta_rho*r_flux_e[i].rhov
+    r_flux_e[i].rhow = (1.0 - theta_rho)*flux_LF[3] + theta_rho*r_flux_e[i].rhow
+    r_flux_e[i].rhoE = (1.0 - theta_rho)*flux_LF[4] + theta_rho*r_flux_e[i].rhoE
+
+    -- Limiter for pressure positivity
+    var prim_check : double[5]
+    var prim_check_LF : double[5]
+    theta_p = 1.0
+    theta_m = 1.0
+
+    cnsr_check[0] = cnsr_l[0] - 2*lambda*r_flux_e[i].rho
+    cnsr_check[1] = cnsr_l[1] - 2*lambda*r_flux_e[i].rhou
+    cnsr_check[2] = cnsr_l[2] - 2*lambda*r_flux_e[i].rhov
+    cnsr_check[3] = cnsr_l[3] - 2*lambda*r_flux_e[i].rhow
+    cnsr_check[4] = cnsr_l[4] - 2*lambda*r_flux_e[i].rhoE
+
+    prim_check = get_primitive( cnsr_check[0], cnsr_check[1], cnsr_check[2], cnsr_check[3], cnsr_check[4] )
+    prim_check_LF = get_primitive( cnsr_check_LF_l[0], cnsr_check_LF_l[1], cnsr_check_LF_l[2], cnsr_check_LF_l[3], cnsr_check_LF_l[4] )
+
+    if (prim_check[4] < epsilon_p) then
+      theta_p = (epsilon_p - prim_check_LF[4]) / (prim_check[4] - prim_check_LF[4])
+    end
+
+    cnsr_check[0] = cnsr_r[0] + 2*lambda*r_flux_e[i].rho
+    cnsr_check[1] = cnsr_r[1] + 2*lambda*r_flux_e[i].rhou
+    cnsr_check[2] = cnsr_r[2] + 2*lambda*r_flux_e[i].rhov
+    cnsr_check[3] = cnsr_r[3] + 2*lambda*r_flux_e[i].rhow
+    cnsr_check[4] = cnsr_r[4] + 2*lambda*r_flux_e[i].rhoE
+
+    prim_check = get_primitive( cnsr_check[0], cnsr_check[1], cnsr_check[2], cnsr_check[3], cnsr_check[4] )
+    prim_check_LF = get_primitive( cnsr_check_LF_r[0], cnsr_check_LF_r[1], cnsr_check_LF_r[2], cnsr_check_LF_r[3], cnsr_check_LF_r[4] )
+
+    if (prim_check[4] < epsilon_p) then
+      theta_m = (epsilon_p - prim_check_LF[4]) / (prim_check[4] - prim_check_LF[4])
+    end
+    
+    theta_p = cmath.fmin( theta_p, theta_m )
+    r_flux_e[i].rho  = (1.0 - theta_p)*flux_LF[0] + theta_p*r_flux_e[i].rho
+    r_flux_e[i].rhou = (1.0 - theta_p)*flux_LF[1] + theta_p*r_flux_e[i].rhou
+    r_flux_e[i].rhov = (1.0 - theta_p)*flux_LF[2] + theta_p*r_flux_e[i].rhov
+    r_flux_e[i].rhow = (1.0 - theta_p)*flux_LF[3] + theta_p*r_flux_e[i].rhow
+    r_flux_e[i].rhoE = (1.0 - theta_p)*flux_LF[4] + theta_p*r_flux_e[i].rhoE
+
+  end
+
+end
+
+
+
+__demand(__inline)
 task positivity_enforcer_x( r_prim_c   : region(ispace(int3d), primitive),
                             r_prim_l_x : region(ispace(int3d), primitive),
                             r_prim_r_x : region(ispace(int3d), primitive),
