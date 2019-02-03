@@ -535,18 +535,21 @@ task main()
     end
   end
   
-  var A_RK45 = array(0.0,
-                     -6234157559845.0/12983515589748.0,
-                     -6194124222391.0/4410992767914.0,
-                     -31623096876824.0/15682348800105.0,
-                     -12251185447671.0/11596622555746.0 )
+  -- var A_RK45 = array(0.0,
+  --                    -6234157559845.0/12983515589748.0,
+  --                    -6194124222391.0/4410992767914.0,
+  --                    -31623096876824.0/15682348800105.0,
+  --                    -12251185447671.0/11596622555746.0 )
 
-  var B_RK45 = array( 494393426753.0/4806282396855.0,
-                      4047970641027.0/5463924506627.0,
-                      9795748752853.0/13190207949281.0,
-                      4009051133189.0/8539092990294.0,
-                      1348533437543.0/7166442652324.0 )
-  
+  -- var B_RK45 = array( 494393426753.0/4806282396855.0,
+  --                     4047970641027.0/5463924506627.0,
+  --                     9795748752853.0/13190207949281.0,
+  --                     4009051133189.0/8539092990294.0,
+  --                     1348533437543.0/7166442652324.0 )
+
+  var A_RK45 = array(0.0)
+  var B_RK45 = array(1.0)
+
   -- Get conserved variables after initialization.
   __demand(__parallel)
   for i in pencil_interior do
@@ -569,26 +572,61 @@ task main()
   __demand(__spmd)
   while tsim < tstop*(1.0 - 1.0e-16) do
 
-    if useCFL then
-      -- Get stable dt.
-      var new_dt = 1.0e+100
-      if Nz >= 8 then
-        __demand(__parallel)
-        for i in pencil_interior do
-          new_dt min= get_max_stable_dt_3d(p_prim_c_y[i], dx, dy, dz)
-        end
-      elseif Ny >= 8 then
-        __demand(__parallel)
-        for i in pencil_interior do
-          new_dt min= get_max_stable_dt_2d(p_prim_c_y[i], dx, dy)
-        end
-      else
-        __demand(__parallel)
-        for i in pencil_interior do
-          new_dt min= get_max_stable_dt_1d(p_prim_c_y[i], dx)
-        end
+    -- if useCFL then
+    --   -- Get stable dt.
+    --   var new_dt = 1.0e+100
+    --   if Nz >= 8 then
+    --     __demand(__parallel)
+    --     for i in pencil_interior do
+    --       new_dt min= get_max_stable_dt_3d(p_prim_c_y[i], dx, dy, dz)
+    --     end
+    --   elseif Ny >= 8 then
+    --     __demand(__parallel)
+    --     for i in pencil_interior do
+    --       new_dt min= get_max_stable_dt_2d(p_prim_c_y[i], dx, dy)
+    --     end
+    --   else
+    --     __demand(__parallel)
+    --     for i in pencil_interior do
+    --       new_dt min= get_max_stable_dt_1d(p_prim_c_y[i], dx)
+    --     end
+    --   end
+    --   dt = wait_for_double(new_dt) * CFL_num
+    -- else
+    --   dt = dt_fix
+    -- end
+
+    var max_wave_speed_x : double = 0.0
+    var max_wave_speed_y : double = 0.0
+    var max_wave_speed_z : double = 0.0
+
+    if Nx >= 8 then
+      __demand(__parallel)
+      for i in pencil_interior do
+        max_wave_speed_x max= get_max_wave_speed_x(p_prim_c_y[i])
       end
-      dt = wait_for_double(new_dt) * CFL_num
+    end
+
+    if Ny >= 8 then
+      __demand(__parallel)
+      for i in pencil_interior do
+        max_wave_speed_y max= get_max_wave_speed_y(p_prim_c_y[i])
+      end
+    end
+
+    if Nz >= 8 then
+      __demand(__parallel)
+      for i in pencil_interior do
+        max_wave_speed_z max= get_max_wave_speed_z(p_prim_c_y[i])
+      end
+    end
+
+    if useCFL then
+      var tau_x : double = max_wave_speed_x/dx
+      var tau_y : double = max_wave_speed_y/dy
+      var tau_z : double = max_wave_speed_z/dz
+
+      dt = CFL_num/(tau_x + tau_y + tau_z)
     else
       dt = dt_fix
     end
@@ -611,7 +649,8 @@ task main()
     --------------------------------------------------------------------------------------------
     -- Advance sub-steps.
     --------------------------------------------------------------------------------------------
-    for isub = 0,5 do
+    -- for isub = 0,5 do
+    for isub = 0,1 do
 
       -- Set RHS to zero.
       __demand(__parallel)
@@ -636,7 +675,7 @@ task main()
       -- Add x-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_c_x_wo_wg[i], p_rhs_x[i], p_LU_x[i], p_LU_e_x[i], dt )
+        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_c_x_wo_wg[i], p_rhs_x[i], p_LU_x[i], p_LU_e_x[i], max_wave_speed_x, dt )
       end
       
       -- Add x-direction viscous flux derivative to RHS.
@@ -658,7 +697,7 @@ task main()
       -- Add y-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_c_y_wo_wg[i], p_rhs_y[i], p_LU_y[i], p_LU_e_y[i], dt )
+        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_c_y_wo_wg[i], p_rhs_y[i], p_LU_y[i], p_LU_e_y[i], max_wave_speed_y, dt )
       end
 
       -- Add y-direction viscous flux derivative to RHS.
@@ -680,7 +719,7 @@ task main()
       -- Add z-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_c_z_wo_wg[i], p_rhs_z[i], p_LU_z[i], p_LU_e_z[i], dt )
+        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_c_z_wo_wg[i], p_rhs_z[i], p_LU_z[i], p_LU_e_z[i], max_wave_speed_z, dt )
       end
 
       -- Add z-direction viscous flux derivative to RHS.
@@ -699,20 +738,82 @@ task main()
         end
       end
 
+      do
+        var n_nan_cnsr : int = 0
+        -- Check nan's before the solution update.
+        __demand(__parallel)
+        for i in pencil_interior do
+          n_nan_cnsr += check_nan_cnsr ( p_cnsr_y[i] )
+        end
+        c.printf("Number of nan's in cnsr before solution update = %d\n", n_nan_cnsr)
+        wait_for(n_nan_cnsr)
+      end
+
       -- Update solution in this substep.
       __demand(__parallel)
       for i in pencil_interior do
         update_substep( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK45[isub], B_RK45[isub] )
       end
 
+      do
+        var n_nan_cnsr : int = 0
+        -- Check nan's after the solution update.
+        __demand(__parallel)
+        for i in pencil_interior do
+          n_nan_cnsr += check_nan_cnsr ( p_cnsr_y[i] )
+        end
+        c.printf("Number of nan's in cnsr after solution update = %d\n", n_nan_cnsr)
+        wait_for(n_nan_cnsr)
+        if n_nan_cnsr > 0 then
+          tsim = tstop
+        end
+      end
+
       -- Update simulation time as well.
       Q_t = dt + A_RK45[isub]*Q_t
       tsim += B_RK45[isub]*Q_t
+
+      do
+        var n_neg_rho : int = 0
+        var n_neg_p   : int = 0
+        -- Check negative values before the solution update.
+        __demand(__parallel)
+        for i in pencil_interior do
+          n_neg_rho += check_neg_rho ( p_prim_c_y[i] )
+        end
+        __demand(__parallel)
+        for i in pencil_interior do
+          n_neg_p += check_neg_p ( p_prim_c_y[i] )
+        end
+        c.printf("Number of negative values in density and pressure before solution update = %d, %d\n", n_neg_rho, n_neg_p)
+        wait_for(n_neg_rho)
+        wait_for(n_neg_p)
+      end
 
       -- Update the primitive variables.
       __demand(__parallel)
       for i in pencil_interior do
         token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
+      end
+
+      do
+        var n_neg_rho : int = 0
+        var n_neg_p   : int = 0
+        -- Check negative values after the solution update.
+        __demand(__parallel)
+        for i in pencil_interior do
+          n_neg_rho += check_neg_rho ( p_prim_c_y[i] )
+        end
+        __demand(__parallel)
+        for i in pencil_interior do
+          n_neg_p += check_neg_p ( p_prim_c_y[i] )
+        end
+        c.printf("Number of negative values in density and pressure after solution update = %d, %d\n", n_neg_rho, n_neg_p)
+        wait_for(n_neg_rho)
+        wait_for(n_neg_p)
+        if n_neg_rho > 0 or n_neg_p > 0 then
+          tsim = tstop
+        end
       end
 
       -- Update temperature.

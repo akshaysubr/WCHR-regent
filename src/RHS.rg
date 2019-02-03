@@ -602,6 +602,7 @@ task add_xflux_der_to_rhs( r_prim_c    : region(ispace(int3d), primitive),
                            r_rhs       : region(ispace(int3d), conserved),
                            LU_x        : region(ispace(int3d), LU_struct),
                            LU_e_x      : region(ispace(int3d), LU_struct),
+                           s_max       : double,
                            dt          : double )
 where
   reads( r_prim_c, r_prim_c_wo, LU_x, LU_e_x ),
@@ -631,6 +632,14 @@ do
     var r_fder_c_x = region( ispace(int3d, {Nx,   ny, nz}, bounds_der_lo), conserved )
 
     WCHR_interpolation_x( r_prim_c, r_prim_l_x, r_prim_r_x )
+
+    -- var n_neg_prim_c   = check_neg_prim( r_prim_c )
+    -- var n_nan_prim_c   = check_nan_prim( r_prim_c )
+    -- var n_nan_prim_l_x = check_nan_prim( r_prim_l_x )
+    -- var n_nan_prim_r_x = check_nan_prim( r_prim_r_x )
+    -- c.printf("Number of negative values of r_prim_c = %d\n", n_neg_prim_c)
+    -- c.printf("Number of nan's of r_prim_c, r_prim_l_x, r_prim_r_x = %d, %d, %d\n", n_nan_prim_c, n_nan_prim_l_x, n_nan_prim_r_x)
+
     positivity_enforcer_x( r_prim_c, r_prim_l_x, r_prim_r_x, interpolation.n_ghosts )
 
     -- Get the Riemann flux
@@ -674,14 +683,23 @@ do
     if problem.use_flux_difference_form == true then
       var r_flux_ee_x  = region( ispace(int3d, {Nx_e, ny, nz}, bounds_c.lo), conserved )
 
+      -- var n_nan_flux_e_x = check_nan_cnsr ( r_flux_e_x )
+      -- c.printf("Number of nan's in interpolated flux in x-direction = %d\n", n_nan_flux_e_x)
+
       get_xflux_MND_rho ( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
       get_xflux_MND_rhou( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
       get_xflux_MND_rhov( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
       get_xflux_MND_rhow( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
       get_xflux_MND_rhoE( r_flux_c, r_flux_e_x, r_flux_ee_x, LU_e_x )
 
-      positivity_limiter_x( r_prim_c, r_flux_c, r_flux_ee_x, dt/problem.DX, problem.positivity.epsilon_rho, problem.positivity.epsilon_p, interpolation.n_ghosts )
+      -- var n_nan_flux_ee_x_before = check_nan_cnsr ( r_flux_ee_x )
+      if problem.use_positivity_limiter == true then
+        positivity_limiter_x( r_prim_c, r_flux_c, r_flux_ee_x, s_max, dt/problem.DX, problem.positivity.epsilon_rho, problem.positivity.epsilon_p, interpolation.n_ghosts )
+      end
+      -- var n_nan_flux_ee_x_after = check_nan_cnsr ( r_flux_ee_x )
+      -- c.printf("Number of nan's in MND flux in x-direction before and after positivity limiting = %d, %d\n", n_nan_flux_ee_x_before, n_nan_flux_ee_x_after)
 
+      
       for i in r_fder_c_x do
         var idx_l = int3d { x = i.x - interpolation.n_ghosts, y = i.y, z = i.z }
         var idx_r = int3d { x = i.x - interpolation.n_ghosts + 1, y = i.y, z = i.z }
@@ -853,6 +871,7 @@ task add_yflux_der_to_rhs( r_prim_c    : region(ispace(int3d), primitive),
                            r_rhs       : region(ispace(int3d), conserved),
                            LU_y        : region(ispace(int3d), LU_struct),
                            LU_e_y      : region(ispace(int3d), LU_struct),
+                           s_max       : double,
                            dt          : double )
 where
   reads( r_prim_c, r_prim_c_wo, LU_y, LU_e_y ),
@@ -925,13 +944,22 @@ do
     if problem.use_flux_difference_form == true then
       var r_flux_ee_y  = region( ispace(int3d, {nx, Ny_e, nz}, bounds_c.lo), conserved )
 
+      -- var n_nan_flux_e_y = check_nan_cnsr ( r_flux_e_y )
+      -- c.printf("Number of nan's in interpolated flux in y-direction = %d\n", n_nan_flux_e_y)
+
       get_yflux_MND_rho ( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
       get_yflux_MND_rhou( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
       get_yflux_MND_rhov( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
       get_yflux_MND_rhow( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
       get_yflux_MND_rhoE( r_flux_c, r_flux_e_y, r_flux_ee_y, LU_e_y )
 
-      positivity_limiter_y( r_prim_c, r_flux_c, r_flux_ee_y, dt/problem.DY, problem.positivity.epsilon_rho, problem.positivity.epsilon_p, interpolation.n_ghosts )
+      -- var n_nan_flux_ee_y_before = check_nan_cnsr ( r_flux_ee_y )
+      if problem.use_positivity_limiter == true then
+        positivity_limiter_y( r_prim_c, r_flux_c, r_flux_ee_y, s_max, dt/problem.DY, problem.positivity.epsilon_rho, problem.positivity.epsilon_p, interpolation.n_ghosts )
+      end
+
+      -- var n_nan_flux_ee_y_after = check_nan_cnsr ( r_flux_ee_y )
+      -- c.printf("Number of nan's in MND flux in y-direction before and after positivity limiting = %d, %d\n", n_nan_flux_ee_y_before, n_nan_flux_ee_y_after)
 
       for i in r_fder_c_y do
         var idx_l = int3d { x = i.x, y = i.y - interpolation.n_ghosts, z = i.z }
@@ -1104,6 +1132,7 @@ task add_zflux_der_to_rhs( r_prim_c    : region(ispace(int3d), primitive),
                            r_rhs       : region(ispace(int3d), conserved),
                            LU_z        : region(ispace(int3d), LU_struct),
                            LU_e_z      : region(ispace(int3d), LU_struct),
+                           s_max       : double,
                            dt          : double )
 where
   reads( r_prim_c, r_prim_c_wo, LU_z, LU_e_z ),
@@ -1182,7 +1211,9 @@ do
       get_zflux_MND_rhow( r_flux_c, r_flux_e_z, r_flux_ee_z, LU_e_z )
       get_zflux_MND_rhoE( r_flux_c, r_flux_e_z, r_flux_ee_z, LU_e_z )
 
-      positivity_limiter_z( r_prim_c, r_flux_c, r_flux_ee_z, dt/problem.DZ, problem.positivity.epsilon_rho, problem.positivity.epsilon_p, interpolation.n_ghosts )
+      if problem.use_positivity_limiter == true then
+        positivity_limiter_z( r_prim_c, r_flux_c, r_flux_ee_z, s_max, dt/problem.DZ, problem.positivity.epsilon_rho, problem.positivity.epsilon_p, interpolation.n_ghosts )
+      end
 
       for i in r_fder_c_z do
         var idx_l = int3d { x = i.x, y = i.y, z = i.z - interpolation.n_ghosts }

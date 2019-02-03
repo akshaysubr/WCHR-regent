@@ -160,7 +160,6 @@ do
   var found_nan : int = 0
   for i in r_cnsr do
     if [bool](isnan(r_cnsr[i].rho)) or [bool](isnan(r_cnsr[i].rhou)) or [bool](isnan(r_cnsr[i].rhov)) or [bool](isnan(r_cnsr[i].rhow)) or [bool](isnan(r_cnsr[i].rhoE)) then
-      c.printf("Found nan in conserved variables at index: (%d, %d, %d)\n", i.x, i.y, i.z)
       found_nan += 1
     end
   end
@@ -177,12 +176,59 @@ do
   var found_nan : int = 0
   for i in r_prim do
     if [bool](isnan(r_prim[i].rho)) or [bool](isnan(r_prim[i].u)) or [bool](isnan(r_prim[i].v)) or [bool](isnan(r_prim[i].w)) or [bool](isnan(r_prim[i].p)) then
-      c.printf("Found nan in primitive variables at index: (%d, %d, %d)\n", i.x, i.y, i.z)
       found_nan += 1
     end
   end
 
   return found_nan
+end
+
+
+
+task check_neg_prim( r_prim : region(ispace(int3d), primitive) )
+where
+  reads( r_prim )
+do
+  var found_neg : int = 0
+  for i in r_prim do
+    if [bool](r_prim[i].rho < 0) or [bool](r_prim[i].p < 0) then
+      found_neg += 1
+    end
+  end
+
+  return found_neg
+end
+
+
+
+task check_neg_rho( r_prim : region(ispace(int3d), primitive) )
+where
+  reads( r_prim )
+do
+  var found_neg : int = 0
+  for i in r_prim do
+    if [bool](r_prim[i].rho < 0) then
+      found_neg += 1
+    end
+  end
+
+  return found_neg
+end
+
+
+
+task check_neg_p( r_prim : region(ispace(int3d), primitive) )
+where
+  reads( r_prim )
+do
+  var found_neg : int = 0
+  for i in r_prim do
+    if [bool](r_prim[i].p < 0) then
+      found_neg += 1
+    end
+  end
+
+  return found_neg
 end
 
 

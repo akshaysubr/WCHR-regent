@@ -22,7 +22,8 @@ local xi2 = -3182085.0/37433632.0 - (45.0*cmath.sqrt(723535913.0))/37433632.0
 local xi3 = -(9.0*cmath.sqrt(723535913.0))/7659176.0 + 96676.0/957397.0
 
 local C         = 1.0e10
-local epsilon   = 1.0e-40
+local epsilon   = 1.0e-16
+-- local epsilon   = 1.0e-40
 local alpha_tau = 55.0
 
 do
