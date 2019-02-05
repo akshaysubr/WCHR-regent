@@ -639,6 +639,22 @@ task main()
       end
     end
 
+    var lambda_x : double = 0.0
+    var lambda_y : double = 0.0
+    var lambda_z : double = 0.0
+
+    if Nx >= 8 then
+      lambda_x = dt/dx + dt/dy*max_wave_speed_y/max_wave_speed_x + dt/dz*max_wave_speed_z/max_wave_speed_x
+    end
+
+    if Ny >= 8 then
+      lambda_y = dt/dx*max_wave_speed_x/max_wave_speed_y + dt/dy + dt/dz*max_wave_speed_z/max_wave_speed_y
+    end
+
+    if Nz >=8 then
+      lambda_z = dt/dx*max_wave_speed_x/max_wave_speed_z + dt/dy*max_wave_speed_y/max_wave_speed_z + dt/dz
+    end
+
     var Q_t : double = 0.0
 
     __demand(__parallel)
@@ -675,7 +691,7 @@ task main()
       -- Add x-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_c_x_wo_wg[i], p_rhs_x[i], p_LU_x[i], p_LU_e_x[i], max_wave_speed_x, dt )
+        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_c_x_wo_wg[i], p_rhs_x[i], p_LU_x[i], p_LU_e_x[i], max_wave_speed_x, lambda_x )
       end
       
       -- Add x-direction viscous flux derivative to RHS.
@@ -697,7 +713,7 @@ task main()
       -- Add y-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_c_y_wo_wg[i], p_rhs_y[i], p_LU_y[i], p_LU_e_y[i], max_wave_speed_y, dt )
+        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_c_y_wo_wg[i], p_rhs_y[i], p_LU_y[i], p_LU_e_y[i], max_wave_speed_y, lambda_y )
       end
 
       -- Add y-direction viscous flux derivative to RHS.
@@ -719,7 +735,7 @@ task main()
       -- Add z-direction convective flux derivative to RHS.
       __demand(__parallel)
       for i in pencil_interior do
-        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_c_z_wo_wg[i], p_rhs_z[i], p_LU_z[i], p_LU_e_z[i], max_wave_speed_z, dt )
+        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_c_z_wo_wg[i], p_rhs_z[i], p_LU_z[i], p_LU_e_z[i], max_wave_speed_z, lambda_z )
       end
 
       -- Add z-direction viscous flux derivative to RHS.
@@ -813,6 +829,17 @@ task main()
         wait_for(n_neg_p)
         if n_neg_rho > 0 or n_neg_p > 0 then
           tsim = tstop
+
+          if use_io then
+            wait_for(IOtoken)
+            __demand(__parallel)
+            for i in pencil_interior do
+              IOtoken += write_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, n_ghosts, i)
+            end
+            vizcount = vizcount + 1
+            vizcond = false
+          end
+
         end
       end
 

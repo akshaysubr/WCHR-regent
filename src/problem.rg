@@ -1,1 +1,1 @@
-problems/Sedov_problem_3D_x.rg
+problems/double_mach_reflection.rg
