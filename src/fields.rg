@@ -233,22 +233,23 @@ end
 
 
 
--- task add_value_cnsr( r_cnsr : region(ispace(int3d), conserved),
---                      r_rhs  : region(ispace(int3d), conserved),
---                      coeff  : double )
--- where
---   reads (r_rhs), reads writes(r_cnsr)
--- do
--- 
---   for i in r_rhs do
---     r_cnsr[i].rho  += coeff*r_rhs[i].rho
---     r_cnsr[i].rhou += coeff*r_rhs[i].rhou
---     r_cnsr[i].rhov += coeff*r_rhs[i].rhov
---     r_cnsr[i].rhow += coeff*r_rhs[i].rhow
---     r_cnsr[i].rhoE += coeff*r_rhs[i].rhoE
---   end
--- end
--- 
+task add_value_cnsr( r_cnsr : region(ispace(int3d), conserved),
+                     r_rhs  : region(ispace(int3d), conserved),
+                     coeff  : double )
+where
+  reads( r_rhs ), reads writes( r_cnsr )
+do
+  for i in r_rhs do
+    r_cnsr[i].rho  += coeff*r_rhs[i].rho
+    r_cnsr[i].rhou += coeff*r_rhs[i].rhou
+    r_cnsr[i].rhov += coeff*r_rhs[i].rhov
+    r_cnsr[i].rhow += coeff*r_rhs[i].rhow
+    r_cnsr[i].rhoE += coeff*r_rhs[i].rhoE
+  end
+end
+ 
+ 
+ 
 -- task self_multiply_cnsr( r_cnsr : region(ispace(int3d), conserved),
 --                          coeff  : double )
 -- where
