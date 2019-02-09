@@ -64,8 +64,8 @@ problem.ONEBYDX = 1.0 / problem.DX
 problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
-problem.interpolation_scheme     = "WCHR"
-problem.Riemann_solver           = "HLLC"
+problem.interpolation_scheme     = "WCNS-LD"
+problem.Riemann_solver           = "HLLC-HLL"
 problem.use_flux_difference_form = true
 problem.use_positivity_limiter   = true
 problem.timestepping_setting     = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"

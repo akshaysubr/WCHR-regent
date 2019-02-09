@@ -1,1 +1,1 @@
-problems/double_mach_reflection.rg
+problems/shocktube_problem_3D_x.rg

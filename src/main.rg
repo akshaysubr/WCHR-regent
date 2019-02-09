@@ -534,21 +534,21 @@ task main()
       IOtoken += write_coords(p_coords_y[i], config.filename_prefix, n_ghosts, i)
     end
   end
-  
-  -- var A_RK45 = array(0.0,
-  --                    -6234157559845.0/12983515589748.0,
-  --                    -6194124222391.0/4410992767914.0,
-  --                    -31623096876824.0/15682348800105.0,
-  --                    -12251185447671.0/11596622555746.0 )
 
-  -- var B_RK45 = array( 494393426753.0/4806282396855.0,
-  --                     4047970641027.0/5463924506627.0,
-  --                     9795748752853.0/13190207949281.0,
-  --                     4009051133189.0/8539092990294.0,
-  --                     1348533437543.0/7166442652324.0 )
+  var A_RK45 = array(0.0,
+                     -6234157559845.0/12983515589748.0,
+                     -6194124222391.0/4410992767914.0,
+                     -31623096876824.0/15682348800105.0,
+                     -12251185447671.0/11596622555746.0 )
 
-  var A_RK45 = array(0.0)
-  var B_RK45 = array(1.0)
+  var B_RK45 = array( 494393426753.0/4806282396855.0,
+                      4047970641027.0/5463924506627.0,
+                      9795748752853.0/13190207949281.0,
+                      4009051133189.0/8539092990294.0,
+                      1348533437543.0/7166442652324.0 )
+
+  -- var A_RK45 = array(0.0)
+  -- var B_RK45 = array(1.0)
 
   -- Get conserved variables after initialization.
   __demand(__parallel)
@@ -665,98 +665,27 @@ task main()
     --------------------------------------------------------------------------------------------
     -- Advance sub-steps.
     --------------------------------------------------------------------------------------------
-    -- for isub = 0,5 do
-    for isub = 0,1 do
+    for isub = 0,5 do
+    -- for isub = 0,1 do
 
-      -- Set RHS to zero.
-      __demand(__parallel)
-      for i in pencil_interior do
-        set_zero_cnsr( p_rhs_y[i] )
-      end
-      
-      if problem.viscous then
-        -- Get the transport coefficients.
-        __demand(__parallel)
-        for i in pencil_interior do
-          problem.get_transport_coeffs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i] )
-        end
+      pre_substep( r_prim_c, p_prim_c_y, r_aux_c, p_aux_c_y, r_gradu, p_gradu_y, r_tauij, p_tauij_y, r_visc, p_visc_y, pencil_interior )
 
-        -- Get the viscous stress tensor.
-        __demand(__parallel)
-        for i in pencil_interior do
-          get_tauij( p_gradu_y[i], p_tauij_y[i], p_visc_y[i] )
-        end
-      end
+      get_RHS ( r_rhs, p_rhs_x, p_rhs_y, p_rhs_z,
+                r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg, p_prim_c_x_wo_wg, p_prim_c_y_wo_wg, p_prim_c_z_wo_wg,
+                r_aux_c, p_aux_c_x, p_aux_c_y, p_aux_c_z,
+                r_visc, p_visc_x, p_visc_y, p_visc_z,
+                r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
+                r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
+                r_tauij, p_tauij_x, p_tauij_y, p_tauij_z,
+                LU_x, p_LU_x, LU_y, p_LU_y, LU_z, p_LU_z,
+                LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
+                LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
+                LU_e_x, p_LU_e_x, LU_e_y, p_LU_e_y, LU_e_z, p_LU_e_z,
+                pencil_interior, max_wave_speed_x, max_wave_speed_y, max_wave_speed_z, lambda_x, lambda_y, lambda_z )
 
-      -- Add x-direction convective flux derivative to RHS.
-      __demand(__parallel)
-      for i in pencil_interior do
-        add_xflux_der_to_rhs( p_prim_c_x_wg[i], p_prim_c_x_wo_wg[i], p_rhs_x[i], p_LU_x[i], p_LU_e_x[i], max_wave_speed_x, lambda_x )
-      end
-      
-      -- Add x-direction viscous flux derivative to RHS.
-      if problem.viscous then
-        if problem.conservative_viscous_terms then
-          __demand(__parallel)
-          for i in pencil_interior do
-            add_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_tauij_x[i], p_rhs_x[i], p_LU_N_x[i] )
-          end
-        else
-          __demand(__parallel)
-          for i in pencil_interior do
-            add_nonconservative_viscous_xflux_der_to_rhs( p_prim_c_x[i], p_aux_c_x[i], p_visc_x[i], p_gradu_x[i], p_grad2u_x[i], 
-                                                          p_tauij_x[i], p_rhs_x[i], p_LU_N_x[i], p_LU2_N_x[i] )
-          end
-        end
-      end
-
-      -- Add y-direction convective flux derivative to RHS.
-      __demand(__parallel)
-      for i in pencil_interior do
-        add_yflux_der_to_rhs( p_prim_c_y_wg[i], p_prim_c_y_wo_wg[i], p_rhs_y[i], p_LU_y[i], p_LU_e_y[i], max_wave_speed_y, lambda_y )
-      end
-
-      -- Add y-direction viscous flux derivative to RHS.
-      if problem.viscous then
-        if problem.conservative_viscous_terms then
-          __demand(__parallel)
-          for i in pencil_interior do
-            add_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_tauij_y[i], p_rhs_y[i], p_LU_N_y[i] )
-          end
-        else
-          __demand(__parallel)
-          for i in pencil_interior do
-            add_nonconservative_viscous_yflux_der_to_rhs( p_prim_c_y[i], p_aux_c_y[i], p_visc_y[i], p_gradu_y[i], p_grad2u_y[i], 
-                                                          p_tauij_y[i], p_rhs_y[i], p_LU_N_y[i], p_LU2_N_y[i] )
-          end
-        end
-      end
-
-      -- Add z-direction convective flux derivative to RHS.
-      __demand(__parallel)
-      for i in pencil_interior do
-        add_zflux_der_to_rhs( p_prim_c_z_wg[i], p_prim_c_z_wo_wg[i], p_rhs_z[i], p_LU_z[i], p_LU_e_z[i], max_wave_speed_z, lambda_z )
-      end
-
-      -- Add z-direction viscous flux derivative to RHS.
-      if problem.viscous then
-        if problem.conservative_viscous_terms then
-          __demand(__parallel)
-          for i in pencil_interior do
-            add_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_tauij_z[i], p_rhs_z[i], p_LU_N_z[i] )
-          end
-        else
-          __demand(__parallel)
-          for i in pencil_interior do
-            add_nonconservative_viscous_zflux_der_to_rhs( p_prim_c_z[i], p_aux_c_z[i], p_visc_z[i], p_gradu_z[i], p_grad2u_z[i], 
-                                                          p_tauij_z[i], p_rhs_z[i], p_LU_N_z[i], p_LU2_N_z[i] )
-          end
-        end
-      end
-
+      -- Check nan's before the solution update.
       do
         var n_nan_cnsr : int = 0
-        -- Check nan's before the solution update.
         __demand(__parallel)
         for i in pencil_interior do
           n_nan_cnsr += check_nan_cnsr ( p_cnsr_y[i] )
@@ -768,12 +697,16 @@ task main()
       -- Update solution in this substep.
       __demand(__parallel)
       for i in pencil_interior do
-        update_substep( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK45[isub], B_RK45[isub] )
+        update_substep_low_storage( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK45[isub], B_RK45[isub] )
       end
 
+      -- Update simulation time as well.
+      Q_t = dt + A_RK45[isub]*Q_t
+      tsim += B_RK45[isub]*Q_t
+
+      -- Check nan's after the solution update.
       do
         var n_nan_cnsr : int = 0
-        -- Check nan's after the solution update.
         __demand(__parallel)
         for i in pencil_interior do
           n_nan_cnsr += check_nan_cnsr ( p_cnsr_y[i] )
@@ -785,14 +718,10 @@ task main()
         end
       end
 
-      -- Update simulation time as well.
-      Q_t = dt + A_RK45[isub]*Q_t
-      tsim += B_RK45[isub]*Q_t
-
+      -- Check negative values before the solution update.
       do
         var n_neg_rho : int = 0
         var n_neg_p   : int = 0
-        -- Check negative values before the solution update.
         __demand(__parallel)
         for i in pencil_interior do
           n_neg_rho += check_neg_rho ( p_prim_c_y[i] )
@@ -812,10 +741,10 @@ task main()
         token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
       end
 
+      -- Check negative values after the solution update.
       do
         var n_neg_rho : int = 0
         var n_neg_p   : int = 0
-        -- Check negative values after the solution update.
         __demand(__parallel)
         for i in pencil_interior do
           n_neg_rho += check_neg_rho ( p_prim_c_y[i] )
@@ -829,113 +758,19 @@ task main()
         wait_for(n_neg_p)
         if n_neg_rho > 0 or n_neg_p > 0 then
           tsim = tstop
-
-          if use_io then
-            wait_for(IOtoken)
-            __demand(__parallel)
-            for i in pencil_interior do
-              IOtoken += write_primitive(p_prim_c_y[i], config.filename_prefix, vizcount, n_ghosts, i)
-            end
-            vizcount = vizcount + 1
-            vizcond = false
-          end
-
         end
       end
 
-      -- Update temperature.
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_temperature_r( p_prim_c_y[i], p_aux_c_y[i] )
-      end
-
-      -- Update velocity gradient tensor.
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_velocity_x_derivatives( p_prim_c_x[i], p_gradu_x[i], p_grad2u_x[i], p_LU_N_x[i], p_LU2_N_x[i] )
-      end
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_velocity_y_derivatives( p_prim_c_y[i], p_gradu_y[i], p_grad2u_y[i], p_LU_N_y[i], p_LU2_N_y[i] )
-      end
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_velocity_z_derivatives( p_prim_c_z[i], p_gradu_z[i], p_grad2u_z[i], p_LU_N_z[i], p_LU2_N_z[i] )
-      end
-
-      -- Get the density derivatives
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_density_x_derivatives( p_prim_c_x[i], p_gradrho_x[i], p_LU_N_x[i] )
-      end
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_density_y_derivatives( p_prim_c_y[i], p_gradrho_y[i], p_LU_N_y[i] )
-      end
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_density_z_derivatives( p_prim_c_z[i], p_gradrho_z[i], p_LU_N_z[i] )
-      end
- 
-      -- Get the pressure derivatives
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_pressure_x_derivatives( p_prim_c_x[i], p_gradp_x[i], p_LU_N_x[i] )
-      end
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_pressure_y_derivatives( p_prim_c_y[i], p_gradp_y[i], p_LU_N_y[i] )
-      end
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_pressure_z_derivatives( p_prim_c_z[i], p_gradp_z[i], p_LU_N_z[i] )
-      end
- 
-      -- Fill ghost cells in non-periodic directions first
-      if not problem.periodic_x then
-        __demand(__parallel)
-        for i in pencil_interior do
-          -- Fill in ghost cells
-          nonperiodic_ghost_cells_x(p_coords_x[i], p_prim_c_x_wg[i], p_gradrho_x[i], p_gradu_x[i], p_gradp_x[i], tsim, n_ghosts)
-        end
-      end
-      if not problem.periodic_y then
-        __demand(__parallel)
-        for i in pencil_interior do
-          -- Fill in ghost cells
-          nonperiodic_ghost_cells_y(p_coords_y[i], p_prim_c_y_wg[i], tsim, n_ghosts)
-        end
-      end
-      if not problem.periodic_z then
-        __demand(__parallel)
-        for i in pencil_interior do
-          -- Fill in ghost cells
-          nonperiodic_ghost_cells_z(p_coords_z[i], p_prim_c_z_wg[i], tsim, n_ghosts)
-        end
-      end
-
-      -- Fill ghost cells in periodic directions next
-      if problem.periodic_x then
-        __demand(__parallel)
-        for i in pencil_interior do
-          -- Fill in ghost cells
-          periodic_ghost_cells_x(p_prim_c_x_wg[i], n_ghosts)
-        end
-      end
-      if problem.periodic_y then
-        __demand(__parallel)
-        for i in pencil_interior do
-          -- Fill in ghost cells
-          periodic_ghost_cells_y(p_prim_c_y_wg[i], n_ghosts)
-        end
-      end
-      if problem.periodic_z then
-        __demand(__parallel)
-        for i in pencil_interior do
-          -- Fill in ghost cells
-          periodic_ghost_cells_z(p_prim_c_z_wg[i], n_ghosts)
-        end
-      end
+      token += post_substep( coords, p_coords_x, p_coords_y, p_coords_z,
+                             r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg,
+                             r_aux_c, p_aux_c_y,
+                             r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
+                             r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
+                             r_gradrho, p_gradrho_x, p_gradrho_y, p_gradrho_z,
+                             r_gradp, p_gradp_x, p_gradp_y, p_gradp_z,
+                             LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
+                             LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
+                             pencil_interior, tsim, n_ghosts )
 
     end
 
@@ -1025,3 +860,4 @@ if os.getenv('SAVEOBJ') == '1' then
 else
   regentlib.start(main, mapper.register_mappers)
 end
+

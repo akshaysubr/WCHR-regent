@@ -1396,6 +1396,7 @@ do
 
     if (rho_check < epsilon_rho) then
       theta_p = cmath.fabs(epsilon_rho - rho_check_LF) / (cmath.fabs(rho_check - rho_check_LF) + epsilon)
+      -- theta_p = 0.0
       counter_local += 1
     end
 
@@ -1416,6 +1417,7 @@ do
 
     if (rho_check < epsilon_rho) then
       theta_m = cmath.fabs(epsilon_rho - rho_check_LF) / (cmath.fabs(rho_check - rho_check_LF) + epsilon)
+      -- theta_m = 0.0
       counter_local += 1
     end
 
@@ -1444,6 +1446,7 @@ do
 
     if (prim_check[4] < epsilon_p) then
       theta_p = cmath.fabs(epsilon_p - prim_check_LF[4]) / (cmath.fabs(prim_check[4] - prim_check_LF[4]) + epsilon)
+      -- theta_p = 0.0
       counter_local += 1
     end
 
@@ -1458,6 +1461,7 @@ do
 
     if (prim_check[4] < epsilon_p) then
       theta_m = cmath.fabs(epsilon_p - prim_check_LF[4]) / (cmath.fabs(prim_check[4] - prim_check_LF[4]) + epsilon)
+      -- theta_m = 0.0
       counter_local += 1
     end
     
@@ -1564,6 +1568,7 @@ do
 
     if (rho_check < epsilon_rho) then
       theta_p = cmath.fabs(epsilon_rho - rho_check_LF) / (cmath.fabs(rho_check - rho_check_LF) + epsilon)
+      -- theta_p = 0.0
       counter_local += 1
     end
 
@@ -1584,6 +1589,7 @@ do
 
     if (rho_check < epsilon_rho) then
       theta_m = cmath.fabs(epsilon_rho - rho_check_LF) / (cmath.fabs(rho_check - rho_check_LF) + epsilon)
+      -- theta_m = 0.0
       counter_local += 1
     end
     
@@ -1612,6 +1618,7 @@ do
 
     if (prim_check[4] < epsilon_p) then
       theta_p = cmath.fabs(epsilon_p - prim_check_LF[4]) / (cmath.fabs(prim_check[4] - prim_check_LF[4]) + epsilon)
+      -- theta_p = 0.0
       counter_local += 1
     end
 
@@ -1626,6 +1633,7 @@ do
 
     if (prim_check[4] < epsilon_p) then
       theta_m = cmath.fabs(epsilon_p - prim_check_LF[4]) / (cmath.fabs(prim_check[4] - prim_check_LF[4]) + epsilon)
+      -- theta_m = 0.0
       counter_local += 1
     end
     
@@ -1732,6 +1740,7 @@ do
 
     if (rho_check < epsilon_rho) then
       theta_p = cmath.fabs(epsilon_rho - rho_check_LF) / (cmath.fabs(rho_check - rho_check_LF) + epsilon)
+      -- theta_p = 0.0
       counter_local += 1
     end
 
@@ -1752,6 +1761,7 @@ do
 
     if (rho_check < epsilon_rho) then
       theta_m = cmath.fabs(epsilon_rho - rho_check_LF) / (cmath.fabs(rho_check - rho_check_LF) + epsilon)
+      -- theta_m = 0.0
       counter_local += 1
     end
 
@@ -1780,6 +1790,7 @@ do
 
     if (prim_check[4] < epsilon_p) then
       theta_p = cmath.fabs(epsilon_p - prim_check_LF[4]) / (cmath.fabs(prim_check[4] - prim_check_LF[4]) + epsilon)
+      -- theta_p = 0.0
       counter_local += 1
     end
 
@@ -1794,6 +1805,7 @@ do
 
     if (prim_check[4] < epsilon_p) then
       theta_m = cmath.fabs(epsilon_p - prim_check_LF[4]) / (cmath.fabs(prim_check[4] - prim_check_LF[4]) + epsilon)
+      -- theta_m = 0.0
       counter_local += 1
     end
     
