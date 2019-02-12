@@ -6,7 +6,7 @@ require("EOS")
 local c     = regentlib.c
 local cmath = terralib.includec("math.h")
 
-local epsilon   = 1.0e-16
+local epsilon   = 1.0e-15
 -- local epsilon   = 1.0e-40
 
 __demand(__inline)
