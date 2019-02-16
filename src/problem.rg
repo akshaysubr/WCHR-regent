@@ -1,1 +1,1 @@
-problems/double_mach_reflection.rg
+problems/taylorgreen_problem.rg
