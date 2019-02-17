@@ -9,7 +9,8 @@ require("fields")
 local problem = {}
 
 -- Problem specific parameters
-problem.gamma = 1.4
+problem.gamma = 5.0/3.0
+-- problem.gamma = 1.4
 problem.Rgas  = 1.0
 problem.Mach  = 0.1
 problem.Re    = 100.
