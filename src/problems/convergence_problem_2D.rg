@@ -46,7 +46,8 @@ problem.Riemann_solver           = "HLLC-HLL"
 problem.use_flux_difference_form = false
 problem.use_positivity_limiter   = false
 problem.timestepping_setting     = "CONSTANT_TIME_STEP" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
-problem.dt_or_CFL_num            = 0.005*problem.DX
+problem.dt_or_CFL_num            = 0.02*problem.DX
+-- problem.dt_or_CFL_num            = 0.005*problem.DX
 problem.tstop                    = 2.0
 problem.tviz                     = 2.0
 
