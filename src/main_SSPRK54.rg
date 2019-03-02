@@ -954,8 +954,8 @@ task main()
 
     if (step-1)%(config.nstats*50) == 0 then
       c.printf("\n")
-      c.printf("%6.6s |%16.16s |%16.16s |%16.16s |%16.16s\n", "Step","Time","Timestep","TKE","Enstrophy")
-      c.printf("-------|-----------------|-----------------|-----------------|----------------\n")
+      c.printf("%6.6s |%16.16s |%16.16s |%16.16s |%16.16s\n", "Step","Time","Timestep","TKE","Enstrophy","Error")
+      c.printf("-------|-----------------|-----------------|-----------------|----------------|----------------\n")
     end
 
     if (step-1)%config.nstats == 0 then
@@ -971,10 +971,28 @@ task main()
       --   enstrophy += problem.enstrophy( p_gradu_y[i] )
       -- end
 
+      var errors : double[5]
+      for ierr = 0,5 do
+        errors[ierr] = 0.0
+      end
+      for i in pencil_interior do
+        var perrors = problem.get_errors(p_coords_y[i], p_prim_c_y[i], tsim)
+        for ierr = 0,5 do
+          errors[ierr] = errors[ierr] + perrors[ierr]
+        end
+      end
+
+      errors[0] = cmath.sqrt(problem.DX*problem.DY*errors[0])
+      errors[1] = cmath.sqrt(problem.DX*problem.DY*errors[1])
+      errors[2] = cmath.sqrt(problem.DX*problem.DY*errors[2])
+      errors[3] = cmath.sqrt(problem.DX*problem.DY*errors[3])
+      errors[4] = cmath.sqrt(problem.DX*problem.DY*errors[4])
+
       do
         var TKE = wait_for_double(TKE)
         var enstrophy = wait_for_double(enstrophy)
-        c.printf("%6d |%16.8e |%16.8e |%16.8e |%16.8e\n", step, tsim, dt, TKE/TKE0, enstrophy/enstrophy0)
+        var errors = wait_for_double(errors[0])
+        c.printf("%6d |%16.8e |%16.8e |%16.8e |%16.8e |%16.8e\n", step, tsim, dt, TKE/TKE0, enstrophy/enstrophy0, errors)
       end
     end
 
@@ -1001,18 +1019,31 @@ task main()
   for i in pencil_interior do
     var perrors = problem.get_errors(p_coords_y[i], p_prim_c_y[i], tsim)
     for ierr = 0,5 do
-      if perrors[ierr] > errors[ierr] then
-        errors[ierr] = perrors[ierr]
-      end
+      errors[ierr] = errors[ierr] + perrors[ierr]
     end
   end
 
-  c.printf("\n")
-  c.printf("Error in rho = %g\n", errors[0])
-  c.printf("Error in u   = %g\n", errors[1])
-  c.printf("Error in v   = %g\n", errors[2])
-  c.printf("Error in w   = %g\n", errors[3])
-  c.printf("Error in p   = %g\n", errors[4])
+  errors[0] = cmath.sqrt(problem.DX*problem.DY*errors[0])
+  errors[1] = cmath.sqrt(problem.DX*problem.DY*errors[1])
+  errors[2] = cmath.sqrt(problem.DX*problem.DY*errors[2])
+  errors[3] = cmath.sqrt(problem.DX*problem.DY*errors[3])
+  errors[4] = cmath.sqrt(problem.DX*problem.DY*errors[4])
+
+  -- for i in pencil_interior do
+  --   var perrors = problem.get_errors(p_coords_y[i], p_prim_c_y[i], tsim)
+  --   for ierr = 0,5 do
+  --     if perrors[ierr] > errors[ierr] then
+  --       errors[ierr] = perrors[ierr]
+  --     end
+  --   end
+  -- end
+
+  -- c.printf("\n")
+  -- c.printf("Error in rho = %g\n", errors[0])
+  -- c.printf("Error in u   = %g\n", errors[1])
+  -- c.printf("Error in v   = %g\n", errors[2])
+  -- c.printf("Error in w   = %g\n", errors[3])
+  -- c.printf("Error in p   = %g\n", errors[4])
 
   c.printf("\n")
   c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/step)

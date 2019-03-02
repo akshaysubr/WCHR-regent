@@ -14,9 +14,9 @@ problem.Rgas    = 1.0
 problem.viscous = false
 
 -- Grid dimensions
-problem.NX = 64
-problem.NY = 64
-problem.NZ = 8
+problem.NX = 32
+problem.NY = 32
+problem.NZ = 1
 
 -- Periodicity
 problem.periodic_x = true
@@ -46,9 +46,9 @@ problem.Riemann_solver           = "HLLC-HLL"
 problem.use_flux_difference_form = false
 problem.use_positivity_limiter   = false
 problem.timestepping_setting     = "CONSTANT_TIME_STEP" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
-problem.dt_or_CFL_num            = 0.2 * cmath.fmin(problem.DX, problem.DY)
+problem.dt_or_CFL_num            = 0.005*problem.DX
 problem.tstop                    = 2.0
-problem.tviz                     = 1.0
+problem.tviz                     = 2.0
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
@@ -65,7 +65,7 @@ do
     coords[i].y_c = problem.Y1 + (idx.y + 0.5) * dy
     coords[i].z_c = problem.Z1 + (idx.z + 0.5) * dz
 
-    r_prim_c[i].rho = 1.0 + 0.5*cmath.exp(-cmath.pow((coords[i].x_c/0.2), 2) - cmath.pow((coords[i].y_c/0.2), 2))
+    r_prim_c[i].rho = 1.0 + 0.5*cmath.sin(cmath.M_PI*(coords[i].x_c + coords[i].y_c))
     r_prim_c[i].u   = 1.0
     r_prim_c[i].v   = 1.0 
     r_prim_c[i].w   = 0.0
@@ -73,6 +73,19 @@ do
   end
 
   return 1
+end
+
+task problem.get_transport_coeffs( r_prim : region(ispace(int3d), primitive),
+                                   r_aux  : region(ispace(int3d), auxiliary),
+                                   r_visc : region(ispace(int3d), transport_coeffs) )
+where
+  reads(r_prim.{}, r_aux.T), writes(r_visc)
+do
+  for i in r_visc do
+    r_visc[i].mu_s  = 0.
+    r_visc[i].mu_b  = 0.
+    r_visc[i].kappa = 0.
+  end
 end
 
 task problem.get_errors( coords     : region(ispace(int3d), coordinates),
@@ -87,40 +100,40 @@ do
   for i in r_prim_c do
     var err : double
 
-    var x0 : double = coords[i].x_c - tsim
-    x0 = x0 - cmath.nearbyint(x0/problem.LX)*problem.LX
-
-    var y0 : double = coords[i].y_c - tsim
-    y0 = y0 - cmath.nearbyint(y0/problem.LY)*problem.LY
-
-    err = cmath.fabs( r_prim_c[i].rho - (1.0 + 0.5*cmath.exp(-cmath.pow(( x0/0.2), 2) - cmath.pow(( y0/0.2), 2))) )
-    if err > errors[0] then
-      errors[0] = err
-    end
+    err = cmath.fabs( r_prim_c[i].rho - ( 1.0 + 0.5*cmath.sin(cmath.M_PI*( (coords[i].x_c - tsim) + (coords[i].y_c - tsim) )) ) )
+    errors[0] = errors[0] + err*err
 
     err = cmath.fabs( r_prim_c[i].u   - 1.0 )
-    if err > errors[1] then
-      errors[1] = err
-    end
+    errors[1] = errors[1] + err*err
 
     err = cmath.fabs( r_prim_c[i].v   - 1.0 )
-    if err > errors[2] then
-      errors[2] = err
-    end
+    errors[2] = errors[2] + err*err
 
     err = cmath.fabs( r_prim_c[i].w   - 0.0 )
-    if err > errors[3] then
-      errors[3] = err
-    end
+    errors[3] = errors[3] + err*err
 
     err = cmath.fabs( r_prim_c[i].p   - 1.0 )
-    if err > errors[4] then
-      errors[4] = err
-    end
+    errors[4] = errors[4] + err*err
 
   end
 
   return errors
+end
+
+task problem.TKE( r_prim_c : region(ispace(int3d), primitive) )
+where
+  reads(r_prim_c)
+do
+  var TKE : double = 1.0
+  return TKE
+end
+
+task problem.enstrophy( r_duidxj : region(ispace(int3d), tensor2) )
+where
+  reads(r_duidxj)
+do
+  var enstrophy : double = 1.0
+  return enstrophy
 end
 
 -- DEFAULT SCHEME TO USE --
