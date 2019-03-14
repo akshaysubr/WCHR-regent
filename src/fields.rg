@@ -1,6 +1,7 @@
 import "regent"
 
 local c = regentlib.c
+local isnan = regentlib.isnan(double)
 
 -- Field spaces
 fspace coordinates {
@@ -112,17 +113,23 @@ fspace LU_coeffs {
   f  : double,
 }
 
+
+
 function poff(i, x, y, z, Nx, Ny, Nz)
   return rexpr int3d { x = (i.x + x + Nx)%Nx, y = (i.y + y + Ny)%Ny, z = (i.z + z + Nz)%Nz } end
 end
+
+
 
 function off(i, x, y, z)
   return rexpr int3d { x = i.x + x, y = i.y + y, z = i.z + z } end
 end
 
+
+
 task set_zero_cnsr( r_cnsr : region(ispace(int3d), conserved) )
 where
-  writes(r_cnsr)
+  writes( r_cnsr )
 do
   for i in r_cnsr do
     r_cnsr[i].{rho, rhou, rhov, rhow, rhoE} = 0.0
@@ -131,9 +138,11 @@ do
   return 1
 end
 
+
+
 task set_zero_prim( r_prim : region(ispace(int3d), primitive) )
 where
-  writes(r_prim)
+  writes( r_prim )
 do
   for i in r_prim do
     r_prim[i].{rho, u, v, w, p} = 0.0
@@ -142,22 +151,105 @@ do
   return 1
 end
 
--- task add_value_cnsr( r_cnsr : region(ispace(int3d), conserved),
---                      r_rhs  : region(ispace(int3d), conserved),
---                      coeff  : double )
--- where
---   reads (r_rhs), reads writes(r_cnsr)
--- do
--- 
---   for i in r_rhs do
---     r_cnsr[i].rho  += coeff*r_rhs[i].rho
---     r_cnsr[i].rhou += coeff*r_rhs[i].rhou
---     r_cnsr[i].rhov += coeff*r_rhs[i].rhov
---     r_cnsr[i].rhow += coeff*r_rhs[i].rhow
---     r_cnsr[i].rhoE += coeff*r_rhs[i].rhoE
---   end
--- end
--- 
+
+
+task check_nan_cnsr( r_cnsr : region(ispace(int3d), conserved) )
+where
+  reads( r_cnsr )
+do
+  var found_nan : int = 0
+  for i in r_cnsr do
+    if [bool](isnan(r_cnsr[i].rho)) or [bool](isnan(r_cnsr[i].rhou)) or [bool](isnan(r_cnsr[i].rhov)) or [bool](isnan(r_cnsr[i].rhow)) or [bool](isnan(r_cnsr[i].rhoE)) then
+      found_nan += 1
+    end
+  end
+
+  return found_nan
+end
+
+
+
+task check_nan_prim( r_prim : region(ispace(int3d), primitive) )
+where
+  reads( r_prim )
+do
+  var found_nan : int = 0
+  for i in r_prim do
+    if [bool](isnan(r_prim[i].rho)) or [bool](isnan(r_prim[i].u)) or [bool](isnan(r_prim[i].v)) or [bool](isnan(r_prim[i].w)) or [bool](isnan(r_prim[i].p)) then
+      found_nan += 1
+    end
+  end
+
+  return found_nan
+end
+
+
+
+task check_neg_prim( r_prim : region(ispace(int3d), primitive) )
+where
+  reads( r_prim )
+do
+  var found_neg : int = 0
+  for i in r_prim do
+    if [bool](r_prim[i].rho < 0) or [bool](r_prim[i].p < 0) then
+      found_neg += 1
+    end
+  end
+
+  return found_neg
+end
+
+
+
+task check_neg_rho( r_prim : region(ispace(int3d), primitive) )
+where
+  reads( r_prim )
+do
+  var found_neg : int = 0
+  for i in r_prim do
+    if [bool](r_prim[i].rho < 0) then
+      found_neg += 1
+    end
+  end
+
+  return found_neg
+end
+
+
+
+task check_neg_p( r_prim : region(ispace(int3d), primitive) )
+where
+  reads( r_prim )
+do
+  var found_neg : int = 0
+  for i in r_prim do
+    if [bool](r_prim[i].p < 0) then
+      found_neg += 1
+    end
+  end
+
+  return found_neg
+end
+
+
+
+task add_value_cnsr( r_cnsr : region(ispace(int3d), conserved),
+                     r_rhs  : region(ispace(int3d), conserved),
+                     coeff  : double )
+where
+  reads( r_rhs ), reads writes( r_cnsr )
+do
+  for i in r_rhs do
+    r_cnsr[i].rho  += coeff*r_rhs[i].rho
+    r_cnsr[i].rhou += coeff*r_rhs[i].rhou
+    r_cnsr[i].rhov += coeff*r_rhs[i].rhov
+    r_cnsr[i].rhow += coeff*r_rhs[i].rhow
+    r_cnsr[i].rhoE += coeff*r_rhs[i].rhoE
+  end
+end
+ 
+ 
+ 
 -- task self_multiply_cnsr( r_cnsr : region(ispace(int3d), conserved),
 --                          coeff  : double )
 -- where

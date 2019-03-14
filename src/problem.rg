@@ -1,1 +1,1 @@
-problems/CHIT_problem.rg
+problems/convergence_problem_2D.rg

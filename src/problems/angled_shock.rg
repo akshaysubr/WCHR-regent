@@ -9,27 +9,53 @@ require("fields")
 local problem = {}
 
 -- Problem specific parameters
-problem.gamma   = 1.4  -- Ratio of specific heats
+problem.gamma   = 1.4
 problem.Rgas    = 1.0
 problem.viscous = false
 
+problem.Mach   = 10.0
+problem.x_wall = 1.0 / 6.0
+problem.theta_post = PI / 6.0
+-- problem.theta_post = 0.0
+
+problem.rho_pre = 1.4
+problem.p_pre   = 1.
+problem.sos_pre = cmath.sqrt(problem.gamma * problem.p_pre / problem.rho_pre)
+
+problem.rho_post   = ( (problem.gamma + 1.)*problem.Mach*problem.Mach ) / ( (problem.gamma - 1.)*problem.Mach*problem.Mach + 2. ) * problem.rho_pre
+problem.p_post     = (2*problem.gamma*problem.Mach*problem.Mach - (problem.gamma - 1.)) / (problem.gamma + 1.) * problem.p_pre
+problem.sos_post   = cmath.sqrt(problem.gamma * problem.p_post / problem.rho_post)
+problem.Mach_post  = cmath.sqrt( ( (problem.gamma - 1.)*problem.Mach*problem.Mach + 2. ) / ( 2.*problem.gamma*problem.Mach*problem.Mach - (problem.gamma - 1.) ) )
+problem.vel_post   = problem.Mach * problem.sos_pre - problem.Mach_post * problem.sos_post
+problem.u_post     =  problem.vel_post * cmath.cos(problem.theta_post)
+problem.v_post     = -problem.vel_post * cmath.sin(problem.theta_post)
+
 -- Grid dimensions
-problem.NX = 1
-problem.NY = 1
-problem.NZ = 200
+problem.NX = 960
+problem.NY = 240
+problem.NZ = 1
 
 -- Periodicity
-problem.periodic_x = true
-problem.periodic_y = true
-problem.periodic_z = false
+problem.periodic_x = false
+problem.periodic_y = false
+problem.periodic_z = true
+
+-- Boundary (if not periodic)
+-- condition: DIRICHLET, EXTRAPOLATION, SUBSONIC_INFLOW, SUBSONIC_OUTFLOW
+problem.boundary_l_x = { condition="DIRICHLET", rho=problem.rho_post, u=problem.u_post, v=problem.v_post, w=0., p=problem.p_post }
+problem.boundary_r_x = { condition="EXTRAPOLATION" }
+-- problem.boundary_l_y = { condition="EXTRAPOLATION" }
+-- problem.boundary_r_y = { condition="EXTRAPOLATION" }
+problem.boundary_l_y = { condition="CUSTOM" }
+problem.boundary_r_y = { condition="CUSTOM" }
 
 -- Domain size
-problem.LX = 1.0
+problem.LX = 4.0
 problem.LY = 1.0
 problem.LZ = 1.0
 
-problem.X1 = -0.5
-problem.Y1 = -0.5
+problem.X1 =  0.0
+problem.Y1 =  0.0
 problem.Z1 = -0.5
 
 -- Grid spacing
@@ -41,14 +67,12 @@ problem.ONEBYDX = 1.0 / problem.DX
 problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
-problem.interpolation_scheme     = "WCHR"
-problem.Riemann_solver           = "HLLC"
-problem.use_flux_difference_form = true
-problem.use_positivity_limiter   = false
-problem.timestepping_setting     = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
-problem.dt_or_CFL_num            = 0.5
-problem.tstop                    = 0.2
-problem.tviz                     = 0.1
+problem.interpolation_scheme = "WCNS-JS"
+-- problem.interpolation_scheme = "WCNS-LD"
+problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
+problem.dt_or_CFL_num        = 0.5
+problem.tstop                = 0.2
+problem.tviz                 = 0.01*problem.tstop
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
@@ -59,26 +83,26 @@ task problem.initialize( coords     : region(ispace(int3d), coordinates),
 where
   reads writes(coords, r_prim_c)
 do
-  var rhoL : double = 1.0
-  var rhoR : double = 0.125
-  var pL   : double = 1.0
-  var pR   : double = 0.1
-
-  var thick : double = 1.e-10
 
   for i in coords.ispace do
     var idx = int3d {x = i.x - n_ghosts, y = i.y - n_ghosts, z = i.z - n_ghosts}
     coords[i].x_c = problem.X1 + (idx.x + 0.5) * dx
     coords[i].y_c = problem.Y1 + (idx.y + 0.5) * dy
     coords[i].z_c = problem.Z1 + (idx.z + 0.5) * dz
-    
-    var tmp : double = cmath.tanh( (coords[i].z_c - 1.e-6)/(thick*dz) ) - cmath.tanh( (coords[i].z_c - (1.-1.e-6))/(thick*dz) ) - 1.
 
-    r_prim_c[i].rho = 0.5*(rhoL + rhoR) - 0.5*(rhoL - rhoR)*tmp
-    r_prim_c[i].u   = 0.0
-    r_prim_c[i].v   = 0.0 
-    r_prim_c[i].w   = 0.0
-    r_prim_c[i].p   = 0.5*(pL + pR) - 0.5*(pL - pR)*tmp
+    if (coords[i].x_c - problem.x_wall) < (coords[i].y_c * cmath.tan(problem.theta_post)) then
+        r_prim_c[i].rho = problem.rho_post
+        r_prim_c[i].u   = problem.u_post
+        r_prim_c[i].v   = problem.v_post
+        r_prim_c[i].w   = 0.
+        r_prim_c[i].p   = problem.p_post
+    else
+        r_prim_c[i].rho = problem.rho_pre
+        r_prim_c[i].u   = 0.
+        r_prim_c[i].v   = 0.
+        r_prim_c[i].w   = 0.
+        r_prim_c[i].p   = problem.p_pre
+    end
   end
 
   return 1
@@ -97,6 +121,90 @@ do
   end
 end
 
+task problem.fill_ghost_cells_l_y( coords   : region(ispace(int3d), coordinates),
+                                   r_prim_c : region(ispace(int3d), primitive),
+                                   tsim     : double,
+                                   n_ghosts : int64 )
+where
+  reads (coords), reads writes(r_prim_c)
+do
+  var bounds_c = r_prim_c.ispace.bounds
+  var Ny_g = bounds_c.hi.y + 1
+  var Ny   = Ny_g - 2*n_ghosts
+
+  var coord_idx_y = coords.ispace.bounds.lo.y
+
+  for k = bounds_c.lo.z, bounds_c.hi.z + 1 do
+    for j = 0, n_ghosts do
+      for i = bounds_c.lo.x, bounds_c.hi.x + 1 do
+        var ghost_l = int3d {i, j, k}
+        var coord_l = int3d {i, coord_idx_y, k}
+        var x_c = coords[coord_l].x_c
+        var y_c = coords[coord_l].y_c - (n_ghosts - j)*problem.DY
+
+        if ( (x_c - problem.x_wall) < y_c * cmath.tan(problem.theta_post) + tsim * problem.Mach * problem.sos_pre / cmath.cos(problem.theta_post) ) then
+          r_prim_c[ghost_l].rho = problem.rho_post
+          r_prim_c[ghost_l].u   = problem.u_post
+          r_prim_c[ghost_l].v   = problem.v_post
+          r_prim_c[ghost_l].w   = 0.
+          r_prim_c[ghost_l].p   = problem.p_post
+        else
+          r_prim_c[ghost_l].rho = problem.rho_pre
+          r_prim_c[ghost_l].u   = 0.
+          r_prim_c[ghost_l].v   = 0.
+          r_prim_c[ghost_l].w   = 0.
+          r_prim_c[ghost_l].p   = problem.p_pre
+        end
+        
+      end
+    end
+  end
+
+  return 1
+end
+
+task problem.fill_ghost_cells_r_y( coords   : region(ispace(int3d), coordinates),
+                                   r_prim_c : region(ispace(int3d), primitive),
+                                   tsim     : double,
+                                   n_ghosts : int64 )
+where
+  reads (coords), reads writes(r_prim_c)
+do
+  var bounds_c = r_prim_c.ispace.bounds
+  var Ny_g = bounds_c.hi.y + 1
+  var Ny   = Ny_g - 2*n_ghosts
+
+  var coord_idx_y = coords.ispace.bounds.hi.y
+
+  for k = bounds_c.lo.z, bounds_c.hi.z + 1 do
+    for j = 0, n_ghosts do
+      for i = bounds_c.lo.x, bounds_c.hi.x + 1 do
+        var ghost_r = int3d {i, Ny + n_ghosts + j, k}
+        var coord_r = int3d {i, coord_idx_y, k}
+        var x_c = coords[coord_r].x_c
+        var y_c = coords[coord_r].y_c + (j + 1)*problem.DY
+
+        if ( (x_c - problem.x_wall) < y_c * cmath.tan(problem.theta_post) + tsim * problem.Mach * problem.sos_pre / cmath.cos(problem.theta_post) ) then
+          r_prim_c[ghost_r].rho = problem.rho_post
+          r_prim_c[ghost_r].u   = problem.u_post
+          r_prim_c[ghost_r].v   = problem.v_post
+          r_prim_c[ghost_r].w   = 0.
+          r_prim_c[ghost_r].p   = problem.p_post
+        else
+          r_prim_c[ghost_r].rho = problem.rho_pre
+          r_prim_c[ghost_r].u   = 0.
+          r_prim_c[ghost_r].v   = 0.
+          r_prim_c[ghost_r].w   = 0.
+          r_prim_c[ghost_r].p   = problem.p_pre
+        end
+        
+      end
+    end
+  end
+
+  return 1
+end
+
 task problem.get_errors( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
                          tsim       : double )
@@ -107,6 +215,17 @@ do
   var errors : double[5] = array(0.0, 0.0, 0.0, 0.0, 0.0)
 
   return errors
+end
+
+task problem.TKE( r_prim_c : region(ispace(int3d), primitive) )
+where
+  reads(r_prim_c)
+do
+  var TKE : double = 0.0
+  for i in r_prim_c do
+    TKE += 0.5 * r_prim_c[i].rho * (r_prim_c[i].u*r_prim_c[i].u + r_prim_c[i].v*r_prim_c[i].v + r_prim_c[i].w*r_prim_c[i].w)
+  end
+  return TKE
 end
 
 task problem.enstrophy( r_duidxj : region(ispace(int3d), tensor2) )
@@ -125,11 +244,6 @@ end
 
 -- DEFAULT SCHEME TO USE --
 if problem.interpolation_scheme == nil then problem.interpolation_scheme = "WCHR" end
-
--- DEFAULT POSITIVITY LIMITER LIMITS --
-if problem.positivity == nil then
-  problem.positivity = { epsilon_rho = 1.e-13, epsilon_p = 1.e-13 }
-end
 
 -- DEFAULT VISCOUS TERM FORMULATION TO USE --
 if problem.conservative_viscous_terms == nil then problem.conservative_viscous_terms = false end

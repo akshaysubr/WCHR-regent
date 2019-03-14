@@ -14,22 +14,22 @@ problem.Rgas    = 1.0
 problem.viscous = false
 
 -- Grid dimensions
-problem.NX = 1
-problem.NY = 1
-problem.NZ = 200
+problem.NX = 32
+problem.NY = 32
+problem.NZ = 1
 
 -- Periodicity
 problem.periodic_x = true
 problem.periodic_y = true
-problem.periodic_z = false
+problem.periodic_z = true
 
 -- Domain size
-problem.LX = 1.0
-problem.LY = 1.0
+problem.LX = 2.0
+problem.LY = 2.0
 problem.LZ = 1.0
 
-problem.X1 = -0.5
-problem.Y1 = -0.5
+problem.X1 = -1.0
+problem.Y1 = -1.0
 problem.Z1 = -0.5
 
 -- Grid spacing
@@ -42,13 +42,14 @@ problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
 problem.interpolation_scheme     = "WCHR"
-problem.Riemann_solver           = "HLLC"
-problem.use_flux_difference_form = true
+problem.Riemann_solver           = "HLLC-HLL"
+problem.use_flux_difference_form = false
 problem.use_positivity_limiter   = false
-problem.timestepping_setting     = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
-problem.dt_or_CFL_num            = 0.5
-problem.tstop                    = 0.2
-problem.tviz                     = 0.1
+problem.timestepping_setting     = "CONSTANT_TIME_STEP" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
+problem.dt_or_CFL_num            = 0.02*problem.DX
+-- problem.dt_or_CFL_num            = 0.005*problem.DX
+problem.tstop                    = 2.0
+problem.tviz                     = 2.0
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
@@ -59,26 +60,17 @@ task problem.initialize( coords     : region(ispace(int3d), coordinates),
 where
   reads writes(coords, r_prim_c)
 do
-  var rhoL : double = 1.0
-  var rhoR : double = 0.125
-  var pL   : double = 1.0
-  var pR   : double = 0.1
-
-  var thick : double = 1.e-10
-
   for i in coords.ispace do
     var idx = int3d {x = i.x - n_ghosts, y = i.y - n_ghosts, z = i.z - n_ghosts}
     coords[i].x_c = problem.X1 + (idx.x + 0.5) * dx
     coords[i].y_c = problem.Y1 + (idx.y + 0.5) * dy
     coords[i].z_c = problem.Z1 + (idx.z + 0.5) * dz
-    
-    var tmp : double = cmath.tanh( (coords[i].z_c - 1.e-6)/(thick*dz) ) - cmath.tanh( (coords[i].z_c - (1.-1.e-6))/(thick*dz) ) - 1.
 
-    r_prim_c[i].rho = 0.5*(rhoL + rhoR) - 0.5*(rhoL - rhoR)*tmp
-    r_prim_c[i].u   = 0.0
-    r_prim_c[i].v   = 0.0 
+    r_prim_c[i].rho = 1.0 + 0.5*cmath.sin(cmath.M_PI*(coords[i].x_c + coords[i].y_c))
+    r_prim_c[i].u   = 1.0
+    r_prim_c[i].v   = 1.0 
     r_prim_c[i].w   = 0.0
-    r_prim_c[i].p   = 0.5*(pL + pR) - 0.5*(pL - pR)*tmp
+    r_prim_c[i].p   = 1.0
   end
 
   return 1
@@ -106,20 +98,42 @@ do
 
   var errors : double[5] = array(0.0, 0.0, 0.0, 0.0, 0.0)
 
+  for i in r_prim_c do
+    var err : double
+
+    err = cmath.fabs( r_prim_c[i].rho - ( 1.0 + 0.5*cmath.sin(cmath.M_PI*( (coords[i].x_c - tsim) + (coords[i].y_c - tsim) )) ) )
+    errors[0] = errors[0] + err*err
+
+    err = cmath.fabs( r_prim_c[i].u   - 1.0 )
+    errors[1] = errors[1] + err*err
+
+    err = cmath.fabs( r_prim_c[i].v   - 1.0 )
+    errors[2] = errors[2] + err*err
+
+    err = cmath.fabs( r_prim_c[i].w   - 0.0 )
+    errors[3] = errors[3] + err*err
+
+    err = cmath.fabs( r_prim_c[i].p   - 1.0 )
+    errors[4] = errors[4] + err*err
+
+  end
+
   return errors
+end
+
+task problem.TKE( r_prim_c : region(ispace(int3d), primitive) )
+where
+  reads(r_prim_c)
+do
+  var TKE : double = 1.0
+  return TKE
 end
 
 task problem.enstrophy( r_duidxj : region(ispace(int3d), tensor2) )
 where
   reads(r_duidxj)
 do
-  var enstrophy : double = 0.0
-  for i in r_duidxj do
-    var omega_x : double = r_duidxj[i]._32 - r_duidxj[i]._23
-    var omega_y : double = r_duidxj[i]._13 - r_duidxj[i]._31
-    var omega_z : double = r_duidxj[i]._21 - r_duidxj[i]._12
-    enstrophy += omega_x*omega_x + omega_y*omega_y + omega_z*omega_z
-  end
+  var enstrophy : double = 1.0
   return enstrophy
 end
 

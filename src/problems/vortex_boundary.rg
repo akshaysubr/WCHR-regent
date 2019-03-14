@@ -36,9 +36,10 @@ problem.periodic_z = true
 
 -- Boundary (if not periodic)
 -- condition: DIRICHLET, EXTRAPOLATION, SUBSONIC_INFLOW, SUBSONIC_OUTFLOW
--- problem.boundary_l_x = { condition="EXTRAPOLATION" }
-problem.boundary_l_x = { condition="SUBSONIC_INFLOW",  rho=rho_inf, u=u_inf, v=0., w=0., p=p_inf, L_x=1.0*problem.R_vortex, eta_2=0.005, eta_3=0.005, eta_4=0.005, eta_5=0.005, beta=Mach }
-problem.boundary_r_x = { condition="SUBSONIC_OUTFLOW", p=p_inf, L_x=1.0*problem.R_vortex, sigma=0.005, beta=Mach }
+problem.boundary_l_x = { condition="EXTRAPOLATION" }
+problem.boundary_r_x = { condition="EXTRAPOLATION" }
+-- problem.boundary_l_x = { condition="SUBSONIC_INFLOW",  rho=rho_inf, u=u_inf, v=0., w=0., p=p_inf, L_x=1.0*problem.R_vortex, eta_2=0.005, eta_3=0.005, eta_4=0.005, eta_5=0.005, beta=Mach }
+-- problem.boundary_r_x = { condition="SUBSONIC_OUTFLOW", p=p_inf, L_x=1.0*problem.R_vortex, sigma=0.005, beta=Mach }
 
 -- Domain size
 problem.LX = 1.0
@@ -58,10 +59,14 @@ problem.ONEBYDX = 1.0 / problem.DX
 problem.ONEBYDY = 1.0 / problem.DY
 problem.ONEBYDZ = 1.0 / problem.DZ
 
-problem.timestepping_setting = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
-problem.dt_or_CFL_num        = 0.5
-problem.tstop                = 1.0*problem.LX/u_inf
-problem.tviz                 = 0.01*problem.tstop
+problem.interpolation_scheme     = "WCHR"
+problem.Riemann_solver           = "HLLC-HLL"
+problem.use_flux_difference_form = false
+problem.use_positivity_limiter   = false
+problem.timestepping_setting     = "CONSTANT_CFL_NUM" -- "CONSTANT_TIME_STEP" / "CONSTANT_CFL_NUM"
+problem.dt_or_CFL_num            = 0.5
+problem.tstop                    = 1.0*problem.LX/u_inf
+problem.tviz                     = 0.01*problem.tstop
 
 task problem.initialize( coords     : region(ispace(int3d), coordinates),
                          r_prim_c   : region(ispace(int3d), primitive),
@@ -161,6 +166,11 @@ end
 -- DEFAULT SCHEME TO USE --
 if problem.interpolation_scheme == nil then problem.interpolation_scheme = "WCHR" end
 
+-- DEFAULT POSITIVITY LIMITER LIMITS --
+if problem.positivity == nil then
+  problem.positivity = { epsilon_rho = 1.e-13, epsilon_p = 1.e-13 }
+end
+
 -- DEFAULT VISCOUS TERM FORMULATION TO USE --
 if problem.conservative_viscous_terms == nil then problem.conservative_viscous_terms = false end
 
@@ -175,11 +185,18 @@ if problem.boundary_l_x.p         == nil then problem.boundary_l_x.p         = 1
 if problem.boundary_l_x.L_x       == nil then problem.boundary_l_x.L_x       = 0.1             end
 if problem.boundary_l_x.sigma     == nil then problem.boundary_l_x.sigma     = 0.005           end
 if problem.boundary_l_x.beta      == nil then problem.boundary_l_x.beta      = 0.5             end
-if problem.boundary_l_x.eta_1     == nil then problem.boundary_l_x.eta_1     = 0.005           end
-if problem.boundary_l_x.eta_2     == nil then problem.boundary_l_x.eta_2     = 0.005           end
-if problem.boundary_l_x.eta_3     == nil then problem.boundary_l_x.eta_3     = 0.005           end
-if problem.boundary_l_x.eta_4     == nil then problem.boundary_l_x.eta_4     = 0.005           end
-if problem.boundary_l_x.eta_5     == nil then problem.boundary_l_x.eta_5     = 0.005           end
+if problem.boundary_l_x.eta_1     == nil then problem.boundary_l_x.eta_1     = 0.01            end
+if problem.boundary_l_x.eta_2     == nil then problem.boundary_l_x.eta_2     = 0.01            end
+if problem.boundary_l_x.eta_3     == nil then problem.boundary_l_x.eta_3     = 0.01            end
+if problem.boundary_l_x.eta_4     == nil then problem.boundary_l_x.eta_4     = 0.01            end
+if problem.boundary_l_x.eta_5     == nil then problem.boundary_l_x.eta_5     = 0.01            end
+if problem.boundary_l_x.condition ~= "CUSTOM" then
+  task problem.fill_ghost_cells_l_x( coords   : region(ispace(int3d), coordinates),
+                                     r_prim_c : region(ispace(int3d), primitive),
+                                     tsim     : double,
+                                     n_ghosts : int64 )
+  end
+end
 
 if problem.boundary_r_x           == nil then problem.boundary_r_x           = {}              end
 if problem.boundary_r_x.condition == nil then problem.boundary_r_x.condition = "EXTRAPOLATION" end
@@ -191,11 +208,18 @@ if problem.boundary_r_x.p         == nil then problem.boundary_r_x.p         = 1
 if problem.boundary_r_x.L_x       == nil then problem.boundary_r_x.L_x       = 0.1             end
 if problem.boundary_r_x.sigma     == nil then problem.boundary_r_x.sigma     = 0.005           end
 if problem.boundary_r_x.beta      == nil then problem.boundary_r_x.beta      = 0.5             end
-if problem.boundary_r_x.eta_1     == nil then problem.boundary_r_x.eta_1     = 0.005           end
-if problem.boundary_r_x.eta_2     == nil then problem.boundary_r_x.eta_2     = 0.005           end
-if problem.boundary_r_x.eta_3     == nil then problem.boundary_r_x.eta_3     = 0.005           end
-if problem.boundary_r_x.eta_4     == nil then problem.boundary_r_x.eta_4     = 0.005           end
-if problem.boundary_r_x.eta_5     == nil then problem.boundary_r_x.eta_5     = 0.005           end
+if problem.boundary_r_x.eta_1     == nil then problem.boundary_r_x.eta_1     = 0.01            end
+if problem.boundary_r_x.eta_2     == nil then problem.boundary_r_x.eta_2     = 0.01            end
+if problem.boundary_r_x.eta_3     == nil then problem.boundary_r_x.eta_3     = 0.01            end
+if problem.boundary_r_x.eta_4     == nil then problem.boundary_r_x.eta_4     = 0.01            end
+if problem.boundary_r_x.eta_5     == nil then problem.boundary_r_x.eta_5     = 0.01            end
+if problem.boundary_r_x.condition ~= "CUSTOM" then
+  task problem.fill_ghost_cells_r_x( coords   : region(ispace(int3d), coordinates),
+                                     r_prim_c : region(ispace(int3d), primitive),
+                                     tsim     : double,
+                                     n_ghosts : int64 )
+  end
+end
 
 if problem.boundary_l_y           == nil then problem.boundary_l_y           = {}              end
 if problem.boundary_l_y.condition == nil then problem.boundary_l_y.condition = "EXTRAPOLATION" end
@@ -207,11 +231,18 @@ if problem.boundary_l_y.p         == nil then problem.boundary_l_y.p         = 1
 if problem.boundary_l_y.L_x       == nil then problem.boundary_l_y.L_x       = 0.1             end
 if problem.boundary_l_y.sigma     == nil then problem.boundary_l_y.sigma     = 0.005           end
 if problem.boundary_l_y.beta      == nil then problem.boundary_l_y.beta      = 0.5             end
-if problem.boundary_l_y.eta_1     == nil then problem.boundary_l_y.eta_1     = 0.005           end
-if problem.boundary_l_y.eta_2     == nil then problem.boundary_l_y.eta_2     = 0.005           end
-if problem.boundary_l_y.eta_3     == nil then problem.boundary_l_y.eta_3     = 0.005           end
-if problem.boundary_l_y.eta_4     == nil then problem.boundary_l_y.eta_4     = 0.005           end
-if problem.boundary_l_y.eta_5     == nil then problem.boundary_l_y.eta_5     = 0.005           end
+if problem.boundary_l_y.eta_1     == nil then problem.boundary_l_y.eta_1     = 0.01            end
+if problem.boundary_l_y.eta_2     == nil then problem.boundary_l_y.eta_2     = 0.01            end
+if problem.boundary_l_y.eta_3     == nil then problem.boundary_l_y.eta_3     = 0.01            end
+if problem.boundary_l_y.eta_4     == nil then problem.boundary_l_y.eta_4     = 0.01            end
+if problem.boundary_l_y.eta_5     == nil then problem.boundary_l_y.eta_5     = 0.01            end
+if problem.boundary_l_y.condition ~= "CUSTOM" then
+  task problem.fill_ghost_cells_l_y( coords   : region(ispace(int3d), coordinates),
+                                     r_prim_c : region(ispace(int3d), primitive),
+                                     tsim     : double,
+                                     n_ghosts : int64 )
+  end
+end
 
 if problem.boundary_r_y           == nil then problem.boundary_r_y           = {}              end
 if problem.boundary_r_y.condition == nil then problem.boundary_r_y.condition = "EXTRAPOLATION" end
@@ -223,11 +254,18 @@ if problem.boundary_r_y.p         == nil then problem.boundary_r_y.p         = 1
 if problem.boundary_r_y.L_x       == nil then problem.boundary_r_y.L_x       = 0.1             end
 if problem.boundary_r_y.sigma     == nil then problem.boundary_r_y.sigma     = 0.005           end
 if problem.boundary_r_y.beta      == nil then problem.boundary_r_y.beta      = 0.5             end
-if problem.boundary_r_y.eta_1     == nil then problem.boundary_r_y.eta_1     = 0.005           end
-if problem.boundary_r_y.eta_2     == nil then problem.boundary_r_y.eta_2     = 0.005           end
-if problem.boundary_r_y.eta_3     == nil then problem.boundary_r_y.eta_3     = 0.005           end
-if problem.boundary_r_y.eta_4     == nil then problem.boundary_r_y.eta_4     = 0.005           end
-if problem.boundary_r_y.eta_5     == nil then problem.boundary_r_y.eta_5     = 0.005           end
+if problem.boundary_r_y.eta_1     == nil then problem.boundary_r_y.eta_1     = 0.01            end
+if problem.boundary_r_y.eta_2     == nil then problem.boundary_r_y.eta_2     = 0.01            end
+if problem.boundary_r_y.eta_3     == nil then problem.boundary_r_y.eta_3     = 0.01            end
+if problem.boundary_r_y.eta_4     == nil then problem.boundary_r_y.eta_4     = 0.01            end
+if problem.boundary_r_y.eta_5     == nil then problem.boundary_r_y.eta_5     = 0.01            end
+if problem.boundary_r_y.condition ~= "CUSTOM" then
+  task problem.fill_ghost_cells_r_y( coords   : region(ispace(int3d), coordinates),
+                                     r_prim_c : region(ispace(int3d), primitive),
+                                     tsim     : double,
+                                     n_ghosts : int64 )
+  end
+end
 
 if problem.boundary_l_z           == nil then problem.boundary_l_z           = {}              end
 if problem.boundary_l_z.condition == nil then problem.boundary_l_z.condition = "EXTRAPOLATION" end
@@ -239,11 +277,18 @@ if problem.boundary_l_z.p         == nil then problem.boundary_l_z.p         = 1
 if problem.boundary_l_z.L_x       == nil then problem.boundary_l_z.L_x       = 0.1             end
 if problem.boundary_l_z.sigma     == nil then problem.boundary_l_z.sigma     = 0.005           end
 if problem.boundary_l_z.beta      == nil then problem.boundary_l_z.beta      = 0.5             end
-if problem.boundary_l_z.eta_1     == nil then problem.boundary_l_z.eta_1     = 0.005           end
-if problem.boundary_l_z.eta_2     == nil then problem.boundary_l_z.eta_2     = 0.005           end
-if problem.boundary_l_z.eta_3     == nil then problem.boundary_l_z.eta_3     = 0.005           end
-if problem.boundary_l_z.eta_4     == nil then problem.boundary_l_z.eta_4     = 0.005           end
-if problem.boundary_l_z.eta_5     == nil then problem.boundary_l_z.eta_5     = 0.005           end
+if problem.boundary_l_z.eta_1     == nil then problem.boundary_l_z.eta_1     = 0.01            end
+if problem.boundary_l_z.eta_2     == nil then problem.boundary_l_z.eta_2     = 0.01            end
+if problem.boundary_l_z.eta_3     == nil then problem.boundary_l_z.eta_3     = 0.01            end
+if problem.boundary_l_z.eta_4     == nil then problem.boundary_l_z.eta_4     = 0.01            end
+if problem.boundary_l_z.eta_5     == nil then problem.boundary_l_z.eta_5     = 0.01            end
+if problem.boundary_l_z.condition ~= "CUSTOM" then
+  task problem.fill_ghost_cells_l_z( coords   : region(ispace(int3d), coordinates),
+                                     r_prim_c : region(ispace(int3d), primitive),
+                                     tsim     : double,
+                                     n_ghosts : int64 )
+  end
+end
 
 if problem.boundary_r_z           == nil then problem.boundary_r_z           = {}              end
 if problem.boundary_r_z.condition == nil then problem.boundary_r_z.condition = "EXTRAPOLATION" end
@@ -255,10 +300,17 @@ if problem.boundary_r_z.p         == nil then problem.boundary_r_z.p         = 1
 if problem.boundary_r_z.L_x       == nil then problem.boundary_r_z.L_x       = 0.1             end
 if problem.boundary_r_z.sigma     == nil then problem.boundary_r_z.sigma     = 0.005           end
 if problem.boundary_r_z.beta      == nil then problem.boundary_r_z.beta      = 0.5             end
-if problem.boundary_r_z.eta_1     == nil then problem.boundary_r_z.eta_1     = 0.005           end
-if problem.boundary_r_z.eta_2     == nil then problem.boundary_r_z.eta_2     = 0.005           end
-if problem.boundary_r_z.eta_3     == nil then problem.boundary_r_z.eta_3     = 0.005           end
-if problem.boundary_r_z.eta_4     == nil then problem.boundary_r_z.eta_4     = 0.005           end
-if problem.boundary_r_z.eta_5     == nil then problem.boundary_r_z.eta_5     = 0.005           end
+if problem.boundary_r_z.eta_1     == nil then problem.boundary_r_z.eta_1     = 0.01            end
+if problem.boundary_r_z.eta_2     == nil then problem.boundary_r_z.eta_2     = 0.01            end
+if problem.boundary_r_z.eta_3     == nil then problem.boundary_r_z.eta_3     = 0.01            end
+if problem.boundary_r_z.eta_4     == nil then problem.boundary_r_z.eta_4     = 0.01            end
+if problem.boundary_r_z.eta_5     == nil then problem.boundary_r_z.eta_5     = 0.01            end
+if problem.boundary_r_z.condition ~= "CUSTOM" then
+  task problem.fill_ghost_cells_r_z( coords   : region(ispace(int3d), coordinates),
+                                     r_prim_c : region(ispace(int3d), primitive),
+                                     tsim     : double,
+                                     n_ghosts : int64 )
+  end
+end
 
 return problem

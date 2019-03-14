@@ -8,10 +8,12 @@ require("EOS")
 
 local problem = require("problem")
 
+
+
 task periodic_ghost_cells_x( r_prim_c   : region(ispace(int3d), primitive),
                              n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
@@ -42,10 +44,12 @@ do
   return 1
 end
 
+
+
 task periodic_ghost_cells_y( r_prim_c   : region(ispace(int3d), primitive),
                              n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Ny_g = bounds_c.hi.y + 1
@@ -76,10 +80,12 @@ do
   return 1
 end
 
+
+
 task periodic_ghost_cells_z( r_prim_c   : region(ispace(int3d), primitive),
                              n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Nz_g = bounds_c.hi.z + 1
@@ -110,10 +116,12 @@ do
   return 1
 end
 
+
+
 task dirchlet_ghost_cells_l_x( r_prim_c   : region(ispace(int3d), primitive),
                                n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
@@ -135,10 +143,12 @@ do
   return 1
 end
 
+
+
 task dirchlet_ghost_cells_r_x( r_prim_c   : region(ispace(int3d), primitive),
                                n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
@@ -160,10 +170,12 @@ do
   return 1
 end
 
+
+
 task dirchlet_ghost_cells_l_y( r_prim_c   : region(ispace(int3d), primitive),
                                n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Ny_g = bounds_c.hi.y + 1
@@ -185,10 +197,12 @@ do
   return 1
 end
 
+
+
 task dirchlet_ghost_cells_r_y( r_prim_c   : region(ispace(int3d), primitive),
                                n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Ny_g = bounds_c.hi.y + 1
@@ -210,10 +224,12 @@ do
   return 1
 end
 
+
+
 task dirchlet_ghost_cells_l_z( r_prim_c   : region(ispace(int3d), primitive),
                                n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Nz_g = bounds_c.hi.z + 1
@@ -235,10 +251,12 @@ do
   return 1
 end
 
+
+
 task dirchlet_ghost_cells_r_z( r_prim_c   : region(ispace(int3d), primitive),
                                n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Nz_g = bounds_c.hi.z + 1
@@ -260,10 +278,12 @@ do
   return 1
 end
 
+
+
 task extrapolation_ghost_cells_l_x( r_prim_c   : region(ispace(int3d), primitive),
                                     n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
@@ -286,10 +306,12 @@ do
   return 1
 end
 
+
+
 task extrapolation_ghost_cells_r_x( r_prim_c   : region(ispace(int3d), primitive),
                                     n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Nx_g = bounds_c.hi.x + 1
@@ -312,10 +334,12 @@ do
   return 1
 end
 
+
+
 task extrapolation_ghost_cells_l_y( r_prim_c   : region(ispace(int3d), primitive),
                                     n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Ny_g = bounds_c.hi.y + 1
@@ -338,10 +362,12 @@ do
   return 1
 end
 
+
+
 task extrapolation_ghost_cells_r_y( r_prim_c   : region(ispace(int3d), primitive),
                                     n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Ny_g = bounds_c.hi.y + 1
@@ -364,10 +390,12 @@ do
   return 1
 end
 
+
+
 task extrapolation_ghost_cells_l_z( r_prim_c   : region(ispace(int3d), primitive),
                                     n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Nz_g = bounds_c.hi.z + 1
@@ -390,10 +418,12 @@ do
   return 1
 end
 
+
+
 task extrapolation_ghost_cells_r_z( r_prim_c   : region(ispace(int3d), primitive),
                                     n_ghosts   : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c )
 do
   var bounds_c = r_prim_c.ispace.bounds
   var Nz_g = bounds_c.hi.z + 1
@@ -416,6 +446,8 @@ do
   return 1
 end
 
+
+
 function make_ddx_central(r_func, f_func, ONEBYDX)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
   
@@ -430,6 +462,8 @@ function make_ddx_central(r_func, f_func, ONEBYDX)
   end
   return ddx_central
 end
+
+
 
 function make_ddy_central(r_func, f_func, ONEBYDY)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
@@ -446,6 +480,8 @@ function make_ddy_central(r_func, f_func, ONEBYDY)
   return ddy_central
 end
 
+
+
 function make_ddz_central(r_func, f_func, ONEBYDZ)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
   
@@ -460,6 +496,8 @@ function make_ddz_central(r_func, f_func, ONEBYDZ)
   end
   return ddz_central
 end
+
+
 
 function make_ddx_left_sided(r_func, f_func, ONEBYDX)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
@@ -477,6 +515,8 @@ function make_ddx_left_sided(r_func, f_func, ONEBYDX)
   return ddx_left_sided
 end
 
+
+
 function make_ddx_right_sided(r_func, f_func, ONEBYDX)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
   
@@ -492,6 +532,8 @@ function make_ddx_right_sided(r_func, f_func, ONEBYDX)
   end
   return ddx_right_sided
 end
+
+
 
 function make_ddy_left_sided(r_func, f_func, ONEBYDY)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
@@ -509,6 +551,8 @@ function make_ddy_left_sided(r_func, f_func, ONEBYDY)
   return ddy_left_sided
 end
 
+
+
 function make_ddy_right_sided(r_func, f_func, ONEBYDY)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
   
@@ -524,6 +568,8 @@ function make_ddy_right_sided(r_func, f_func, ONEBYDY)
   end
   return ddy_right_sided
 end
+
+
 
 function make_ddz_left_sided(r_func, f_func, ONEBYDZ)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
@@ -541,6 +587,8 @@ function make_ddz_left_sided(r_func, f_func, ONEBYDZ)
   return ddz_left_sided
 end
 
+
+
 function make_ddz_right_sided(r_func, f_func, ONEBYDZ)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
   
@@ -556,6 +604,8 @@ function make_ddz_right_sided(r_func, f_func, ONEBYDZ)
   end
   return ddz_right_sided
 end
+
+
 
 function make_extrapolate_l_x(r_func, f_func, DX)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
@@ -594,6 +644,8 @@ function make_extrapolate_l_x(r_func, f_func, DX)
   return extrapolate_l_x
 end
 
+
+
 function make_extrapolate_r_x(r_func, f_func, DX)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
   
@@ -630,6 +682,8 @@ function make_extrapolate_r_x(r_func, f_func, DX)
   end
   return extrapolate_r_x
 end
+
+
 
 function make_extrapolate_l_y(r_func, f_func, DY)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
@@ -668,6 +722,8 @@ function make_extrapolate_l_y(r_func, f_func, DY)
   return extrapolate_l_y
 end
 
+
+
 function make_extrapolate_r_y(r_func, f_func, DY)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
   
@@ -705,6 +761,8 @@ function make_extrapolate_r_y(r_func, f_func, DY)
   return extrapolate_r_y
 end
 
+
+
 function make_extrapolate_l_z(r_func, f_func, DZ)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
   
@@ -741,6 +799,8 @@ function make_extrapolate_l_z(r_func, f_func, DZ)
   end
   return extrapolate_l_z
 end
+
+
 
 function make_extrapolate_r_z(r_func, f_func, DZ)
   local privileges_r_func   = regentlib.privilege(regentlib.reads, r_func, f_func)
@@ -867,13 +927,15 @@ local extrapolate_r_z_w   = make_extrapolate_r_z(r_prim, "w",   problem.DZ)
 local extrapolate_l_z_p   = make_extrapolate_l_z(r_prim, "p",   problem.DZ)
 local extrapolate_r_z_p   = make_extrapolate_r_z(r_prim, "p",   problem.DZ)
 
+
+
 task subsonic_inflow_ghost_cells_l_x( r_prim_c  : region(ispace(int3d), primitive),
                                       r_gradrho : region(ispace(int3d), vect),
                                       r_gradu   : region(ispace(int3d), tensor2),
                                       r_gradp   : region(ispace(int3d), vect),
                                       n_ghosts  : int64 )
 where
-  reads writes(r_prim_c), reads(r_gradrho.{_2,_3}, r_gradu.{_12,_13,_22,_23,_32,_33}, r_gradp.{_2,_3})
+  reads writes( r_prim_c ), reads( r_gradrho.{_2,_3}, r_gradu.{_12,_13,_22,_23,_32,_33}, r_gradp.{_2,_3} )
 do
 
   var rho_inflow = problem.boundary_l_x.rho
@@ -962,13 +1024,15 @@ do
   return 1
 end
 
+
+
 task subsonic_inflow_ghost_cells_r_x( r_prim_c  : region(ispace(int3d), primitive),
                                       r_gradrho : region(ispace(int3d), vect),
                                       r_gradu   : region(ispace(int3d), tensor2),
                                       r_gradp   : region(ispace(int3d), vect),
                                       n_ghosts  : int64 )
 where
-  reads writes(r_prim_c), reads(r_gradrho.{_2,_3}, r_gradu.{_12,_13,_22,_23,_32,_33}, r_gradp.{_2,_3})
+  reads writes( r_prim_c ), reads( r_gradrho.{_2,_3}, r_gradu.{_12,_13,_22,_23,_32,_33}, r_gradp.{_2,_3} )
 do
   var rho_inflow = problem.boundary_r_x.rho
   var u_inflow   = problem.boundary_r_x.u
@@ -1056,13 +1120,15 @@ do
   return 1
 end
 
+
+
 task subsonic_outflow_ghost_cells_l_x( r_prim_c  : region(ispace(int3d), primitive),
                                        r_gradrho : region(ispace(int3d), vect),
                                        r_gradu   : region(ispace(int3d), tensor2),
                                        r_gradp   : region(ispace(int3d), vect),
                                        n_ghosts  : int64 )
 where
-  reads writes(r_prim_c), reads(r_gradu.{_12,_13,_22,_33}, r_gradp.{_2,_3})
+  reads writes( r_prim_c ), reads( r_gradu.{_12,_13,_22,_33}, r_gradp.{_2,_3} )
 do
   var rho_outflow = problem.boundary_l_x.rho
   var u_outflow   = problem.boundary_l_x.u
@@ -1143,13 +1209,15 @@ do
   return 1
 end
 
+
+
 task subsonic_outflow_ghost_cells_r_x( r_prim_c  : region(ispace(int3d), primitive),
                                        r_gradrho : region(ispace(int3d), vect),
                                        r_gradu   : region(ispace(int3d), tensor2),
                                        r_gradp   : region(ispace(int3d), vect),
                                        n_ghosts  : int64 )
 where
-  reads writes(r_prim_c), reads(r_gradu.{_12,_13,_22,_33}, r_gradp.{_2,_3})
+  reads writes( r_prim_c ), reads( r_gradu.{_12,_13,_22,_33}, r_gradp.{_2,_3} )
 do
   var rho_outflow = problem.boundary_r_x.rho
   var u_outflow   = problem.boundary_r_x.u
@@ -1232,13 +1300,15 @@ end
 
 
 
-task nonperiodic_ghost_cells_x( r_prim_c  : region(ispace(int3d), primitive),
+task nonperiodic_ghost_cells_x( coords    : region(ispace(int3d), coordinates),
+                                r_prim_c  : region(ispace(int3d), primitive),
                                 r_gradrho : region(ispace(int3d), vect),
                                 r_gradu   : region(ispace(int3d), tensor2),
                                 r_gradp   : region(ispace(int3d), vect),
+                                tsim      : double,
                                 n_ghosts  : int64 )
 where
-  reads writes(r_prim_c), reads(r_gradrho.{_2,_3}, r_gradu.{_12,_13,_22,_23,_32,_33}, r_gradp.{_2,_3})
+  reads writes( r_prim_c ), reads( coords, r_gradrho.{_2,_3}, r_gradu.{_12,_13,_22,_23,_32,_33}, r_gradp.{_2,_3} )
 do
   -- Left ghost cells
   if (problem.boundary_l_x.condition == "DIRICHLET") then
@@ -1249,6 +1319,8 @@ do
     subsonic_inflow_ghost_cells_l_x( r_prim_c, r_gradrho, r_gradu, r_gradp, n_ghosts )
   elseif (problem.boundary_l_x.condition == "SUBSONIC_OUTFLOW") then
     subsonic_outflow_ghost_cells_l_x( r_prim_c, r_gradrho, r_gradu, r_gradp, n_ghosts )
+  elseif (problem.boundary_l_x.condition == "CUSTOM") then
+    problem.fill_ghost_cells_l_x( coords, r_prim_c, tsim, n_ghosts )
   else
     regentlib.assert(false, "Unknown left boundary condition in the x-direction")
   end
@@ -1262,21 +1334,29 @@ do
     subsonic_inflow_ghost_cells_r_x( r_prim_c, r_gradrho, r_gradu, r_gradp, n_ghosts )
   elseif (problem.boundary_r_x.condition == "SUBSONIC_OUTFLOW") then
     subsonic_outflow_ghost_cells_r_x( r_prim_c, r_gradrho, r_gradu, r_gradp, n_ghosts )
+  elseif (problem.boundary_r_x.condition == "CUSTOM") then
+    problem.fill_ghost_cells_r_x( coords, r_prim_c, tsim, n_ghosts )
   else
     regentlib.assert(false, "Unknown right boundary condition in the x-direction")
   end
 end
 
-task nonperiodic_ghost_cells_y( r_prim_c  : region(ispace(int3d), primitive),
+
+
+task nonperiodic_ghost_cells_y( coords    : region(ispace(int3d), coordinates),
+                                r_prim_c  : region(ispace(int3d), primitive),
+                                tsim      : double,
                                 n_ghosts  : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c ), reads( coords )
 do
   -- Left ghost cells
   if (problem.boundary_l_y.condition == "DIRICHLET") then
     dirchlet_ghost_cells_l_y( r_prim_c, n_ghosts )
   elseif (problem.boundary_l_y.condition == "EXTRAPOLATION") then
     extrapolation_ghost_cells_l_y( r_prim_c, n_ghosts )
+  elseif (problem.boundary_l_y.condition == "CUSTOM") then
+    problem.fill_ghost_cells_l_y( coords, r_prim_c, tsim, n_ghosts )
   else
     regentlib.assert(false, "Unknown left boundary condition in the y-direction")
   end
@@ -1286,21 +1366,29 @@ do
     dirchlet_ghost_cells_r_y( r_prim_c, n_ghosts )
   elseif (problem.boundary_r_y.condition == "EXTRAPOLATION") then
     extrapolation_ghost_cells_r_y( r_prim_c, n_ghosts )
+  elseif (problem.boundary_r_y.condition == "CUSTOM") then
+    problem.fill_ghost_cells_r_y( coords, r_prim_c, tsim, n_ghosts )
   else
     regentlib.assert(false, "Unknown right boundary condition in the y-direction")
   end
 end
 
-task nonperiodic_ghost_cells_z( r_prim_c  : region(ispace(int3d), primitive),
+
+
+task nonperiodic_ghost_cells_z( coords    : region(ispace(int3d), coordinates),
+                                r_prim_c  : region(ispace(int3d), primitive),
+                                tsim      : double,
                                 n_ghosts  : int64 )
 where
-  reads writes(r_prim_c)
+  reads writes( r_prim_c ), reads( coords )
 do
   -- Left ghost cells
   if (problem.boundary_l_z.condition == "DIRICHLET") then
     dirchlet_ghost_cells_l_z( r_prim_c, n_ghosts )
   elseif (problem.boundary_l_z.condition == "EXTRAPOLATION") then
     extrapolation_ghost_cells_l_z( r_prim_c, n_ghosts )
+  elseif (problem.boundary_l_z.condition == "CUSTOM") then
+    problem.fill_ghost_cells_l_z( coords, r_prim_c, tsim, n_ghosts )
   else
     regentlib.assert(false, "Unknown left boundary condition in the z-direction")
   end
@@ -1310,6 +1398,8 @@ do
     dirchlet_ghost_cells_r_z( r_prim_c, n_ghosts )
   elseif (problem.boundary_r_z.condition == "EXTRAPOLATION") then
     extrapolation_ghost_cells_r_z( r_prim_c, n_ghosts )
+  elseif (problem.boundary_r_z.condition == "CUSTOM") then
+    problem.fill_ghost_cells_r_z( coords, r_prim_c, tsim, n_ghosts )
   else
     regentlib.assert(false, "Unknown right boundary condition in the z-direction")
   end

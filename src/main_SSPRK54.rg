@@ -129,8 +129,16 @@ task main()
   var r_gradrho  = region(grid_c, vect)       -- Density gradient
   var r_gradp    = region(grid_c, vect)       -- Pressure gradient
 
-  var r_rhs      = region(grid_c, conserved)  -- RHS for time stepping at cell center
-  var r_qrhs     = region(grid_c, conserved)  -- buffer for RK45 time stepping
+  var r_cnsr_1 = region(grid_c, conserved) -- conserved variables at cell center for SSP-RK(5,4)
+  var r_cnsr_2 = region(grid_c, conserved) -- conserved variables at cell center for SSP-RK(5,4)
+  var r_cnsr_3 = region(grid_c, conserved) -- conserved variables at cell center for SSP-RK(5,4)
+  var r_cnsr_4 = region(grid_c, conserved) -- conserved variables at cell center for SSP-RK(5,4)
+
+  var r_rhs_0 = region(grid_c, conserved)  -- RHS for time stepping at cell center for SSP-RK(5,4)
+  var r_rhs_1 = region(grid_c, conserved)  -- RHS for time stepping at cell center for SSP-RK(5,4)
+  var r_rhs_2 = region(grid_c, conserved)  -- RHS for time stepping at cell center for SSP-RK(5,4)
+  var r_rhs_3 = region(grid_c, conserved)  -- RHS for time stepping at cell center for SSP-RK(5,4)
+  var r_rhs_4 = region(grid_c, conserved)  -- RHS for time stepping at cell center for SSP-RK(5,4)
 
   -- data structure to hold x derivative LU decomposition
   var mat_x      = region(ispace(int3d, {x = Nx, y = config.prow+2, z = config.pcol+2}), LU_coeffs) -- For staggered finite difference
@@ -229,13 +237,41 @@ task main()
   var p_tauij_y        = partition_ypencil_tnsr2symm(r_tauij, n_ghosts, false, pencil)
   var p_tauij_z        = partition_zpencil_tnsr2symm(r_tauij, n_ghosts, false, pencil)
 
-  var p_rhs_x          = partition_xpencil_cnsr(r_rhs, n_ghosts, false, pencil)
-  var p_rhs_y          = partition_ypencil_cnsr(r_rhs, n_ghosts, false, pencil)
-  var p_rhs_z          = partition_zpencil_cnsr(r_rhs, n_ghosts, false, pencil)
+  var p_cnsr_1_x       = partition_xpencil_cnsr(r_cnsr_1, n_ghosts, false, pencil)
+  var p_cnsr_1_y       = partition_ypencil_cnsr(r_cnsr_1, n_ghosts, false, pencil)
+  var p_cnsr_1_z       = partition_zpencil_cnsr(r_cnsr_1, n_ghosts, false, pencil)
 
-  -- var p_qrhs_x      = partition_xpencil_cnsr(r_qrhs, n_ghosts, false, pencil)
-  var p_qrhs_y         = partition_ypencil_cnsr(r_qrhs, n_ghosts, false, pencil)
-  -- var p_qrhs_z      = partition_zpencil_cnsr(r_qrhs, n_ghosts, false, pencil)
+  var p_cnsr_2_x       = partition_xpencil_cnsr(r_cnsr_2, n_ghosts, false, pencil)
+  var p_cnsr_2_y       = partition_ypencil_cnsr(r_cnsr_2, n_ghosts, false, pencil)
+  var p_cnsr_2_z       = partition_zpencil_cnsr(r_cnsr_2, n_ghosts, false, pencil)
+
+  var p_cnsr_3_x       = partition_xpencil_cnsr(r_cnsr_3, n_ghosts, false, pencil)
+  var p_cnsr_3_y       = partition_ypencil_cnsr(r_cnsr_3, n_ghosts, false, pencil)
+  var p_cnsr_3_z       = partition_zpencil_cnsr(r_cnsr_3, n_ghosts, false, pencil)
+
+  var p_cnsr_4_x       = partition_xpencil_cnsr(r_cnsr_4, n_ghosts, false, pencil)
+  var p_cnsr_4_y       = partition_ypencil_cnsr(r_cnsr_4, n_ghosts, false, pencil)
+  var p_cnsr_4_z       = partition_zpencil_cnsr(r_cnsr_4, n_ghosts, false, pencil)
+
+  var p_rhs_0_x          = partition_xpencil_cnsr(r_rhs_0, n_ghosts, false, pencil)
+  var p_rhs_0_y          = partition_ypencil_cnsr(r_rhs_0, n_ghosts, false, pencil)
+  var p_rhs_0_z          = partition_zpencil_cnsr(r_rhs_0, n_ghosts, false, pencil)
+
+  var p_rhs_1_x          = partition_xpencil_cnsr(r_rhs_1, n_ghosts, false, pencil)
+  var p_rhs_1_y          = partition_ypencil_cnsr(r_rhs_1, n_ghosts, false, pencil)
+  var p_rhs_1_z          = partition_zpencil_cnsr(r_rhs_1, n_ghosts, false, pencil)
+
+  var p_rhs_2_x          = partition_xpencil_cnsr(r_rhs_2, n_ghosts, false, pencil)
+  var p_rhs_2_y          = partition_ypencil_cnsr(r_rhs_2, n_ghosts, false, pencil)
+  var p_rhs_2_z          = partition_zpencil_cnsr(r_rhs_2, n_ghosts, false, pencil)
+
+  var p_rhs_3_x          = partition_xpencil_cnsr(r_rhs_3, n_ghosts, false, pencil)
+  var p_rhs_3_y          = partition_ypencil_cnsr(r_rhs_3, n_ghosts, false, pencil)
+  var p_rhs_3_z          = partition_zpencil_cnsr(r_rhs_3, n_ghosts, false, pencil)
+
+  var p_rhs_4_x          = partition_xpencil_cnsr(r_rhs_4, n_ghosts, false, pencil)
+  var p_rhs_4_y          = partition_ypencil_cnsr(r_rhs_4, n_ghosts, false, pencil)
+  var p_rhs_4_z          = partition_zpencil_cnsr(r_rhs_4, n_ghosts, false, pencil)
 
   var p_mat_x          = partition_mat(mat_x, pencil)
   var p_mat_y          = partition_mat(mat_y, pencil)
@@ -535,21 +571,6 @@ task main()
     end
   end
 
-  var A_RK45 = array(0.0,
-                     -6234157559845.0/12983515589748.0,
-                     -6194124222391.0/4410992767914.0,
-                     -31623096876824.0/15682348800105.0,
-                     -12251185447671.0/11596622555746.0 )
-
-  var B_RK45 = array( 494393426753.0/4806282396855.0,
-                      4047970641027.0/5463924506627.0,
-                      9795748752853.0/13190207949281.0,
-                      4009051133189.0/8539092990294.0,
-                      1348533437543.0/7166442652324.0 )
-
-  -- var A_RK45 = array(0.0)
-  -- var B_RK45 = array(1.0)
-
   -- Get conserved variables after initialization.
   __demand(__parallel)
   for i in pencil_interior do
@@ -655,132 +676,286 @@ task main()
       lambda_z = dt/dx*max_wave_speed_x/max_wave_speed_z + dt/dy*max_wave_speed_y/max_wave_speed_z + dt/dz
     end
 
-    var Q_t : double = 0.0
-
-    __demand(__parallel)
-    for i in pencil_interior do
-      set_zero_cnsr( p_qrhs_y[i] )
-    end
-
     --------------------------------------------------------------------------------------------
     -- Advance sub-steps.
     --------------------------------------------------------------------------------------------
-    for isub = 0,5 do
-    -- for isub = 0,1 do
 
-      pre_substep( r_prim_c, p_prim_c_y, r_aux_c, p_aux_c_y, r_gradu, p_gradu_y, r_tauij, p_tauij_y, r_visc, p_visc_y, pencil_interior )
+    -- Advance first sub-step.
 
-      get_RHS ( r_rhs, p_rhs_x, p_rhs_y, p_rhs_z,
-                r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg, p_prim_c_x_wo_wg, p_prim_c_y_wo_wg, p_prim_c_z_wo_wg,
-                r_aux_c, p_aux_c_x, p_aux_c_y, p_aux_c_z,
-                r_visc, p_visc_x, p_visc_y, p_visc_z,
-                r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
-                r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
-                r_tauij, p_tauij_x, p_tauij_y, p_tauij_z,
-                LU_x, p_LU_x, LU_y, p_LU_y, LU_z, p_LU_z,
-                LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
-                LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
-                LU_e_x, p_LU_e_x, LU_e_y, p_LU_e_y, LU_e_z, p_LU_e_z,
-                pencil_interior, max_wave_speed_x, max_wave_speed_y, max_wave_speed_z, lambda_x, lambda_y, lambda_z )
+    pre_substep( r_prim_c, p_prim_c_y, r_aux_c, p_aux_c_y, r_gradu, p_gradu_y, r_tauij, p_tauij_y, r_visc, p_visc_y, pencil_interior )
+    
+    get_RHS ( r_rhs_0, p_rhs_0_x, p_rhs_0_y, p_rhs_0_z,
+              r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg, p_prim_c_x_wo_wg, p_prim_c_y_wo_wg, p_prim_c_z_wo_wg,
+              r_aux_c, p_aux_c_x, p_aux_c_y, p_aux_c_z,
+              r_visc, p_visc_x, p_visc_y, p_visc_z,
+              r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
+              r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
+              r_tauij, p_tauij_x, p_tauij_y, p_tauij_z,
+              LU_x, p_LU_x, LU_y, p_LU_y, LU_z, p_LU_z,
+              LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
+              LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
+              LU_e_x, p_LU_e_x, LU_e_y, p_LU_e_y, LU_e_z, p_LU_e_z,
+              pencil_interior, max_wave_speed_x, max_wave_speed_y, max_wave_speed_z, lambda_x, lambda_y, lambda_z )
 
-      -- Check nan's before the solution update.
-      do
-        var n_nan_cnsr : int = 0
-        __demand(__parallel)
-        for i in pencil_interior do
-          n_nan_cnsr += check_nan_cnsr ( p_cnsr_y[i] )
-        end
-        c.printf("Number of nan's in cnsr before solution update = %d\n", n_nan_cnsr)
-        wait_for(n_nan_cnsr)
-      end
-
-      -- Update solution in this substep.
-      __demand(__parallel)
-      for i in pencil_interior do
-        update_substep_low_storage( p_cnsr_y[i], p_rhs_y[i], p_qrhs_y[i], dt, A_RK45[isub], B_RK45[isub] )
-      end
-
-      -- Update simulation time as well.
-      Q_t = dt + A_RK45[isub]*Q_t
-      tsim += B_RK45[isub]*Q_t
-
-      -- Check nan's after the solution update.
-      do
-        var n_nan_cnsr : int = 0
-        __demand(__parallel)
-        for i in pencil_interior do
-          n_nan_cnsr += check_nan_cnsr ( p_cnsr_y[i] )
-        end
-        c.printf("Number of nan's in cnsr after solution update = %d\n", n_nan_cnsr)
-        wait_for(n_nan_cnsr)
-        if n_nan_cnsr > 0 then
-          tsim = tstop
-        end
-      end
-
-      -- Check negative values before the solution update.
-      do
-        var n_neg_rho : int = 0
-        var n_neg_p   : int = 0
-        __demand(__parallel)
-        for i in pencil_interior do
-          n_neg_rho += check_neg_rho ( p_prim_c_y[i] )
-        end
-        __demand(__parallel)
-        for i in pencil_interior do
-          n_neg_p += check_neg_p ( p_prim_c_y[i] )
-        end
-        c.printf("Number of negative values in density and pressure before solution update = %d, %d\n", n_neg_rho, n_neg_p)
-        wait_for(n_neg_rho)
-        wait_for(n_neg_p)
-      end
-
-      -- Update the primitive variables.
-      __demand(__parallel)
-      for i in pencil_interior do
-        token += get_primitive_r(p_cnsr_y[i], p_prim_c_y[i])
-      end
-
-      -- Check negative values after the solution update.
-      do
-        var n_neg_rho : int = 0
-        var n_neg_p   : int = 0
-        __demand(__parallel)
-        for i in pencil_interior do
-          n_neg_rho += check_neg_rho ( p_prim_c_y[i] )
-        end
-        __demand(__parallel)
-        for i in pencil_interior do
-          n_neg_p += check_neg_p ( p_prim_c_y[i] )
-        end
-        c.printf("Number of negative values in density and pressure after solution update = %d, %d\n", n_neg_rho, n_neg_p)
-        wait_for(n_neg_rho)
-        wait_for(n_neg_p)
-        if n_neg_rho > 0 or n_neg_p > 0 then
-          tsim = tstop
-        end
-      end
-
-      token += post_substep( coords, p_coords_x, p_coords_y, p_coords_z,
-                             r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg,
-                             r_aux_c, p_aux_c_y,
-                             r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
-                             r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
-                             r_gradrho, p_gradrho_x, p_gradrho_y, p_gradrho_z,
-                             r_gradp, p_gradp_x, p_gradp_y, p_gradp_z,
-                             LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
-                             LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
-                             pencil_interior, tsim, n_ghosts )
-
+    -- Update solution in this substep.
+    __demand(__parallel)
+    for i in pencil_interior do
+      set_zero_cnsr( p_cnsr_1_y[i] )
     end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_1_y[i], p_cnsr_y[i], 1.0 )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_1_y[i], p_rhs_0_y[i], 0.391752226571890*dt )
+    end
+
+    -- Update the primitive variables.
+    __demand(__parallel)
+    for i in pencil_interior do
+      token += get_primitive_r( p_cnsr_1_y[i], p_prim_c_y[i] )
+    end
+
+    token += post_substep( coords, p_coords_x, p_coords_y, p_coords_z,
+                           r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg,
+                           r_aux_c, p_aux_c_y,
+                           r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
+                           r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
+                           r_gradrho, p_gradrho_x, p_gradrho_y, p_gradrho_z,
+                           r_gradp, p_gradp_x, p_gradp_y, p_gradp_z,
+                           LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
+                           LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
+                           pencil_interior, tsim, n_ghosts )
+
+    -- Advance second sub-step.
+
+    pre_substep( r_prim_c, p_prim_c_y, r_aux_c, p_aux_c_y, r_gradu, p_gradu_y, r_tauij, p_tauij_y, r_visc, p_visc_y, pencil_interior )
+
+    get_RHS ( r_rhs_1, p_rhs_1_x, p_rhs_1_y, p_rhs_1_z,
+              r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg, p_prim_c_x_wo_wg, p_prim_c_y_wo_wg, p_prim_c_z_wo_wg,
+              r_aux_c, p_aux_c_x, p_aux_c_y, p_aux_c_z,
+              r_visc, p_visc_x, p_visc_y, p_visc_z,
+              r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
+              r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
+              r_tauij, p_tauij_x, p_tauij_y, p_tauij_z,
+              LU_x, p_LU_x, LU_y, p_LU_y, LU_z, p_LU_z,
+              LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
+              LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
+              LU_e_x, p_LU_e_x, LU_e_y, p_LU_e_y, LU_e_z, p_LU_e_z,
+              pencil_interior, max_wave_speed_x, max_wave_speed_y, max_wave_speed_z, lambda_x, lambda_y, lambda_z )
+
+    -- Update solution in this substep.
+    __demand(__parallel)
+    for i in pencil_interior do
+      set_zero_cnsr( p_cnsr_2_y[i] )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_2_y[i], p_cnsr_y[i], 0.444370493651235 )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_2_y[i], p_cnsr_1_y[i], 0.555629506348765 )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_2_y[i], p_rhs_1_y[i], 0.368410593050371*dt )
+    end
+
+    -- Update the primitive variables.
+    __demand(__parallel)
+    for i in pencil_interior do
+      token += get_primitive_r( p_cnsr_2_y[i], p_prim_c_y[i] )
+    end
+
+    token += post_substep( coords, p_coords_x, p_coords_y, p_coords_z,
+                           r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg,
+                           r_aux_c, p_aux_c_y,
+                           r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
+                           r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
+                           r_gradrho, p_gradrho_x, p_gradrho_y, p_gradrho_z,
+                           r_gradp, p_gradp_x, p_gradp_y, p_gradp_z,
+                           LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
+                           LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
+                           pencil_interior, tsim, n_ghosts )
+
+    -- Advance third sub-step.
+
+    pre_substep( r_prim_c, p_prim_c_y, r_aux_c, p_aux_c_y, r_gradu, p_gradu_y, r_tauij, p_tauij_y, r_visc, p_visc_y, pencil_interior )
+
+    get_RHS ( r_rhs_2, p_rhs_2_x, p_rhs_2_y, p_rhs_2_z,
+              r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg, p_prim_c_x_wo_wg, p_prim_c_y_wo_wg, p_prim_c_z_wo_wg,
+              r_aux_c, p_aux_c_x, p_aux_c_y, p_aux_c_z,
+              r_visc, p_visc_x, p_visc_y, p_visc_z,
+              r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
+              r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
+              r_tauij, p_tauij_x, p_tauij_y, p_tauij_z,
+              LU_x, p_LU_x, LU_y, p_LU_y, LU_z, p_LU_z,
+              LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
+              LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
+              LU_e_x, p_LU_e_x, LU_e_y, p_LU_e_y, LU_e_z, p_LU_e_z,
+              pencil_interior, max_wave_speed_x, max_wave_speed_y, max_wave_speed_z, lambda_x, lambda_y, lambda_z )
+
+    -- Update solution in this substep.
+    __demand(__parallel)
+    for i in pencil_interior do
+      set_zero_cnsr( p_cnsr_3_y[i] )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_3_y[i], p_cnsr_y[i], 0.620101851488403 )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_3_y[i], p_cnsr_2_y[i], 0.379898148511597 )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_3_y[i], p_rhs_2_y[i], 0.251891774271694*dt )
+    end
+
+    -- Update the primitive variables.
+    __demand(__parallel)
+    for i in pencil_interior do
+      token += get_primitive_r( p_cnsr_3_y[i], p_prim_c_y[i] )
+    end
+
+    token += post_substep( coords, p_coords_x, p_coords_y, p_coords_z,
+                           r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg,
+                           r_aux_c, p_aux_c_y,
+                           r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
+                           r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
+                           r_gradrho, p_gradrho_x, p_gradrho_y, p_gradrho_z,
+                           r_gradp, p_gradp_x, p_gradp_y, p_gradp_z,
+                           LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
+                           LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
+                           pencil_interior, tsim, n_ghosts )
+
+    -- Advance fourth sub-step.
+
+    pre_substep( r_prim_c, p_prim_c_y, r_aux_c, p_aux_c_y, r_gradu, p_gradu_y, r_tauij, p_tauij_y, r_visc, p_visc_y, pencil_interior )
+
+    get_RHS ( r_rhs_3, p_rhs_3_x, p_rhs_3_y, p_rhs_3_z,
+              r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg, p_prim_c_x_wo_wg, p_prim_c_y_wo_wg, p_prim_c_z_wo_wg,
+              r_aux_c, p_aux_c_x, p_aux_c_y, p_aux_c_z,
+              r_visc, p_visc_x, p_visc_y, p_visc_z,
+              r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
+              r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
+              r_tauij, p_tauij_x, p_tauij_y, p_tauij_z,
+              LU_x, p_LU_x, LU_y, p_LU_y, LU_z, p_LU_z,
+              LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
+              LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
+              LU_e_x, p_LU_e_x, LU_e_y, p_LU_e_y, LU_e_z, p_LU_e_z,
+              pencil_interior, max_wave_speed_x, max_wave_speed_y, max_wave_speed_z, lambda_x, lambda_y, lambda_z )
+
+    -- Update solution in this substep.
+    __demand(__parallel)
+    for i in pencil_interior do
+      set_zero_cnsr( p_cnsr_4_y[i] )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_4_y[i], p_cnsr_y[i], 0.178079954393132 )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_4_y[i], p_cnsr_3_y[i], 0.821920045606868 )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_4_y[i], p_rhs_3_y[i], 0.544974750228521*dt )
+    end
+
+    -- Update the primitive variables.
+    __demand(__parallel)
+    for i in pencil_interior do
+      token += get_primitive_r( p_cnsr_4_y[i], p_prim_c_y[i] )
+    end
+
+    token += post_substep( coords, p_coords_x, p_coords_y, p_coords_z,
+                           r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg,
+                           r_aux_c, p_aux_c_y,
+                           r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
+                           r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
+                           r_gradrho, p_gradrho_x, p_gradrho_y, p_gradrho_z,
+                           r_gradp, p_gradp_x, p_gradp_y, p_gradp_z,
+                           LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
+                           LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
+                           pencil_interior, tsim, n_ghosts )
+
+    -- Advance fifth sub-step.
+
+    pre_substep( r_prim_c, p_prim_c_y, r_aux_c, p_aux_c_y, r_gradu, p_gradu_y, r_tauij, p_tauij_y, r_visc, p_visc_y, pencil_interior )
+
+    get_RHS ( r_rhs_4, p_rhs_4_x, p_rhs_4_y, p_rhs_4_z,
+              r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg, p_prim_c_x_wo_wg, p_prim_c_y_wo_wg, p_prim_c_z_wo_wg,
+              r_aux_c, p_aux_c_x, p_aux_c_y, p_aux_c_z,
+              r_visc, p_visc_x, p_visc_y, p_visc_z,
+              r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
+              r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
+              r_tauij, p_tauij_x, p_tauij_y, p_tauij_z,
+              LU_x, p_LU_x, LU_y, p_LU_y, LU_z, p_LU_z,
+              LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
+              LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
+              LU_e_x, p_LU_e_x, LU_e_y, p_LU_e_y, LU_e_z, p_LU_e_z,
+              pencil_interior, max_wave_speed_x, max_wave_speed_y, max_wave_speed_z, lambda_x, lambda_y, lambda_z )
+
+    -- Update solution in this substep.
+    __demand(__parallel)
+    for i in pencil_interior do
+      set_zero_cnsr( p_cnsr_y[i] )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_y[i], p_cnsr_2_y[i], 0.517231671970585 )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_y[i], p_cnsr_3_y[i], 0.096059710526147 )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_y[i], p_rhs_3_y[i], 0.063692468666290*dt )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_y[i], p_cnsr_4_y[i], 0.386708617503269 )
+    end
+    __demand(__parallel)
+    for i in pencil_interior do
+      add_value_cnsr( p_cnsr_y[i], p_rhs_4_y[i], 0.226007483236906*dt )
+    end
+
+    -- Update the primitive variables.
+    __demand(__parallel)
+    for i in pencil_interior do
+      token += get_primitive_r( p_cnsr_y[i], p_prim_c_y[i] )
+    end
+
+    token += post_substep( coords, p_coords_x, p_coords_y, p_coords_z,
+                           r_prim_c, p_prim_c_x, p_prim_c_y, p_prim_c_z, p_prim_c_x_wg, p_prim_c_y_wg, p_prim_c_z_wg,
+                           r_aux_c, p_aux_c_y,
+                           r_gradu, p_gradu_x, p_gradu_y, p_gradu_z,
+                           r_grad2u, p_grad2u_x, p_grad2u_y, p_grad2u_z,
+                           r_gradrho, p_gradrho_x, p_gradrho_y, p_gradrho_z,
+                           r_gradp, p_gradp_x, p_gradp_y, p_gradp_z,
+                           LU_N_x, p_LU_N_x, LU_N_y, p_LU_N_y, LU_N_z, p_LU_N_z,
+                           LU2_N_x, p_LU2_N_x, LU2_N_y, p_LU2_N_y, LU2_N_z, p_LU2_N_z,
+                           pencil_interior, tsim, n_ghosts )
+
+
 
     -- Update time step.
     step = step + 1
+    
+    -- Update the simulation time.
+    tsim += dt
 
     if (step-1)%(config.nstats*50) == 0 then
       c.printf("\n")
-      c.printf("%6.6s |%16.16s |%16.16s |%16.16s |%16.16s\n", "Step","Time","Timestep","TKE","Enstrophy")
-      c.printf("-------|-----------------|-----------------|-----------------|----------------\n")
+      c.printf("%6.6s |%16.16s |%16.16s |%16.16s |%16.16s\n", "Step","Time","Timestep","TKE","Enstrophy","Error")
+      c.printf("-------|-----------------|-----------------|-----------------|----------------|----------------\n")
     end
 
     if (step-1)%config.nstats == 0 then
@@ -796,10 +971,28 @@ task main()
       --   enstrophy += problem.enstrophy( p_gradu_y[i] )
       -- end
 
+      var errors : double[5]
+      for ierr = 0,5 do
+        errors[ierr] = 0.0
+      end
+      for i in pencil_interior do
+        var perrors = problem.get_errors(p_coords_y[i], p_prim_c_y[i], tsim)
+        for ierr = 0,5 do
+          errors[ierr] = errors[ierr] + perrors[ierr]
+        end
+      end
+
+      errors[0] = cmath.sqrt(problem.DX*problem.DY*errors[0])
+      errors[1] = cmath.sqrt(problem.DX*problem.DY*errors[1])
+      errors[2] = cmath.sqrt(problem.DX*problem.DY*errors[2])
+      errors[3] = cmath.sqrt(problem.DX*problem.DY*errors[3])
+      errors[4] = cmath.sqrt(problem.DX*problem.DY*errors[4])
+
       do
         var TKE = wait_for_double(TKE)
         var enstrophy = wait_for_double(enstrophy)
-        c.printf("%6d |%16.8e |%16.8e |%16.8e |%16.8e\n", step, tsim, dt, TKE/TKE0, enstrophy/enstrophy0)
+        var errors = wait_for_double(errors[0])
+        c.printf("%6d |%16.8e |%16.8e |%16.8e |%16.8e |%16.8e\n", step, tsim, dt, TKE/TKE0, enstrophy/enstrophy0, errors)
       end
     end
 
@@ -814,7 +1007,6 @@ task main()
         vizcond = false
       end
     end
-
   end
   
   wait_for(token)
@@ -827,18 +1019,31 @@ task main()
   for i in pencil_interior do
     var perrors = problem.get_errors(p_coords_y[i], p_prim_c_y[i], tsim)
     for ierr = 0,5 do
-      if perrors[ierr] > errors[ierr] then
-        errors[ierr] = perrors[ierr]
-      end
+      errors[ierr] = errors[ierr] + perrors[ierr]
     end
   end
 
-  c.printf("\n")
-  c.printf("Error in rho = %g\n", errors[0])
-  c.printf("Error in u   = %g\n", errors[1])
-  c.printf("Error in v   = %g\n", errors[2])
-  c.printf("Error in w   = %g\n", errors[3])
-  c.printf("Error in p   = %g\n", errors[4])
+  errors[0] = cmath.sqrt(problem.DX*problem.DY*errors[0])
+  errors[1] = cmath.sqrt(problem.DX*problem.DY*errors[1])
+  errors[2] = cmath.sqrt(problem.DX*problem.DY*errors[2])
+  errors[3] = cmath.sqrt(problem.DX*problem.DY*errors[3])
+  errors[4] = cmath.sqrt(problem.DX*problem.DY*errors[4])
+
+  -- for i in pencil_interior do
+  --   var perrors = problem.get_errors(p_coords_y[i], p_prim_c_y[i], tsim)
+  --   for ierr = 0,5 do
+  --     if perrors[ierr] > errors[ierr] then
+  --       errors[ierr] = perrors[ierr]
+  --     end
+  --   end
+  -- end
+
+  -- c.printf("\n")
+  -- c.printf("Error in rho = %g\n", errors[0])
+  -- c.printf("Error in u   = %g\n", errors[1])
+  -- c.printf("Error in v   = %g\n", errors[2])
+  -- c.printf("Error in w   = %g\n", errors[3])
+  -- c.printf("Error in p   = %g\n", errors[4])
 
   c.printf("\n")
   c.printf("Average time per time step = %12.5e\n", (t_simulation)*1e-6/step)

@@ -66,6 +66,8 @@ hdf5.H5T_STD_I64LE = hdf5.H5T_STD_I64LE_g
 hdf5.H5T_IEEE_F64LE = hdf5.H5T_IEEE_F64LE_g
 hdf5.H5P_DEFAULT = 0
 
+
+
 terra generate_hdf5_file(filename : rawstring, NX : int64, NY : int64, NZ : int64)
   var fid = hdf5.H5Fcreate(filename, hdf5.H5F_ACC_TRUNC, hdf5.H5P_DEFAULT, hdf5.H5P_DEFAULT)
 
@@ -99,6 +101,8 @@ terra generate_hdf5_file(filename : rawstring, NX : int64, NY : int64, NZ : int6
   hdf5.H5Fclose(fid)
 end
 
+
+
 terra file_exists( filename : rawstring )
   var file_handle = c.fopen(filename, 'r')
   if ( file_handle == nil ) then
@@ -108,11 +112,15 @@ terra file_exists( filename : rawstring )
   end
 end
 
+
+
 local terra read_grid( nx : &int64, ny : &int64, nz : &int64, f : &c.FILE )
   c.fscanf(f, "%d", nx)
   c.fscanf(f, "%d", ny)
   c.fscanf(f, "%d", nz)
 end
+
+
 
 local terra read_coord_data( x : &double, y : &double, z : &double,
                              f : &c.FILE )
@@ -120,6 +128,8 @@ local terra read_coord_data( x : &double, y : &double, z : &double,
   c.fscanf(f, "%lf", y)
   c.fscanf(f, "%lf", z)
 end
+
+
 
 local terra read_primitive_data( rho : &double, u : &double, v : &double, w : &double, p : &double,
                                  f : &c.FILE )
@@ -129,6 +139,8 @@ local terra read_primitive_data( rho : &double, u : &double, v : &double, w : &d
   c.fscanf(f, "%lf", w)
   c.fscanf(f, "%lf", p)
 end
+
+
 
 task write_primitive( r_prim     : region(ispace(int3d), primitive),
                       fileprefix : rawstring,
@@ -183,6 +195,8 @@ do
   -- __delete(tmp_prim)
   return 1
 end
+
+
 
 task read_primitive( r_prim     : region(ispace(int3d), primitive),
                      fileprefix : rawstring,
@@ -277,6 +291,8 @@ do
   return vizcount
 end
 
+
+
 terra generate_hdf5_file_coords(filename : rawstring, NX : int64, NY : int64, NZ : int64)
   var fid = hdf5.H5Fcreate(filename, hdf5.H5F_ACC_TRUNC, hdf5.H5P_DEFAULT, hdf5.H5P_DEFAULT)
 
@@ -301,6 +317,8 @@ terra generate_hdf5_file_coords(filename : rawstring, NX : int64, NY : int64, NZ
   hdf5.H5Sclose(did)
   hdf5.H5Fclose(fid)
 end
+
+
 
 task write_coords( r_coords   : region(ispace(int3d), coordinates),
                    fileprefix : rawstring,
@@ -353,6 +371,8 @@ do
 
   return 1
 end
+
+
 
 task read_coords( r_coords   : region(ispace(int3d), coordinates),
                   fileprefix : rawstring,
